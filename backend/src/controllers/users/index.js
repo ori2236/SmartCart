@@ -3,6 +3,14 @@ import User from "../../models/User.js";
 export default {
   post: {
     validator: async (req, res, next) => {
+      //check that the mail is valid
+      //check that the passward is valid
+
+      const existingUser = await User.findOne({ mail });
+      if (existingUser) {
+        return res.status(400).json({ error: "Email already exists." });
+      }
+
       next();
     },
     handler: async (req, res) => {
@@ -36,41 +44,14 @@ export default {
   },
   get: {
     validator: async (req, res, next) => {
-      //check that the mail is valid
-      //check that the passward is valid
       console.log("user");
       next();
     },
     handler: async (req, res) => {
-      const mail = req.params.id;
+      const { mail } = req.params;
 
       try {
-        const user = await User.findOne({ mail });
-        if (!user) {
-          return res.status(404).json({
-            message: "User not found",
-          });
-        }
-        res.json(user);
-      } catch (error) {
-        res.status(500).json({
-          message: "Error fetching user",
-          error: error.message,
-        });
-      }
-    },
-
-    validator: async (req, res, next) => {
-      //check that the mail is valid
-      //check that the passward is valid
-      console.log("user");
-      next();
-    },
-    handler: async (req, res) => {
-      const mail = req.params.id;
-
-      try {
-        const user = await User.findOne({ mail });
+        const user = await User.findOne({ mail: mail });
         if (!user) {
           return res.status(404).json({
             message: "User not found",
@@ -87,18 +68,18 @@ export default {
   },
   put: {
     validator: async (req, res, next) => {
+      //check that the mail is valid
+      //check that the passward is valid
       next();
     },
     handler: async (req, res) => {
-      const mail = req.params.id;
-      const name = req.body.name;
-      const password = req.body.password;
-      const is_Google = req.body.is_Google;
+      const mail = req.params.mail;
+      const { name, password, is_Google } = req.body;
 
       try {
         const updatedUser = await User.findOneAndUpdate(
           { mail },
-          { name, mail, password, is_Google },
+          { name, password, is_Google },
           { new: true, runValidators: true }
         );
 
@@ -125,11 +106,10 @@ export default {
       next();
     },
     handler: async (req, res) => {
-      const mail = req.params.id;
+      const { mail } = req.params;
 
       try {
-        const deletedUser = await User.findByIdAndDelete(mail);
-
+        const deletedUser = await User.findOneAndDelete({ mail: mail });
         if (!deletedUser) {
           return res.status(404).json({
             message: "User not found",
@@ -168,12 +148,10 @@ export default {
   },
   getAll: {
     validator: async (req, res, next) => {
-      // אין צורך בוולידציה עבור פעולה זו
       next();
     },
     handler: async (req, res) => {
       try {
-        // שליפת כל המשתמשים מהדאטאבייס
         const users = await User.find({});
         res.json({
           message: "Fetched all users",
