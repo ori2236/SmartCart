@@ -25,10 +25,7 @@ export default function CreateUser() {
     try {
       console.log("Sending request to server with data:", newUser); // לוג לבדיקת הנתונים
       const apiUrl = `http://${config.apiServer}/api/user/user/`;
-      const response = await axios.post(
-        "http://10.0.0.12:3000/api/user/user/",
-        newUser
-      );
+      const response = await axios.post(apiUrl, newUser);
       Alert.alert("Success", "User added successfully!");
       console.log("Server response:", response.data); // לוג לבדיקת תשובת השרת
     } catch (error) {

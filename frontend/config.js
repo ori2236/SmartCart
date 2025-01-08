@@ -1,3 +1,3 @@
 export default {
-    apiBaseUrl: "10.0.0.12:3000"
-}
+  apiServer: "127.0.0.1:3000",
+};
