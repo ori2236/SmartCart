@@ -1,0 +1,9 @@
+# Node modules
+node_modules/
+
+# Metro files
+*.metro.config.js
+*.metro.cache
+
+# Logs
+*.log
