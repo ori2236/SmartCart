@@ -1,4 +1,6 @@
 import UserInCart from "../../models/UserInCart.js";
+import Cart from "../../models/Cart.js";
+import User from "../../models/User.js";
 
 export default {
   post: {
@@ -58,21 +60,52 @@ export default {
 
       try {
         if (type === "mail") {
-          const user = await UserInCart.find({ mail: content });
-          if (!user || user.length === 0) {
+          const userInCarts = await UserInCart.find({ mail: content });
+
+          if (!userInCarts || userInCarts.length === 0) {
             return res
               .status(404)
-              .json({ error: "No users found for the provided mail." });
+              .json({
+                error:
+                  "No user-cart relationships found for the provided mail.",
+              });
           }
-          return res.status(200).json(user);
+          const cartsDetails = await Promise.all(
+            userInCarts.map(async (userInCart) => {
+              const cart = await Cart.findOne({ _id: userInCart.cartKey });
+              return {
+                cartKey: userInCart.cartKey,
+                role: userInCart.role,
+                ...(cart && { name: cart.name, address: cart.address }),
+              };
+            })
+          );
+
+          return res.status(200).json(cartsDetails);
         } else if (type === "key") {
-          const users = await UserInCart.find({ cartKey: content });
-          if (!users || users.length === 0) {
+          const userInCarts = await UserInCart.find({ cartKey: content });
+
+          if (!userInCarts || userInCarts.length === 0) {
             return res
               .status(404)
-              .json({ error: "No users found for the provided cart key." });
+              .json({
+                error:
+                  "No user-cart relationships found for the provided cart key.",
+              });
           }
-          return res.status(200).json(users);
+
+          const cartsDetails = await Promise.all(
+            userInCarts.map(async (userInCart) => {
+              const user = await User.findOne({ _id: userInCart.mail });
+              return {
+                mail: userInCart.mail,
+                role: userInCart.role,
+                ...(user && { name: user.name }),
+              };
+            })
+          );
+
+          return res.status(200).json(cartsDetails);
         } else {
           return res
             .status(400)
@@ -182,6 +215,34 @@ export default {
         return res.status(500).json({
           error:
             "An error occurred while deleting all user-cart relationships.",
+        });
+      }
+    },
+  },
+  getAll: {
+    validator: async (req, res, next) => {
+      console.log("userInCart getAll validator triggered");
+      next();
+    },
+    handler: async (req, res) => {
+      try {
+        const userInCarts = await UserInCart.find({});
+
+        if (!userInCarts || userInCarts.length === 0) {
+          return res.status(404).json({
+            error: "No user-cart relationships found.",
+          });
+        }
+
+        res.status(200).json({
+          message: "Fetched all user-cart relationships successfully.",
+          userInCarts,
+        });
+      } catch (error) {
+        console.error("Error in getAll handler:", error.message);
+        res.status(500).json({
+          error:
+            "An error occurred while fetching all user-cart relationships.",
         });
       }
     },

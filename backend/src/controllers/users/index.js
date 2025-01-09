@@ -6,6 +6,7 @@ export default {
       //check that the mail is valid
       //check that the passward is valid
 
+      const mail = req.body.mail;
       const existingUser = await User.findOne({ mail });
       if (existingUser) {
         return res.status(400).json({ error: "Email already exists." });

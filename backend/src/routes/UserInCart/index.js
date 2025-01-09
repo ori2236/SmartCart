@@ -3,7 +3,10 @@ import { Router } from "express";
 
 const router = Router();
 
-router.post("/userInCart", userInCart.post.validator, userInCart.post.handler);
+router.post("/userInCart",
+  userInCart.post.validator,
+  userInCart.post.handler
+);
 
 router.get(
   "/userInCart/:type/:content",
@@ -27,6 +30,12 @@ router.delete(
   "/userInCarts",
   userInCart.deleteAll.validator,
   userInCart.deleteAll.handler
+);
+
+router.get(
+  "/userInCarts",
+  userInCart.getAll.validator,
+  userInCart.getAll.handler
 );
 
 export default router;

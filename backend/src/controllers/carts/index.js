@@ -30,9 +30,9 @@ export default {
     },
     handler: async (req, res) => {
       const { cartKey } = req.params;
-
+      console.log(cartKey);
       try {
-        const cart = await Cart.findOne({ cartKey });
+        const cart = await Cart.findById(cartKey);
         if (!cart) {
           return res.status(404).json({
             message: "Cart not found",
@@ -57,8 +57,8 @@ export default {
       const { name, address } = req.body;
 
       try {
-        const updatedCart = await Cart.findOneAndUpdate(
-          { cartKey },
+        const updatedCart = await Cart.findByIdAndUpdate(
+          cartKey,
           { name, address },
           { new: true, runValidators: true }
         );
@@ -90,7 +90,7 @@ export default {
       const { cartKey } = req.params;
 
       try {
-        const deletedCart = await Cart.findOneAndDelete({ cartKey });
+        const deletedCart = await Cart.findByIdAndDelete(cartKey);
 
         if (!deletedCart) {
           return res.status(404).json({

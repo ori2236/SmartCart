@@ -9,7 +9,7 @@ export default function CreateUser() {
   const [password, setPassword] = useState("");
 
   const handleAddUser = async () => {
-    console.log("Add User button pressed!"); // לוג לבדיקת פעולה
+    console.log("Add User button pressed!");
     if (!name || !mail || !password) {
       Alert.alert("Validation Error", "All fields are required!");
       return;
@@ -23,14 +23,14 @@ export default function CreateUser() {
     };
 
     try {
-      console.log("Sending request to server with data:", newUser); // לוג לבדיקת הנתונים
+      console.log("Sending request to server with data:", newUser);
       const apiUrl = `http://${config.apiServer}/api/user/user/`;
       const response = await axios.post(apiUrl, newUser);
       Alert.alert("Success", "User added successfully!");
-      console.log("Server response:", response.data); // לוג לבדיקת תשובת השרת
+      console.log("Server response:", response.data);
     } catch (error) {
       Alert.alert("Error", "Failed to add user. Please try again.");
-      console.error("Error message:", error.message); // לוג לבדיקת השגיאה
+      console.error("Error message:", error.message);
     }
   };
 
