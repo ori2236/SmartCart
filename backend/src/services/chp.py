@@ -5,15 +5,24 @@ import sys
 # הגדרת קידוד UTF-8
 sys.stdout.reconfigure(encoding='utf-8')
 
+# בדיקת פרמטרים
+if len(sys.argv) < 3:
+    print(json.dumps({"error": "Missing required arguments: term and shopping_address"}, ensure_ascii=False))
+    sys.exit(1)
+
+# פרמטרים מהשורה
+term = sys.argv[1]  # מילת החיפוש
+shopping_address = sys.argv[2]  # כתובת הקנייה
+
 # URL הבסיס
 url = "https://chp.co.il/autocompletion/product_extended"
 
 # פרמטרים לחיפוש
 params = {
-    "term": "חלב",  # מילת החיפוש
+    "term": term,  # מילת החיפוש
     "from": 0,
     "u": "0.3687824447572643",  # מזהה ייחודי (יכול להשתנות)
-    "shopping_address": "נתניה",
+    "shopping_address": shopping_address,
     "shopping_address_city_id": 7400,
     "shopping_address_street_id": 9000,
 }

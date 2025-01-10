@@ -18,7 +18,9 @@ const { width, height } = Dimensions.get("window");
 const ShoppingCartScreen = ({ navigation }) => {
   const [selectedTab, setSelectedTab] = useState("name");
   const [products, setProducts] = useState([]);
+  const [searchTerm, setSearchTerm] = useState(""); // שדה לשמירת החיפוש
   const [isLoading, setIsLoading] = useState(false);
+
   const handleTabPress = (tab) => {
     setSelectedTab(tab);
   };
@@ -28,9 +30,18 @@ const ShoppingCartScreen = ({ navigation }) => {
   };
 
   const fetchProducts = async () => {
+    if (!searchTerm.trim()) {
+      Alert.alert("שגיאה", "יש להזין מילה לחיפוש");
+      return;
+    }
+
     setIsLoading(true);
     try {
-      const response = await fetch(`http://${config.apiServer}/products`);
+      const response = await fetch(
+        `http://${config.apiServer}/products?term=${encodeURIComponent(
+          searchTerm
+        )}&shopping_address=נתניה`
+      );
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -112,6 +123,8 @@ const ShoppingCartScreen = ({ navigation }) => {
           style={styles.searchInput}
           placeholder="איזה מוצר או מותג לחפש?"
           placeholderTextColor="#AAAAAA"
+          value={searchTerm} // חיבור לשדה החיפוש
+          onChangeText={(text) => setSearchTerm(text)} // עדכון הטקסט
         />
       </View>
 
