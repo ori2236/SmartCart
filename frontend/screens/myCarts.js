@@ -42,9 +42,8 @@ const MyCartsScreen = ({ route }) => {
           source={require("../assets/full-logo-white.png")}
           style={styles.logo}
         />
+        <Text style={styles.subtitle}>העגלות שלי</Text>
       </View>
-
-      <Text style={styles.subtitle}>העגלות שלי</Text>
 
       <ScrollView style={styles.scrollableContainer}>
         {cartNames.map((name, index) => (
@@ -55,8 +54,12 @@ const MyCartsScreen = ({ route }) => {
               color="black"
               style={styles.info}
             />
-            <TouchableOpacity style={styles.buttonCart}>
+            <TouchableOpacity
+              style={styles.buttonCart}
+              onPress={() => navigation.navigate("addProducts")}
+            >
               <Text style={styles.buttonCartText}>{name}</Text>
+              
             </TouchableOpacity>
           </View>
         ))}
@@ -69,28 +72,28 @@ const styles = StyleSheet.create({
   backgroundColor: {
     flex: 1,
     backgroundColor: "#ffffff",
-    padding: 20,
   },
   header: {
     flexDirection: "column",
     alignItems: "center",
     backgroundColor: "#0F872B",
-    height: height * 0.25,
+    height: height * 0.3,
     justifyContent: "flex-start",
     position: "relative",
     width: "100%",
     top: 0,
-    paddingTop: height * 0.08,
+    paddingTop: height * 0.05,
   },
   backButton: {
     position: "absolute",
-    left: 10,
-    top: 20,
+    left: 20,
+    top: Platform.OS === "web" ? 30: 45,
   },
   logo: {
+    height: Platform.OS === "web" ? height * 0.22 : height * 0.2,
     width: Platform.OS === "web" ? width * 0.4 : width * 0.6,
-    height: Platform.OS === "web" ? height * 0.1 : height * 0.08,
     resizeMode: "contain",
+    marginTop: Platform.OS === "web" ? -10 : 0,
   },
   subtitle: {
     textAlign: "center",
@@ -98,7 +101,7 @@ const styles = StyleSheet.create({
     color: "#ffffff",
     justifyContent: "center",
     alignItems: "center",
-    marginTop: 10, // רווח קל מלמעלה
+    marginTop: Platform.OS === "web" ? -10 : -15,
   },
   buttonCart: {
     alignItems: "center",
@@ -107,7 +110,6 @@ const styles = StyleSheet.create({
     borderRadius: 100,
     width: width * 0.6,
     height: height * 0.06,
-    marginBottom: 20,
     alignSelf: "center",
   },
   buttonCartText: {
@@ -131,5 +133,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 });
+
 
 export default MyCartsScreen;

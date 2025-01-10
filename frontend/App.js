@@ -6,6 +6,7 @@ import axios from "axios";
 import Home from "./screens/home";
 import addUser from "./screens/addUser";
 import MyCarts from "./screens/myCarts";
+import AddProducts from "./screens/addProducts";
 import config from "./config";
 
 const Stack = createStackNavigator();
@@ -30,7 +31,6 @@ const MainScreen = ({ navigation }) => {
       setUserPassword(data.password);
       setIsGoogle(data.is_Google);
 
-      Alert.alert("Success", `User data fetched successfully: ${data.name}`);
       console.log("Fetched user data:", data);
     } catch (error) {
       Alert.alert("Error", "Failed to fetch user data. Please try again.");
@@ -95,6 +95,11 @@ export default function App() {
         <Stack.Screen
           name="MyCarts"
           component={MyCarts}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="addProducts"
+          component={AddProducts}
           options={{ headerShown: false }}
         />
       </Stack.Navigator>
