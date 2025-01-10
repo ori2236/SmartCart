@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import config from "../config";
 import {
   View,
   Text,
@@ -9,13 +10,15 @@ import {
   Alert,
   Dimensions,
   Platform,
+  FlatList,
 } from "react-native";
 
 const { width, height } = Dimensions.get("window");
 
 const ShoppingCartScreen = ({ navigation }) => {
   const [selectedTab, setSelectedTab] = useState("name");
-
+  const [products, setProducts] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
   const handleTabPress = (tab) => {
     setSelectedTab(tab);
   };
@@ -23,6 +26,28 @@ const ShoppingCartScreen = ({ navigation }) => {
   const handleIconPress = (iconName) => {
     Alert.alert(iconName);
   };
+
+  const fetchProducts = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch(`http://${config.apiServer}/products`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      setProducts(data);
+    } catch (error) {
+      console.error("Error fetching products:", error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const renderProduct = ({ item }) => (
+    <View style={styles.productItem}>
+      <Text style={styles.productText}>{item.label}</Text>
+    </View>
+  );
 
   return (
     <View style={styles.backgroundColor}>
@@ -80,7 +105,7 @@ const ShoppingCartScreen = ({ navigation }) => {
 
       {/* Search Bar */}
       <View style={styles.searchContainer}>
-        <TouchableOpacity style={styles.searchButton}>
+        <TouchableOpacity style={styles.searchButton} onPress={fetchProducts}>
           <Text style={styles.searchButtonText}>חפש</Text>
         </TouchableOpacity>
         <TextInput
@@ -90,31 +115,48 @@ const ShoppingCartScreen = ({ navigation }) => {
         />
       </View>
 
-      {/* Logo and Description */}
-      <Image source={require("../assets/logo.jpeg")} style={styles.logo} />
-      <Text style={styles.description}>חפש מוצר שברצונך לרכוש</Text>
+      {/* Products List or Logo */}
+      <View style={styles.contentContainer}>
+        {isLoading ? (
+          <Text style={styles.loadingText}>טוען מוצרים...</Text>
+        ) : products.length > 0 ? (
+          <FlatList
+            data={products}
+            renderItem={renderProduct}
+            keyExtractor={(item, index) => index.toString()}
+          />
+        ) : (
+          <>
+            <Image
+              source={require("../assets/logo.jpeg")}
+              style={styles.logo}
+            />
+            <Text style={styles.description}>חפש מוצר שברצונך לרכוש</Text>
+          </>
+        )}
+      </View>
 
       {/* Bottom Navigation */}
       <View style={styles.bottomNavigation}>
-        <TouchableOpacity onPress={() => handleIconPress("Shopping List 1")}>
+        <TouchableOpacity>
           <Image
             source={require("../assets/super-branches.png")}
             style={styles.navIcon}
           />
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => handleIconPress("Shopping List 2")}>
+        <TouchableOpacity>
           <Image
             source={require("../assets/shopping-list.png")}
             style={styles.navIcon}
           />
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => handleIconPress("Add Products")}>
+        <TouchableOpacity>
           <Image
             source={require("../assets/add-products.png")}
             style={styles.addProductsIcon}
           />
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => handleIconPress("Home")}>
+        <TouchableOpacity>
           <Image
             source={require("../assets/home.png")}
             style={styles.navIcon}
@@ -230,6 +272,26 @@ const styles = StyleSheet.create({
     color: "#333333",
     fontWeight: "bold",
     marginBottom: 10,
+  },
+  contentContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    fontSize: 18,
+    color: "#FF7E3E",
+  },
+  productItem: {
+    padding: 10,
+    marginBottom: 50,
+    borderBottomWidth: 1,
+    borderBottomColor: "#CCCCCC",
+    width: "100%",
+  },
+  productText: {
+    fontSize: 16,
+    textAlign: "right",
   },
   bottomNavigation: {
     flexDirection: "row",

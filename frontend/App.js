@@ -59,7 +59,6 @@ const MainScreen = ({ navigation }) => {
       />
       <View style={styles.spacing} />
 
-      {/* הצגת המידע שנשלף */}
       <View style={styles.infoContainer}>
         <Text style={styles.infoText}>User ID: {userId}</Text>
         <Text style={styles.infoText}>Name: {userName}</Text>
@@ -121,10 +120,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   spacing: {
-    height: 20, // רווח בין כפתורים
+    height: 20,
   },
   infoContainer: {
-    marginTop: 20, // רווח מעל הטקסט
+    marginTop: 20,
     paddingHorizontal: 20,
     alignItems: "center",
   },
