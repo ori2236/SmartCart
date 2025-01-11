@@ -1,48 +1,57 @@
+import util from "util";
 import { exec } from "child_process";
-import { fileURLToPath } from "url";
 import path from "path";
+import { fileURLToPath } from "url";
 
-// הגדרת __dirname ידנית
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const getProducts = (req, res) => {
-  const { term, shopping_address } = req.query;
+const execPromise = util.promisify(exec);
 
-  if (!term || !shopping_address) {
-    res
-      .status(400)
-      .json({
-        error: "Missing required query parameters: term and shopping_address",
-      });
-    return;
-  }
-
-  // שימוש בנתיב יחסי
-  const scriptPath = path.resolve(__dirname, "chp.py");
-
-  exec(
-    `python "${scriptPath}" "${term}" "${shopping_address}"`,
-    (error, stdout, stderr) => {
-      if (error) {
-        res
-          .status(500)
-          .json({ error: `Error executing script: ${error.message}` });
-        return;
-      }
-      if (stderr) {
-        res.status(500).json({ error: `Script error: ${stderr}` });
-        return;
-      }
-
-      try {
-        const products = JSON.parse(stdout);
-        res.status(200).json(products);
-      } catch (err) {
-        res.status(500).json({ error: `Error parsing output: ${err.message}` });
-      }
-    }
-  );
+const runScript = async (scriptPath, args = []) => {
+  const command = `python "${scriptPath}" ${args
+    .map((arg) => `"${arg}"`)
+    .join(" ")}`;
+  const { stdout, stderr } = await execPromise(command);
+  if (stderr) throw new Error(stderr.trim());
+  return stdout.trim();
 };
+
+const getProducts = async (req, res) => {
+  const term = req.query.term || "חלב";
+  const shopping_address = req.query.shopping_address || "נתניה";
+
+  const chpScriptPath = path.resolve(__dirname, "chp.py");
+  const findScriptPath = path.resolve(__dirname, "find.py");
+
+  try {
+    const productsJson = await runScript(chpScriptPath, [
+      term,
+      shopping_address,
+    ]);
+    const products = JSON.parse(productsJson);
+
+    const updatedProducts = await Promise.all(
+      products.map(async (product) => {
+        try {
+          const findResultJson = await runScript(findScriptPath, [
+            shopping_address,
+            product.label,
+          ]);
+          const imageResult = JSON.parse(findResultJson);
+
+          return { ...product, image: imageResult.image };
+        } catch (error) {
+          return { ...product, image: "error" };
+        }
+      })
+    );
+
+    res.status(200).json(updatedProducts);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
 
 export default getProducts;

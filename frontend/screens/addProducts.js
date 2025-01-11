@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import config from "../config";
+import Svg, { Polygon } from "react-native-svg";
 import {
   View,
   Text,
@@ -18,15 +19,36 @@ const { width, height } = Dimensions.get("window");
 const ShoppingCartScreen = ({ navigation }) => {
   const [selectedTab, setSelectedTab] = useState("name");
   const [products, setProducts] = useState([]);
-  const [searchTerm, setSearchTerm] = useState(""); // שדה לשמירת החיפוש
+  const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   const handleTabPress = (tab) => {
     setSelectedTab(tab);
   };
 
-  const handleIconPress = (iconName) => {
-    Alert.alert(iconName);
+  const handleQuantityChange = (id, change) => {
+    setProducts((prevProducts) =>
+      prevProducts.map((product) =>
+        product.id === id
+          ? { ...product, quantity: Math.max(product.quantity + change, 0) }
+          : product
+      )
+    );
+  };
+
+
+  const toggleStarColor = (id) => {
+    console.log("Toggling star color for id:", id);
+    setProducts((prevProducts) =>
+      prevProducts.map((product) =>
+        product.id === id
+          ? {
+              ...product,
+              starColor: product.starColor === "#D9D9D9" ? "#FFD700" : "#D9D9D9",
+            }
+          : product
+      )
+    );
   };
 
   const fetchProducts = async () => {
@@ -46,7 +68,15 @@ const ShoppingCartScreen = ({ navigation }) => {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const data = await response.json();
-      setProducts(data);
+
+      const updatedProducts = data.map((product, index) => ({
+        ...product,
+        id: index,
+        quantity: 1,
+        starColor: "#D9D9D9",
+      }));
+      setProducts(updatedProducts);
+
     } catch (error) {
       console.error("Error fetching products:", error.message);
     } finally {
@@ -54,11 +84,77 @@ const ShoppingCartScreen = ({ navigation }) => {
     }
   };
 
-  const renderProduct = ({ item }) => (
-    <View style={styles.productItem}>
-      <Text style={styles.productText}>{item.label}</Text>
-    </View>
-  );
+  const renderProduct = ({ item }) => {
+    const imageSource = item.image
+      ? {
+          uri: item.image.startsWith("data:image")
+            ? item.image
+            : `data:image/png;base64,${item.image}`,
+        }
+      : require("../assets/logo.jpeg");
+
+    return (
+      <View style={styles.productContainer}>
+        <View style={styles.productContainerTop}>
+          <Text style={styles.productText}>{item.label}</Text>
+          <Image
+            style={styles.productImage}
+            source={imageSource}
+            resizeMode="contain"
+          />
+        </View>
+        <View style={styles.productContainerBottom}>
+          {/* כוכב */}
+          <View onStartShouldSetResponder={() => toggleStarColor(item.id)}>
+            <Svg
+              height="30"
+              width="30"
+              viewBox="0 0 100 100"
+              style={styles.star}
+            >
+              <Polygon
+                points="50,10 61,38 90,38 66,57 74,85 50,70 26,85 34,57 10,38 39,38"
+                fill={item.starColor}
+                stroke="#000"
+                strokeWidth="0.5"
+              />
+            </Svg>
+          </View>
+
+          {/* איקון מינוס */}
+          <TouchableOpacity onPress={() => handleQuantityChange(item.id, -1)}>
+            <Text style={styles.minusIcon}>-</Text>
+          </TouchableOpacity>
+
+          {/* יחידות */}
+          <Text style={styles.unitText}>יח'</Text>
+
+          {/* כמות */}
+          <View style={styles.quantityContainer}>
+            <TextInput
+              style={styles.quantityText}
+              value={item.quantity.toString()}
+              onChangeText={(value) => {
+                const parsedValue = parseInt(value) || 0;
+                handleQuantityChange(item.id, parsedValue - item.quantity);
+              }}
+              keyboardType="numeric"
+            />
+          </View>
+
+          {/* איקון פלוס */}
+          <TouchableOpacity onPress={() => handleQuantityChange(item.id, 1)}>
+            <Text style={styles.plusIcon}>+</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.addToCartButton}>
+            <Text style={styles.addToCartText}>הוספה</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  };
+
 
   return (
     <View style={styles.backgroundColor}>
@@ -123,8 +219,9 @@ const ShoppingCartScreen = ({ navigation }) => {
           style={styles.searchInput}
           placeholder="איזה מוצר או מותג לחפש?"
           placeholderTextColor="#AAAAAA"
-          value={searchTerm} // חיבור לשדה החיפוש
-          onChangeText={(text) => setSearchTerm(text)} // עדכון הטקסט
+          value={searchTerm}
+          onChangeText={(text) => setSearchTerm(text)}
+          onSubmitEditing={fetchProducts}
         />
       </View>
 
@@ -133,11 +230,17 @@ const ShoppingCartScreen = ({ navigation }) => {
         {isLoading ? (
           <Text style={styles.loadingText}>טוען מוצרים...</Text>
         ) : products.length > 0 ? (
-          <FlatList
-            data={products}
-            renderItem={renderProduct}
-            keyExtractor={(item, index) => index.toString()}
-          />
+          <View style={{ flex: 1 }}>
+            <View style={{ flex: 1 }}>
+              <FlatList
+                data={products}
+                renderItem={renderProduct}
+                keyExtractor={(item, index) => index.toString()}
+                contentContainerStyle={{ paddingBottom: 80 }}
+                style={{ flex: 1 }}
+              />
+            </View>
+          </View>
         ) : (
           <>
             <Image
@@ -189,7 +292,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-end",
     backgroundColor: "#0F872B",
-    height: height * 0.17,
+    height: height * 0.15,
     justifyContent: "space-between",
     position: "relative",
     width: "100%",
@@ -208,8 +311,7 @@ const styles = StyleSheet.create({
     height: 36,
     position: "absolute",
     right: 20,
-
-    top: Platform.OS === "web" ? 30 : 45,
+    top: Platform.OS === "web" ? 30 : 55,
   },
   tabContainer: {
     flexDirection: "row",
@@ -248,6 +350,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginHorizontal: 15,
     marginTop: 10,
+    marginBottom: 10,
   },
   searchInput: {
     flex: 1,
@@ -258,10 +361,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     backgroundColor: "#F9F9F9",
     textAlignVertical: "center",
-    marginTop: 15,
+    marginTop: 5,
   },
   searchButton: {
-    marginTop: 10,
+    marginTop: 0,
     marginRight: 10,
     backgroundColor: "#FF7E3E",
     paddingHorizontal: 20,
@@ -295,17 +398,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: "#FF7E3E",
   },
-  productItem: {
-    padding: 10,
-    marginBottom: 50,
-    borderBottomWidth: 1,
-    borderBottomColor: "#CCCCCC",
-    width: "100%",
-  },
-  productText: {
-    fontSize: 16,
-    textAlign: "right",
-  },
   bottomNavigation: {
     flexDirection: "row",
     justifyContent: "space-around",
@@ -326,6 +418,122 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     tintColor: "#0F872B",
+  },
+  productImage: {
+    width: 95,
+    height: 95,
+    borderRadius: 5,
+    position: "absolute",
+    right: -15, 
+  },
+  productText: {
+    fontSize: 14,
+    textAlign: "right",
+    flexShrink: 1,
+    flexWrap: "wrap",
+    color: "#000000",
+    marginRight: 70,
+    marginTop: 10,
+    fontWeight: "bold",
+  },
+  productContainer: {
+    flexDirection: "column",
+    justifyContent: "center",
+    padding: 10,
+    margin: 10,
+    borderWidth: 1,
+    borderColor: "#CCCCCC",
+    borderRadius: 20,
+    backgroundColor: "#FFFFFF",
+    width: Platform.OS === "web" ? width * 0.5 : width * 0.9,
+    paddingHorizontal: 20,
+    height: 180,
+    elevation: 2,
+    overflow: "hidden",
+  },
+  productContainerTop: {
+    flexDirection: "row",
+    top: 0,
+    justifyContent: "center",
+    borderBottomColor: "#CCCCCC",
+    borderBottomWidth: 1,
+    backgroundColor: "#FFFFFF",
+    height: 110,
+  },
+  productContainerBottom: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 10,
+    height: 40,
+  },
+
+  minusIcon: {
+    position: "absolute",
+    top: -28,
+    left: -12,
+    fontSize: 35,
+    color: "#FF7E3E",
+  },
+
+  plusIcon: {
+    position: "absolute",
+    top: -25,
+    fontSize: 32,
+    color: "#FF7E3E",
+  },
+
+  quantityContainer: {
+    width: 30,
+    height: 40,
+    borderWidth: 1,
+    borderColor: "#CCCCCC",
+    borderRadius: 5,
+    justifyContent: "center",
+    alignItems: "center",
+    marginHorizontal: 5,
+    backgroundColor: "#FFFFFF",
+    padding: 0,
+    overflow: "hidden",
+  },
+  quantityText: {
+    fontSize: 15,
+    color: "#000000",
+    textAlign: "center",
+    textAlignVertical: "center",
+    padding: 0,
+    margin: 0,
+    height: "100%",
+    width: "100%",
+  },
+
+  unitText: {
+    fontSize: 16,
+    color: "#000000",
+    marginHorizontal: 5,
+    textAlign: "center",
+  },
+
+  star: {
+    position: "absolute",
+    top: -15,
+    right: Platform.OS === "web" ? -395 : -197,
+  },
+
+  addToCartButton: {
+    width: 85,
+    borderRadius: 20,
+    position: "absolute",
+    left: 5,
+    backgroundColor: "#0F872B",
+    justifyContent: "center",
+    alignItems: "center",
+    marginLeft: -12,
+  },
+  addToCartText: {
+    fontSize: 15,
+    color: "#FFFFFF",
+    marginVertical: 7,
   },
 });
 
