@@ -63,49 +63,53 @@ export default {
           const userInCarts = await UserInCart.find({ mail: content });
 
           if (!userInCarts || userInCarts.length === 0) {
-            return res
-              .status(404)
-              .json({
-                error:
-                  "No user-cart relationships found for the provided mail.",
-              });
+            return res.status(404).json({
+              error: "No user-cart relationships found for the provided mail.",
+            });
           }
-          const cartsDetails = await Promise.all(
-            userInCarts.map(async (userInCart) => {
-              const cart = await Cart.findOne({ _id: userInCart.cartKey });
-              return {
-                cartKey: userInCart.cartKey,
-                role: userInCart.role,
-                ...(cart && { name: cart.name, address: cart.address }),
-              };
-            })
-          );
 
-          return res.status(200).json(cartsDetails);
+          const cartsDetails = await Cart.find({
+            _id: { $in: userInCarts.map((userInCart) => userInCart.cartKey) },
+          });
+
+          const response = userInCarts.map((userInCart) => {
+            const cart = cartsDetails.find(
+              (cart) => cart._id.toString() === userInCart.cartKey.toString()
+            );
+            return {
+              cartKey: userInCart.cartKey,
+              role: userInCart.role,
+              ...(cart && { name: cart.name, address: cart.address }),
+            };
+          });
+
+          return res.status(200).json(response);
         } else if (type === "key") {
-          const userInCarts = await UserInCart.find({ cartKey: content });
+          const userInCart = await UserInCart.findOne({ cartKey: content });
 
-          if (!userInCarts || userInCarts.length === 0) {
-            return res
-              .status(404)
-              .json({
-                error:
-                  "No user-cart relationships found for the provided cart key.",
-              });
+          if (!userInCart) {
+            return res.status(404).json({
+              error:
+                "No user-cart relationship found for the provided cart key.",
+            });
           }
 
-          const cartsDetails = await Promise.all(
-            userInCarts.map(async (userInCart) => {
-              const user = await User.findOne({ _id: userInCart.mail });
-              return {
-                mail: userInCart.mail,
-                role: userInCart.role,
-                ...(user && { name: user.name }),
-              };
-            })
-          );
+          const cart = await Cart.findOne({ _id: userInCart.cartKey });
 
-          return res.status(200).json(cartsDetails);
+          if (!cart) {
+            return res.status(404).json({
+              error: "No cart found for the provided cart key.",
+            });
+          }
+
+          const response = {
+            cartKey: userInCart.cartKey,
+            role: userInCart.role,
+            name: cart.name,
+            address: cart.address,
+          };
+
+          return res.status(200).json(response);
         } else {
           return res
             .status(400)
