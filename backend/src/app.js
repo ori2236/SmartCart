@@ -12,6 +12,5 @@ app
   .use(express.json())
   .use(express.urlencoded({ extended: true }))
   .use("/api", routes)
-  .use("/products", getProducts);
     
 export default app;

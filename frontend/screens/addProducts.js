@@ -60,7 +60,9 @@ const ShoppingCartScreen = ({ navigation }) => {
     setIsLoading(true);
     try {
       const response = await fetch(
-        `http://${config.apiServer}/products?term=${encodeURIComponent(
+        `http://${
+          config.apiServer
+        }/api/product/productsFromSearch/?term=${encodeURIComponent(
           searchTerm
         )}&shopping_address=נתניה`
       );
