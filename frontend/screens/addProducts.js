@@ -1,29 +1,31 @@
 import React, { useState } from "react";
-import config from "../config";
-import Svg, { Polygon } from "react-native-svg";
 import {
   View,
   Text,
   TouchableOpacity,
-  TextInput,
   Image,
   StyleSheet,
-  Alert,
   Dimensions,
   Platform,
-  FlatList,
 } from "react-native";
+import SearchProductList from "./SearchProductList";
+import ProductSearch from "./ProductSearch";
+import ProductFavorites from "./ProductFavorites";
+import ProductList from "./ProductList";
 
 const { width, height } = Dimensions.get("window");
 
-const ShoppingCartScreen = ({ navigation }) => {
-  const [selectedTab, setSelectedTab] = useState("name");
-  const [products, setProducts] = useState([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+const AddProducts = () => {
+  const [selectedTab, setSelectedTab] = useState("name"); // טאב נבחר כברירת מחדל
+  const [products, setProducts] = useState([]); // מצב לאחסון המוצרים
 
   const handleTabPress = (tab) => {
     setSelectedTab(tab);
+    setProducts([]);
+  };
+
+  const handleProductsFetched = (fetchedProducts) => {
+    setProducts(fetchedProducts); // עדכון המוצרים שנמשכו
   };
 
   const handleQuantityChange = (id, change) => {
@@ -36,127 +38,55 @@ const ShoppingCartScreen = ({ navigation }) => {
     );
   };
 
-
-  const toggleStarColor = (id) => {
-    console.log("Toggling star color for id:", id);
+  const handleToggleStar = (id) => {
     setProducts((prevProducts) =>
       prevProducts.map((product) =>
         product.id === id
           ? {
               ...product,
-              starColor: product.starColor === "#D9D9D9" ? "#FFD700" : "#D9D9D9",
+              starColor:
+                product.starColor === "#D9D9D9" ? "#FFD700" : "#D9D9D9",
             }
           : product
       )
     );
   };
 
-  const fetchProducts = async () => {
-    if (!searchTerm.trim()) {
-      Alert.alert("שגיאה", "יש להזין מילה לחיפוש");
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const response = await fetch(
-        `http://${
-          config.apiServer
-        }/api/product/productsFromSearch/?term=${encodeURIComponent(
-          searchTerm
-        )}&shopping_address=נתניה`
-      );
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data = await response.json();
-
-      const updatedProducts = data.map((product, index) => ({
-        ...product,
-        id: index,
-        quantity: 1,
-        starColor: "#D9D9D9",
-      }));
-      setProducts(updatedProducts);
-
-    } catch (error) {
-      console.error("Error fetching products:", error.message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const renderProduct = ({ item }) => {
-    const imageSource = item.image
-      ? {
-          uri: item.image.startsWith("data:image")
-            ? item.image
-            : `data:image/png;base64,${item.image}`,
-        }
-      : require("../assets/logo.jpeg");
-
-    return (
-      <View style={styles.productContainer}>
-        <View style={styles.productContainerTop}>
-          <Text style={styles.productText}>{item.label}</Text>
-          <Image
-            style={styles.productImage}
-            source={imageSource}
-            resizeMode="contain"
+  const renderContent = () => {
+    if (selectedTab === "name") {
+      return (
+        <>
+          <ProductSearch
+            shoppingAddress="נתניה"
+            onProductsFetched={handleProductsFetched}
           />
-        </View>
-        <View style={styles.productContainerBottom}>
-          {/* כוכב */}
-          <View onStartShouldSetResponder={() => toggleStarColor(item.id)}>
-            <Svg
-              height="30"
-              width="30"
-              viewBox="0 0 100 100"
-              style={styles.star}
-            >
-              <Polygon
-                points="50,10 61,38 90,38 66,57 74,85 50,70 26,85 34,57 10,38 39,38"
-                fill={item.starColor}
-                stroke="#000"
-                strokeWidth="0.5"
-              />
-            </Svg>
-          </View>
-
-          {/* איקון מינוס */}
-          <TouchableOpacity onPress={() => handleQuantityChange(item.id, -1)}>
-            <Text style={styles.minusIcon}>-</Text>
-          </TouchableOpacity>
-
-          {/* יחידות */}
-          <Text style={styles.unitText}>יח'</Text>
-
-          {/* כמות */}
-          <View style={styles.quantityContainer}>
-            <TextInput
-              style={styles.quantityText}
-              value={item.quantity.toString()}
-              onChangeText={(value) => {
-                const parsedValue = parseInt(value) || 0;
-                handleQuantityChange(item.id, parsedValue - item.quantity);
-              }}
-              keyboardType="numeric"
+          {products.length > 0 && (
+            <ProductList
+              products={products}
+              onQuantityChange={handleQuantityChange}
+              onToggleStar={handleToggleStar}
             />
-          </View>
-
-          {/* איקון פלוס */}
-          <TouchableOpacity onPress={() => handleQuantityChange(item.id, 1)}>
-            <Text style={styles.plusIcon}>+</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.addToCartButton}>
-            <Text style={styles.addToCartText}>הוספה</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
+          )}
+        </>
+      );
+    } else if (selectedTab === "favorites") {
+      return (
+        <>
+          <ProductFavorites
+            email="orismail@gmail.com"
+            onProductsFetched={handleProductsFetched}
+          />
+          {products.length > 0 && (
+            <ProductList
+              products={products}
+              onQuantityChange={handleQuantityChange}
+              onToggleStar={handleToggleStar}
+            />
+          )}
+        </>
+      );
+    }
   };
-
 
   return (
     <View style={styles.backgroundColor}>
@@ -212,60 +142,21 @@ const ShoppingCartScreen = ({ navigation }) => {
         </TouchableOpacity>
       </View>
 
-      {/* Search Bar */}
-      <View style={styles.searchContainer}>
-        <TouchableOpacity style={styles.searchButton} onPress={fetchProducts}>
-          <Text style={styles.searchButtonText}>חפש</Text>
-        </TouchableOpacity>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="איזה מוצר או מותג לחפש?"
-          placeholderTextColor="#AAAAAA"
-          value={searchTerm}
-          onChangeText={(text) => setSearchTerm(text)}
-          onSubmitEditing={fetchProducts}
-        />
-      </View>
-
-      {/* Products List or Logo */}
-      <View style={styles.contentContainer}>
-        {isLoading ? (
-          <Text style={styles.loadingText}>טוען מוצרים...</Text>
-        ) : products.length > 0 ? (
-          <View style={{ flex: 1 }}>
-            <View style={{ flex: 1 }}>
-              <FlatList
-                data={products}
-                renderItem={renderProduct}
-                keyExtractor={(item, index) => index.toString()}
-                contentContainerStyle={{ paddingBottom: 80 }}
-                style={{ flex: 1 }}
-              />
-            </View>
-          </View>
-        ) : (
-          <>
-            <Image
-              source={require("../assets/logo.jpeg")}
-              style={styles.logo}
-            />
-            <Text style={styles.description}>חפש מוצר שברצונך לרכוש</Text>
-          </>
-        )}
-      </View>
+      {/* Content */}
+      {renderContent()}
 
       {/* Bottom Navigation */}
       <View style={styles.bottomNavigation}>
         <TouchableOpacity>
           <Image
             source={require("../assets/super-branches.png")}
-            style={styles.navIcon}
+            style={styles.bottomIcon}
           />
         </TouchableOpacity>
         <TouchableOpacity>
           <Image
             source={require("../assets/shopping-list.png")}
-            style={styles.navIcon}
+            style={styles.bottomIcon}
           />
         </TouchableOpacity>
         <TouchableOpacity>
@@ -277,7 +168,7 @@ const ShoppingCartScreen = ({ navigation }) => {
         <TouchableOpacity>
           <Image
             source={require("../assets/home.png")}
-            style={styles.navIcon}
+            style={styles.bottomIcon}
           />
         </TouchableOpacity>
       </View>
@@ -347,59 +238,6 @@ const styles = StyleSheet.create({
   activeTabText: {
     color: "#FFFFFF",
   },
-  searchContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginHorizontal: 15,
-    marginTop: 10,
-    marginBottom: 10,
-  },
-  searchInput: {
-    flex: 1,
-    height: 40,
-    borderWidth: 1,
-    borderColor: "#CCCCCC",
-    borderRadius: 20,
-    paddingHorizontal: 15,
-    backgroundColor: "#F9F9F9",
-    textAlignVertical: "center",
-    marginTop: 5,
-  },
-  searchButton: {
-    marginTop: 0,
-    marginRight: 10,
-    backgroundColor: "#FF7E3E",
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
-  },
-  searchButtonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-  },
-  logo: {
-    alignSelf: "center",
-    width: 180,
-    height: 150,
-    marginTop: height * 0.13,
-    marginBottom: 7,
-  },
-  description: {
-    textAlign: "center",
-    fontSize: 16,
-    color: "#333333",
-    fontWeight: "bold",
-    marginBottom: 10,
-  },
-  contentContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  loadingText: {
-    fontSize: 18,
-    color: "#FF7E3E",
-  },
   bottomNavigation: {
     flexDirection: "row",
     justifyContent: "space-around",
@@ -412,7 +250,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
   },
 
-  navIcon: {
+  bottomIcon: {
     width: 30,
     height: 30,
   },
@@ -426,7 +264,7 @@ const styles = StyleSheet.create({
     height: 95,
     borderRadius: 5,
     position: "absolute",
-    right: -15, 
+    right: -15,
   },
   productText: {
     fontSize: 14,
@@ -522,6 +360,10 @@ const styles = StyleSheet.create({
     right: Platform.OS === "web" ? -395 : -197,
   },
 
+
+
+
+
   addToCartButton: {
     width: 85,
     borderRadius: 20,
@@ -537,6 +379,88 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     marginVertical: 7,
   },
+  searchContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginHorizontal: 15,
+    marginTop: 10,
+    marginBottom: 10,
+  },
+  searchInput: {
+    flex: 1,
+    height: 40,
+    borderWidth: 1,
+    borderColor: "#CCCCCC",
+    borderRadius: 20,
+    paddingHorizontal: 15,
+    backgroundColor: "#F9F9F9",
+    textAlignVertical: "center",
+    marginTop: 5,
+  },
+  searchButton: {
+    marginTop: 0,
+    marginRight: 10,
+    backgroundColor: "#FF7E3E",
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+  },
+  searchButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+  },
+  logo: {
+    alignSelf: "center",
+    width: 180,
+    height: 150,
+    marginTop: height * 0.13,
+    marginBottom: 7,
+  },
+  description: {
+    textAlign: "center",
+    fontSize: 16,
+    color: "#333333",
+    fontWeight: "bold",
+    marginBottom: 10,
+  },
+  loadingText: {
+    fontSize: 18,
+    color: "#FF7E3E",
+  },
+  logo: {
+    alignSelf: "center",
+    width: 180,
+    height: 150,
+    marginTop: height * 0.13,
+    marginBottom: 7,
+  },
+  description: {
+    textAlign: "center",
+    fontSize: 16,
+    color: "#333333",
+    fontWeight: "bold",
+    marginBottom: 10,
+  },
+  contentContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    fontSize: 18,
+    color: "#FF7E3E",
+    textAlign: "center", // ממורכז אופקית
+    marginTop: 20, // ריווח מלמעלה
+  },
+  flatListContent: {
+    alignItems: "center", // ממרכז את המוצרים
+    paddingBottom: 80,
+  },
+  centerContent: {
+    flex: 1,
+    justifyContent: "center", // ממרכז אנכית
+    alignItems: "center", // ממרכז אופקית
+  },
 });
 
-export default ShoppingCartScreen;
+export default AddProducts;

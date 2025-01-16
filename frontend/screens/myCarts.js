@@ -56,10 +56,9 @@ const MyCartsScreen = ({ route }) => {
             />
             <TouchableOpacity
               style={styles.buttonCart}
-              onPress={() => navigation.navigate("addProducts")}
+              onPress={() => navigation.navigate("AddProducts")}
             >
               <Text style={styles.buttonCartText}>{name}</Text>
-              
             </TouchableOpacity>
           </View>
         ))}

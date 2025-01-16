@@ -6,7 +6,7 @@ import axios from "axios";
 import Home from "./screens/home";
 import addUser from "./screens/addUser";
 import MyCarts from "./screens/myCarts";
-import AddProducts from "./screens/addProducts";
+import AddProducts from "./screens/AddProducts.js";
 import config from "./config";
 
 const Stack = createStackNavigator();
@@ -58,7 +58,6 @@ const MainScreen = ({ navigation }) => {
         style={styles.button}
       />
       <View style={styles.spacing} />
-
       <View style={styles.infoContainer}>
         <Text style={styles.infoText}>User ID: {userId}</Text>
         <Text style={styles.infoText}>Name: {userName}</Text>
@@ -97,7 +96,7 @@ export default function App() {
           options={{ headerShown: false }}
         />
         <Stack.Screen
-          name="addProducts"
+          name="AddProducts"
           component={AddProducts}
           options={{ headerShown: false }}
         />
