@@ -1,86 +1,70 @@
 import Favorite from "../../models/Favorite.js";
 import Product from "../../models/Product.js";
-import User from "../../models/User.js";
+import ProductController from "../products/index.js";
 
 export default {
   post: {
     validator: async (req, res, next) => {
-      const { productId, mail } = req.body;
-
-      if (!productId || !mail) {
+      const { name, image, mail } = req.body;
+      if (!name || !image || !mail) {
         return res
           .status(400)
-          .json({ error: "productId and mail are required." });
+          .json({ error: "name, image, and mail are required." });
       }
-
-      try {
-        const productExists = await Product.findById(productId);
-        if (!productExists) {
-          return res.status(404).json({ error: "Product not found." });
-        }
-
-        const userExists = await User.findOne({ mail });
-        if (!userExists) {
-          return res.status(404).json({ error: "User not found." });
-        }
-
-        const existingFavorite = await Favorite.findOne({ productId, mail });
-        if (existingFavorite) {
-          return res.status(400).json({
-            error: "This product is already in the user's favorites.",
-          });
-        }
-
-        next();
-      } catch (error) {
-        res.status(500).json({
-          message: "Error validating product or user existence.",
-          error: error.message,
-        });
-      }
+      next();
     },
     handler: async (req, res) => {
-      const { productId, mail } = req.body;
+      const { name, image, mail } = req.body;
+      let productId = "";
 
       try {
+        let product = await Product.findOne({ name, image });
+        if (!product) {
+          const reqMock = {
+            body: {
+              name: name,
+              image: image,
+            },
+          };
+          const resMock = {
+            data: null,
+            json: function (response) {
+              this.data = response;
+              return response;
+            },
+            status: function (statusCode) {
+              return this;
+            },
+          };
+
+          const createdProduct = await ProductController.post.handler(
+            reqMock,
+            resMock
+          );
+          product = resMock.data.product; 
+        }
+
+        productId = product._id.toString();
+        const existingFavorite = await Favorite.findOne({ productId, mail });
+
+        if (existingFavorite) {
+          return res.status(200).json({
+            message: "This product is already in the user's favorites.",
+          });
+        }
         const newFavorite = await Favorite.create({ productId, mail });
 
-        res.status(201).json({
+        return res.status(201).json({
           message: "Product added to favorites successfully.",
           favorite: newFavorite,
         });
       } catch (error) {
         res.status(500).json({
-          message: "Error adding product to favorites.",
-          error: error.message,
+            message: "Error adding product to favorites.",
+            error: error.message,
         });
       }
     },
-  },
-  handler: async (req, res) => {
-    const { productId, mail } = req.body;
-
-    try {
-      const existingFavorite = await Favorite.findOne({ productId, mail });
-
-      if (existingFavorite) {
-        return res.status(400).json({
-          error: "This product is already in the user's favorites.",
-        });
-      }
-
-      const newFavorite = await Favorite.create({ productId, mail });
-
-      res.status(201).json({
-        message: "Product added to favorites successfully.",
-        favorite: newFavorite,
-      });
-    } catch (error) {
-      res.status(500).json({
-        message: "Error adding product to favorites.",
-        error: error.message,
-      });
-    }
   },
   get: {
     validator: async (req, res, next) => {
@@ -91,7 +75,6 @@ export default {
 
       try {
         if (type === "mail") {
-          // חפש את כל המועדפים של המשתמש לפי המייל
           const favorites = await Favorite.find({ mail: content });
 
           if (!favorites || favorites.length === 0) {
@@ -100,13 +83,11 @@ export default {
             });
           }
 
-          // שלוף את כל הפריטים מטבלת Product
           const productIds = favorites.map((fav) => fav.productId);
           const products = await Product.find({ _id: { $in: productIds } });
 
           return res.status(200).json(products);
         } else if (type === "productId") {
-          // מצא את כל המועדפים הקשורים למוצר מסוים
           const favorites = await Favorite.find({ productId: content });
 
           if (!favorites || favorites.length === 0) {

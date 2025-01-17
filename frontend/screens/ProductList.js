@@ -19,6 +19,7 @@ const ProductList = ({
   isLoading,
   onQuantityChange,
   onToggleStar,
+  selectedTab,
 }) => {
   const renderProduct = ({ item }) => {
     const imageSource = item.image
@@ -88,10 +89,10 @@ const ProductList = ({
 
   if (isLoading) {
     return (
-        <View style={styles.centerContent}>
-            <Image source={require("../assets/logo.png")} style={styles.logo} />
-            <Text style={styles.description}>טוען מוצרים...</Text>
-        </View>
+      <View style={styles.centerContent}>
+        <Image source={require("../assets/logo.png")} style={styles.logo} />
+        <Text style={styles.description}>טוען מוצרים...</Text>
+      </View>
     );
   }
 

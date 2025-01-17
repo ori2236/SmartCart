@@ -3,12 +3,12 @@ import mongoose from "mongoose";
 const FavoriteSchema = new mongoose.Schema(
   {
     productId: {
-      type: mongoose.Schema.Types.ObjectId, // הפניה ל-Product
+      type: String,
       ref: "Product",
       required: true,
     },
     mail: {
-      type: String, // מזהה המשתמש
+      type: String,
       required: true,
     },
   },

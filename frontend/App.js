@@ -6,7 +6,7 @@ import axios from "axios";
 import Home from "./screens/home";
 import addUser from "./screens/addUser";
 import MyCarts from "./screens/myCarts";
-import AddProducts from "./screens/AddProducts.js";
+import AddProducts from "./screens/AddProducts";
 import config from "./config";
 
 const Stack = createStackNavigator();

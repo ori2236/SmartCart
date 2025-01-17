@@ -4,12 +4,13 @@ export default {
   post: {
     validator: async (req, res, next) => {
       // Check that the name and image are valid
+      console.log("validddd1");
       const { name, image } = req.body;
-
+      console.log("validddd1");
       if (!name || !image) {
         return res.status(400).json({ error: "Name and image are required." });
       }
-
+      console.log("validddd1");
       next();
     },
     handler: async (req, res) => {
@@ -149,6 +150,41 @@ export default {
       } catch (error) {
         res.status(500).json({
           message: "Error fetching products",
+          error: error.message,
+        });
+      }
+    },
+  },
+  getByName: {
+    validator: async (req, res, next) => {
+      const { name, image } = req.body;
+
+      if (!name || !image) {
+        return res
+          .status(400)
+          .json({ error: "name and image are required." });
+      }
+
+      next();
+    },
+    handler: async (req, res) => {
+      const { name, image } = req.body;
+      try {
+        const product = await Product.findOne({ name, image });
+        if (!product) {
+          return res.status(404).json({
+            message: "Product not found",
+          });
+        }
+
+        const foundProduct = {
+            _id: product._id
+        };
+
+        res.json(foundProduct);
+      } catch (error) {
+        res.status(500).json({
+          message: "Error fetching product",
           error: error.message,
         });
       }

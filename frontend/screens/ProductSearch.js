@@ -8,15 +8,15 @@ import {
   Platform,
   Dimensions,
   Alert,
-  Image
+  Image,
 } from "react-native";
+import axios from "axios";
 import config from "../config";
 import ProductList from "./ProductList";
 
 const { width, height } = Dimensions.get("window");
 
-
-const ProductSearch = ({ shoppingAddress }) => {
+const ProductSearch = ({ shoppingAddress, userMail }) => {
   const [products, setProducts] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -60,6 +60,44 @@ const ProductSearch = ({ shoppingAddress }) => {
     }
   };
 
+  const handleStarClick = async (product) => {
+    if (!product.label || !product.image || !userMail) {
+      Alert.alert("Validation Error", "All fields are required!");
+      return;
+    }
+    addFavoriteProduct(product);
+  };
+
+  const addFavoriteProduct = async (product) => {
+    const newFavoriteProduct = {
+      name: product.label,
+      image: product.image,
+      mail: userMail,
+    };
+
+    try {
+      const apiUrl = `http://${config.apiServer}/api/favorite/favorite/`;
+      const response = await axios.post(apiUrl, newFavoriteProduct);
+
+      if (response.status >= 200 && response.status < 300) {
+        
+        const res = response.data;
+        if (res.message === "Product added to favorites successfully.") {
+          Alert.alert("הצלחה", "המוצר נוסף למועדפים בהצלחה!");
+        } else if (
+          res.error === "This product is already in the user's favorites."
+        ) {
+          Alert.alert("כשלון", "המוצר כבר במועדפים!");
+        }
+      } else {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+    } catch (error) {
+      Alert.alert("שגיאה", "נכשל להוסיף מוצר למועדפים. נסה שוב.");
+      console.error("Error message:", error.message);
+    }
+  };
+
   const handleQuantityChange = (id, change) => {
     setProducts((prevProducts) =>
       prevProducts.map((product) =>
@@ -71,6 +109,14 @@ const ProductSearch = ({ shoppingAddress }) => {
   };
 
   const toggleStarColor = (id) => {
+    const product = products.find((p) => p.id === id);
+    if (!product) {
+      console.error("Product not found.");
+      return;
+    }
+
+    handleStarClick(product);
+    console.log("toggle");
     setProducts((prevProducts) =>
       prevProducts.map((product) =>
         product.id === id
@@ -102,18 +148,18 @@ const ProductSearch = ({ shoppingAddress }) => {
 
       {/* Render ProductList */}
       {!isLoading && products.length === 0 ? (
-      <View style={styles.centerContent}>
-        <Image source={require("../assets/logo.png")} style={styles.logo} />
-        <Text style={styles.description}>חפש מוצר שברצונך לרכוש</Text>
-      </View>
-        ) : (
+        <View style={styles.centerContent}>
+          <Image source={require("../assets/logo.png")} style={styles.logo} />
+          <Text style={styles.description}>חפש מוצר שברצונך לרכוש</Text>
+        </View>
+      ) : (
         <ProductList
-        products={products}
-        isLoading={isLoading}
-        onQuantityChange={handleQuantityChange}
-        onToggleStar={toggleStarColor}
-       />
-        )}
+          products={products}
+          isLoading={isLoading}
+          onQuantityChange={handleQuantityChange}
+          onToggleStar={toggleStarColor}
+        />
+      )}
     </View>
   );
 };
@@ -166,6 +212,5 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
 });
-
 
 export default ProductSearch;

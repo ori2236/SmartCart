@@ -26,4 +26,9 @@ router.get("/products", products.getAll.validator, products.getAll.handler);
 
 router.get("/productsFromSearch", getProducts)
 
+router.get(
+  "/productByName",
+  products.getByName.validator,
+  products.getByName.handler
+);
 export default router;

@@ -8,16 +8,16 @@ import {
   Dimensions,
   Platform,
 } from "react-native";
-import SearchProductList from "./SearchProductList";
 import ProductSearch from "./ProductSearch";
 import ProductFavorites from "./ProductFavorites";
 import ProductList from "./ProductList";
 
 const { width, height } = Dimensions.get("window");
 
-const AddProducts = () => {
-  const [selectedTab, setSelectedTab] = useState("name"); // טאב נבחר כברירת מחדל
-  const [products, setProducts] = useState([]); // מצב לאחסון המוצרים
+const AddProducts = ({ route }) => {
+  const { userMail } = route.params;
+  const [selectedTab, setSelectedTab] = useState("name");
+  const [products, setProducts] = useState([]);
 
   const handleTabPress = (tab) => {
     setSelectedTab(tab);
@@ -25,7 +25,7 @@ const AddProducts = () => {
   };
 
   const handleProductsFetched = (fetchedProducts) => {
-    setProducts(fetchedProducts); // עדכון המוצרים שנמשכו
+    setProducts(fetchedProducts);
   };
 
   const handleQuantityChange = (id, change) => {
@@ -58,6 +58,7 @@ const AddProducts = () => {
         <>
           <ProductSearch
             shoppingAddress="נתניה"
+            userMail={userMail}
             onProductsFetched={handleProductsFetched}
           />
           {products.length > 0 && (
@@ -73,14 +74,16 @@ const AddProducts = () => {
       return (
         <>
           <ProductFavorites
-            email="orismail@gmail.com"
+            userMail
             onProductsFetched={handleProductsFetched}
+            selectedTab
           />
           {products.length > 0 && (
             <ProductList
               products={products}
               onQuantityChange={handleQuantityChange}
               onToggleStar={handleToggleStar}
+              selectedTab
             />
           )}
         </>
@@ -449,17 +452,17 @@ const styles = StyleSheet.create({
   loadingText: {
     fontSize: 18,
     color: "#FF7E3E",
-    textAlign: "center", // ממורכז אופקית
-    marginTop: 20, // ריווח מלמעלה
+    textAlign: "center",
+    marginTop: 20,
   },
   flatListContent: {
-    alignItems: "center", // ממרכז את המוצרים
+    alignItems: "center",
     paddingBottom: 80,
   },
   centerContent: {
     flex: 1,
-    justifyContent: "center", // ממרכז אנכית
-    alignItems: "center", // ממרכז אופקית
+    justifyContent: "center",
+    alignItems: "center",
   },
 });
 
