@@ -25,15 +25,10 @@ const ProductSearch = ({ shoppingAddress, userMail }) => {
 
   const fetchFavorites = async () => {
     try {
-      const response = await fetch(
-        `http://${config.apiServer}/api/favorite/favorite/mail/${userMail}`
-      );
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+      const apiUrl = `http://${config.apiServer}/api/favorite/favorite/mail/${userMail}`;
+      const response = await axios.get(apiUrl);
 
-      const data = await response.json();
-
+      const data = response.data;
       setFavorites(data);
     } catch (error) {
       console.error("Error fetching favorites:", error.message);
@@ -169,7 +164,7 @@ const ProductSearch = ({ shoppingAddress, userMail }) => {
       return;
     }
     
-    if (product.starColor === "#D9D9D9"){
+    if (product.starColor == "#D9D9D9"){
       handleStarClickOn(product);
     } else {
       handleStarClickOff(product);

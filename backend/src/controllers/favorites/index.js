@@ -78,10 +78,14 @@ export default {
         if (type === "mail") {
           const favorites = await Favorite.find({ mail: content });
 
-          if (!favorites || favorites.length === 0) {
+          if (!favorites) {
             return res.status(404).json({
               error: "No favorites found for the provided mail.",
             });
+          }
+          if (favorites.length === 0) {
+            const products = [];
+            return res.status(200).json(products);
           }
 
           const productIds = favorites.map((fav) => fav.productId);
@@ -91,10 +95,14 @@ export default {
         } else if (type === "productId") {
           const favorites = await Favorite.find({ productId: content });
 
-          if (!favorites || favorites.length === 0) {
+          if (!favorites) {
             return res.status(404).json({
               error: "No favorites found for the provided productId.",
             });
+          }
+          if (favorites.length === 0) {
+            const products = [];
+            return res.status(200).json(products);
           }
 
           return res.status(200).json(favorites);

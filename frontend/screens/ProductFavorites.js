@@ -59,6 +59,7 @@ const ProductFavorites = ({ onProductsFetched, userMail }) => {
       Alert.alert("Validation Error", "All fields are required!");
       return;
     }
+    console.log("delete", product.label)
     removeFavoriteProduct(product);
   };
 
@@ -88,7 +89,16 @@ const ProductFavorites = ({ onProductsFetched, userMail }) => {
           : product
       )
     );
+
+    setFilteredProducts((prevFilteredProducts) =>
+      prevFilteredProducts.map((product) =>
+        product.id === id
+          ? { ...product, quantity: Math.max(product.quantity + change, 0) }
+          : product
+      )
+    );
   };
+
 
   const toggleStarColor = (id) => {
     const product = products.find((p) => p.id === id);
@@ -103,16 +113,9 @@ const ProductFavorites = ({ onProductsFetched, userMail }) => {
 
     console.log("toggle favorite");
 
-    setProducts((prevProducts) =>
-      prevProducts.map((product) =>
-        product.id === id
-          ? {
-              ...product,
-              starColor:
-                product.starColor === "#D9D9D9" ? "#FFD700" : "#D9D9D9",
-            }
-          : product
-      )
+    setProducts((prevProducts) => prevProducts.filter((p) => p.id !== id));
+    setFilteredProducts((prevFiltered) =>
+      prevFiltered.filter((p) => p.id !== id)
     );
   };
 
