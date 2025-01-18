@@ -4,13 +4,10 @@ export default {
   post: {
     validator: async (req, res, next) => {
       // Check that the name and image are valid
-      console.log("validddd1");
       const { name, image } = req.body;
-      console.log("validddd1");
       if (!name || !image) {
         return res.status(400).json({ error: "Name and image are required." });
       }
-      console.log("validddd1");
       next();
     },
     handler: async (req, res) => {

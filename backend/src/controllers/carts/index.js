@@ -25,12 +25,10 @@ export default {
 
   get: {
     validator: async (req, res, next) => {
-      console.log("cart");
       next();
     },
     handler: async (req, res) => {
       const { cartKey } = req.params;
-      console.log(cartKey);
       try {
         const cart = await Cart.findById(cartKey);
         if (!cart) {

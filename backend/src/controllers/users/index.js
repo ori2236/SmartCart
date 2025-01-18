@@ -45,7 +45,6 @@ export default {
   },
   get: {
     validator: async (req, res, next) => {
-      console.log("user");
       next();
     },
     handler: async (req, res) => {

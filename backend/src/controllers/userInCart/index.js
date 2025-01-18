@@ -19,12 +19,6 @@ export default {
       const { cartKey, mail, role } = req.body;
 
       try {
-        console.log("Inserting user-cart relationship:", {
-          cartKey,
-          mail,
-          role,
-        });
-
         const existingRelationship = await UserInCart.findOne({
           cartKey,
           mail,
@@ -52,7 +46,6 @@ export default {
   },
   get: {
     validator: async (req, res, next) => {
-      console.log("userInCart validator triggered");
       next();
     },
     handler: async (req, res) => {
@@ -225,7 +218,6 @@ export default {
   },
   getAll: {
     validator: async (req, res, next) => {
-      console.log("userInCart getAll validator triggered");
       next();
     },
     handler: async (req, res) => {

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -18,9 +18,34 @@ const { width, height } = Dimensions.get("window");
 
 const ProductSearch = ({ shoppingAddress, userMail }) => {
   const [products, setProducts] = useState([]);
+  const [favorites, setFavorites] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  const fetchFavorites = async () => {
+    try {
+      const response = await fetch(
+        `http://${config.apiServer}/api/favorite/favorite/mail/${userMail}`
+      );
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      setFavorites(data);
+    } catch (error) {
+      console.error("Error fetching favorites:", error.message);
+      setFavorites([]);
+    }
+  };
+
+  useEffect(() => {
+    if (userMail) {
+      fetchFavorites();
+    }
+  }, [userMail]);
 
   const fetchProducts = async () => {
     if (!searchTerm.trim()) {
@@ -28,6 +53,7 @@ const ProductSearch = ({ shoppingAddress, userMail }) => {
       return;
     }
 
+    fetchFavorites();
     setIsLoading(true);
     setError(null);
 
@@ -45,12 +71,17 @@ const ProductSearch = ({ shoppingAddress, userMail }) => {
       }
 
       const data = await response.json();
-      const updatedProducts = data.map((product, index) => ({
-        ...product,
-        id: index,
-        quantity: 1,
-        starColor: "#D9D9D9",
-      }));
+      const updatedProducts = data.map((product, index) => {
+        const isFavorite = favorites.some(
+          (fav) => fav.name === product.label && fav.image === product.image
+        );
+        return {
+          ...product,
+          id: index,
+          quantity: 1,
+          starColor: isFavorite ? "#FFD700" : "#D9D9D9",
+        };
+      });
 
       setProducts(updatedProducts);
     } catch (error) {
@@ -60,7 +91,7 @@ const ProductSearch = ({ shoppingAddress, userMail }) => {
     }
   };
 
-  const handleStarClick = async (product) => {
+  const handleStarClickOn = async (product) => {
     if (!product.label || !product.image || !userMail) {
       Alert.alert("Validation Error", "All fields are required!");
       return;
@@ -85,15 +116,38 @@ const ProductSearch = ({ shoppingAddress, userMail }) => {
         if (res.message === "Product added to favorites successfully.") {
           Alert.alert("הצלחה", "המוצר נוסף למועדפים בהצלחה!");
         } else if (
-          res.error === "This product is already in the user's favorites."
+          res.message === "This product is already in the user's favorites."
         ) {
-          Alert.alert("כשלון", "המוצר כבר במועדפים!");
+          Alert.alert("שים לב", "המוצר שבחרת כבר נמצא במועדפים!");
         }
       } else {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
     } catch (error) {
       Alert.alert("שגיאה", "נכשל להוסיף מוצר למועדפים. נסה שוב.");
+      console.error("Error message:", error.message);
+    }
+  };
+
+  const handleStarClickOff = async (product) => {
+    if (!product.label || !product.image || !userMail) {
+      Alert.alert("Validation Error", "All fields are required!");
+      return;
+    }
+    removeFavoriteProduct(product);
+  };
+
+  const removeFavoriteProduct = async (product) => {
+    try {
+      const removeFavoriteProduct = {
+        name: product.label,
+        image: product.image,
+        mail: userMail
+      };
+      const apiUrl = `http://${config.apiServer}/api/favorite/favorite/byDetails/`;
+      const response = await axios.delete(apiUrl, {data: removeFavoriteProduct});
+    } catch (error) {
+      Alert.alert("שגיאה", "נכשל להסיר מוצר מהמועדפים. נסה שוב.");
       console.error("Error message:", error.message);
     }
   };
@@ -114,9 +168,15 @@ const ProductSearch = ({ shoppingAddress, userMail }) => {
       console.error("Product not found.");
       return;
     }
+    
+    if (product.starColor === "#D9D9D9"){
+      handleStarClickOn(product);
+    } else {
+      handleStarClickOff(product);
+    }
+    
+    console.log("toggle search");
 
-    handleStarClick(product);
-    console.log("toggle");
     setProducts((prevProducts) =>
       prevProducts.map((product) =>
         product.id === id

@@ -28,6 +28,10 @@ const AddProducts = ({ route }) => {
     setProducts(fetchedProducts);
   };
 
+  const handleFilteredProducts = (filteredProducts) => {
+    setProducts(filteredProducts);
+  };
+
   const handleQuantityChange = (id, change) => {
     setProducts((prevProducts) =>
       prevProducts.map((product) =>
@@ -74,9 +78,8 @@ const AddProducts = ({ route }) => {
       return (
         <>
           <ProductFavorites
-            userMail
+            userMail={userMail}
             onProductsFetched={handleProductsFetched}
-            selectedTab
           />
           {products.length > 0 && (
             <ProductList

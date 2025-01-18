@@ -8,12 +8,13 @@ import {
   TouchableOpacity,
   Image,
 } from "react-native";
+import axios from "axios";
 import config from "../config";
 import ProductList from "./ProductList";
 
 const { height } = Dimensions.get("window");
 
-const ProductFavorites = ({ onProductsFetched, email, selectedTab }) => {
+const ProductFavorites = ({ onProductsFetched, userMail }) => {
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -22,37 +23,62 @@ const ProductFavorites = ({ onProductsFetched, email, selectedTab }) => {
 
   useEffect(() => {
     const fetchFavorites = async () => {
-        setIsLoading(true);
-        setError(null);
+      setIsLoading(true);
+      setError(null);
 
-        try {
+      try {
         const response = await fetch(
-            `http://${config.apiServer}/api/favorite/favorite/mail/orismail@gmail.com`
+          `http://${config.apiServer}/api/favorite/favorite/mail/${userMail}`
         );
 
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+          throw new Error(`HTTP error! status: ${response.status}`);
         }
 
         const data = await response.json();
         const updatedProducts = data.map((product, index) => ({
-            id: product._id,
-            label: product.name,
-            image: product.image || null,
-            quantity: 1,
-            starColor: "#FFD700",
+          id: product._id,
+          label: product.name,
+          image: product.image || null,
+          quantity: 1,
+          starColor: "#FFD700",
         }));
-
+        setFilteredProducts(updatedProducts);
         setProducts(updatedProducts);
-        } catch (error) {
+      } catch (error) {
         setError(error.message || "שגיאה בטעינת המוצרים המועדפים");
-        } finally {
+      } finally {
         setIsLoading(false);
-        }
+      }
     };
     fetchFavorites();
-  }, [email, onProductsFetched]);
+  }, [userMail, onProductsFetched]);
 
+  const handleStarClickOff = async (product) => {
+    if (!product.label || !product.image || !userMail) {
+      Alert.alert("Validation Error", "All fields are required!");
+      return;
+    }
+    removeFavoriteProduct(product);
+  };
+
+  const removeFavoriteProduct = async (product) => {
+    try {
+      const apiUrl = `http://${config.apiServer}/api/favorite/favorite/${product.id}/${userMail}`;
+      const response = await axios.delete(apiUrl);
+
+      if (response.status == 200) {
+        setProducts((prevProducts) =>
+          prevProducts.filter((p) => p.id !== product.id)
+        );
+      } else {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+    } catch (error) {
+      Alert.alert("שגיאה", "נכשל להסיר מוצר מהמועדפים. נסה שוב.");
+      console.error("Error message:", error.message);
+    }
+  };
 
   const handleQuantityChange = (id, change) => {
     setProducts((prevProducts) =>
@@ -65,6 +91,18 @@ const ProductFavorites = ({ onProductsFetched, email, selectedTab }) => {
   };
 
   const toggleStarColor = (id) => {
+    const product = products.find((p) => p.id === id);
+    if (!product) {
+      console.error("Product not found.");
+      return;
+    }
+
+    if (product.starColor === "#FFD700") {
+      handleStarClickOff(product);
+    }
+
+    console.log("toggle favorite");
+
     setProducts((prevProducts) =>
       prevProducts.map((product) =>
         product.id === id
@@ -107,12 +145,12 @@ const ProductFavorites = ({ onProductsFetched, email, selectedTab }) => {
         <View style={styles.centerContent}>
           <Image source={require("../assets/logo.png")} style={styles.logo} />
           <Text style={styles.description}>
-            לא נמצאו מוצרים במועדפים המשוייכים לחיפוש זה
+            לא נמצאו מוצרים במועדפים
           </Text>
         </View>
       ) : (
         <ProductList
-          products={products}
+          products={filteredProducts}
           isLoading={isLoading}
           onQuantityChange={handleQuantityChange}
           onToggleStar={toggleStarColor}

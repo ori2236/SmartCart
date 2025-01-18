@@ -1,5 +1,6 @@
 import Favorite from "../../models/Favorite.js";
 import Product from "../../models/Product.js";
+import User from "../../models/User.js";
 import ProductController from "../products/index.js";
 
 export default {
@@ -41,7 +42,7 @@ export default {
             reqMock,
             resMock
           );
-          product = resMock.data.product; 
+          product = resMock.data.product;
         }
 
         productId = product._id.toString();
@@ -60,8 +61,8 @@ export default {
         });
       } catch (error) {
         res.status(500).json({
-            message: "Error adding product to favorites.",
-            error: error.message,
+          message: "Error adding product to favorites.",
+          error: error.message,
         });
       }
     },
@@ -120,7 +121,28 @@ export default {
         });
       }
 
-      next();
+      try {
+        const productExists = await Product.findById(productId);
+        if (!productExists) {
+          return res.status(404).json({
+            error: "Product not found.",
+          });
+        }
+
+        const userExists = await User.findOne({ mail });
+        if (!userExists) {
+          return res.status(404).json({
+            error: "No user found for the provided mail.",
+          });
+        }
+
+        next();
+      } catch (error) {
+        res.status(500).json({
+          error: "An error occurred during validation.",
+          details: error.message,
+        });
+      }
     },
     handler: async (req, res) => {
       const { productId, mail } = req.params;
@@ -137,12 +159,77 @@ export default {
           });
         }
 
+        const remainingFavorites = await Favorite.find({ productId });
+        if (remainingFavorites.length === 0) {
+          await Product.findByIdAndDelete(productId);
+        }
+
         res.status(200).json({
           message: "Favorite deleted successfully.",
+          productDeleted: remainingFavorites.length === 0,
         });
       } catch (error) {
         res.status(500).json({
           error: "An error occurred while deleting the favorite.",
+          details: error.message,
+        });
+      }
+    },
+  },
+  deleteByDetails: {
+    validator: async (req, res, next) => {
+      const { name, image, mail } = req.body;
+      if (!name || !image || !mail) {
+        return res.status(400).json({
+          error: "name, image, and mail are required.",
+        });
+      }
+      try {
+        const product = await Product.findOne({ name, image });
+        if (!product) {
+          return res.status(404).json({
+            error: "Product not found with the provided name and image.",
+          });
+        }
+        const productId = product._id.toString();
+        req.params.productId = productId;
+        req.params.mail = mail;
+        
+        next();
+      } catch (error) {
+        res.status(500).json({
+          error: "An error occurred while validating the product details.",
+          details: error.message,
+        });
+      }
+    },
+    handler: async (req, res, next) => {
+      const { productId, mail } = req.params;
+      try {
+        const deletedFavorite = await Favorite.findOneAndDelete({
+          productId,
+          mail,
+        });
+
+        if (!deletedFavorite) {
+          return res.status(404).json({
+            error: "No favorite found for the provided productId and mail.",
+          });
+        }
+
+        const remainingFavorites = await Favorite.find({ productId });
+        if (remainingFavorites.length === 0) {
+          await Product.findByIdAndDelete(productId);
+        }
+
+        res.status(200).json({
+          message: "Favorite deleted successfully.",
+          productDeleted: remainingFavorites.length === 0,
+        });
+      } catch (error) {
+        res.status(500).json({
+          error: "An error occurred while deleting the favorite.",
+          details: error.message,
         });
       }
     },
