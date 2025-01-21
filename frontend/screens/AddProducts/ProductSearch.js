@@ -11,8 +11,8 @@ import {
   Image,
 } from "react-native";
 import axios from "axios";
-import config from "../config";
-import ProductList from "./ProductList";
+import config from "../../config";
+import ProductList from "./ProductListAddProd";
 
 const { width, height } = Dimensions.get("window");
 
@@ -106,7 +106,6 @@ const ProductSearch = ({ shoppingAddress, userMail }) => {
       const response = await axios.post(apiUrl, newFavoriteProduct);
 
       if (response.status >= 200 && response.status < 300) {
-        
         const res = response.data;
         if (res.message === "Product added to favorites successfully.") {
           Alert.alert("הצלחה", "המוצר נוסף למועדפים בהצלחה!");
@@ -137,10 +136,12 @@ const ProductSearch = ({ shoppingAddress, userMail }) => {
       const removeFavoriteProduct = {
         name: product.label,
         image: product.image,
-        mail: userMail
+        mail: userMail,
       };
       const apiUrl = `http://${config.apiServer}/api/favorite/favorite/byDetails/`;
-      const response = await axios.delete(apiUrl, {data: removeFavoriteProduct});
+      const response = await axios.delete(apiUrl, {
+        data: removeFavoriteProduct,
+      });
     } catch (error) {
       Alert.alert("שגיאה", "נכשל להסיר מוצר מהמועדפים. נסה שוב.");
       console.error("Error message:", error.message);
@@ -163,13 +164,13 @@ const ProductSearch = ({ shoppingAddress, userMail }) => {
       console.error("Product not found.");
       return;
     }
-    
-    if (product.starColor == "#D9D9D9"){
+
+    if (product.starColor == "#D9D9D9") {
       handleStarClickOn(product);
     } else {
       handleStarClickOff(product);
     }
-    
+
     console.log("toggle search");
 
     setProducts((prevProducts) =>
@@ -204,7 +205,10 @@ const ProductSearch = ({ shoppingAddress, userMail }) => {
       {/* Render ProductList */}
       {!isLoading && products.length === 0 ? (
         <View style={styles.centerContent}>
-          <Image source={require("../assets/logo.png")} style={styles.logo} />
+          <Image
+            source={require("../../assets/logo.png")}
+            style={styles.logo}
+          />
           <Text style={styles.description}>חפש מוצר שברצונך לרכוש</Text>
         </View>
       ) : (

@@ -28,7 +28,7 @@ const ProductList = ({
             ? item.image
             : `data:image/png;base64,${item.image}`,
         }
-      : require("../assets/logo.png");
+      : require("../../assets/logo.png");
 
     return (
       <View style={styles.productContainer}>
@@ -90,7 +90,7 @@ const ProductList = ({
   if (isLoading) {
     return (
       <View style={styles.centerContent}>
-        <Image source={require("../assets/logo.png")} style={styles.logo} />
+        <Image source={require("../../assets/logo.png")} style={styles.logo} />
         <Text style={styles.description}>טוען מוצרים...</Text>
       </View>
     );
@@ -112,7 +112,7 @@ const styles = StyleSheet.create({
     flexDirection: "column",
     justifyContent: "center",
     padding: 10,
-    margin: 10,
+    margin: 5,
     borderWidth: 1,
     borderColor: "#CCCCCC",
     borderRadius: 20,
@@ -158,7 +158,7 @@ const styles = StyleSheet.create({
   star: {
     position: "absolute",
     top: -15,
-    right: Platform.OS === "web" ? -395 : -197,
+    right: Platform.OS === "web" ? -395 : -190,
   },
   minusIcon: {
     position: "absolute",

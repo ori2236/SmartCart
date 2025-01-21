@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   View,
   Text,
@@ -7,10 +7,12 @@ import {
   StyleSheet,
   Dimensions,
   Platform,
+  PanResponder,
 } from "react-native";
 import ProductSearch from "./ProductSearch";
 import ProductFavorites from "./ProductFavorites";
-import ProductList from "./ProductList";
+import ProductListAddProd from "./ProductListAddProd";
+import { useNavigation } from "@react-navigation/native";
 
 const { width, height } = Dimensions.get("window");
 
@@ -18,6 +20,19 @@ const AddProducts = ({ route }) => {
   const { userMail } = route.params;
   const [selectedTab, setSelectedTab] = useState("name");
   const [products, setProducts] = useState([]);
+  const navigation = useNavigation();
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (evt, gestureState) =>
+        Math.abs(gestureState.dx) > 20,
+      onPanResponderRelease: (evt, gestureState) => {
+        if (gestureState.dx < 20) {
+          navigation.navigate("ShoppingCart", { userMail });
+        }
+      },
+    })
+  ).current;
 
   const handleTabPress = (tab) => {
     setSelectedTab(tab);
@@ -66,7 +81,7 @@ const AddProducts = ({ route }) => {
             onProductsFetched={handleProductsFetched}
           />
           {products.length > 0 && (
-            <ProductList
+            <ProductListAddProd
               products={products}
               onQuantityChange={handleQuantityChange}
               onToggleStar={handleToggleStar}
@@ -82,7 +97,7 @@ const AddProducts = ({ route }) => {
             onProductsFetched={handleProductsFetched}
           />
           {products.length > 0 && (
-            <ProductList
+            <ProductListAddProd
               products={products}
               onQuantityChange={handleQuantityChange}
               onToggleStar={handleToggleStar}
@@ -94,13 +109,21 @@ const AddProducts = ({ route }) => {
     }
   };
 
+  const handleBottomRow = (button) => {
+    if (button == "home") {
+      navigation.navigate("Home", { userMail });
+    } else if (button == "shoppingCart") {
+      navigation.navigate("ShoppingCart", { userMail });
+    }
+  };
+
   return (
-    <View style={styles.backgroundColor}>
+    <View style={styles.backgroundColor}{...panResponder.panHandlers}>
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerText}>הוספת מוצר לעגלה</Text>
         <Image
-          source={require("../assets/cart-profile.png")}
+          source={require("../../assets/cart-profile.png")}
           style={styles.headerIcon}
         />
       </View>
@@ -155,25 +178,25 @@ const AddProducts = ({ route }) => {
       <View style={styles.bottomNavigation}>
         <TouchableOpacity>
           <Image
-            source={require("../assets/super-branches.png")}
+            source={require("../../assets/super-branches.png")}
             style={styles.bottomIcon}
           />
         </TouchableOpacity>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={() => handleBottomRow("shoppingCart")}>
           <Image
-            source={require("../assets/shopping-list.png")}
+            source={require("../../assets/shopping-list.png")}
             style={styles.bottomIcon}
           />
         </TouchableOpacity>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={() => handleBottomRow("addProducts")}>
           <Image
-            source={require("../assets/add-products.png")}
+            source={require("../../assets/add-products.png")}
             style={styles.addProductsIcon}
           />
         </TouchableOpacity>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={() => handleBottomRow("home")}>
           <Image
-            source={require("../assets/home.png")}
+            source={require("../../assets/home.png")}
             style={styles.bottomIcon}
           />
         </TouchableOpacity>
@@ -365,10 +388,6 @@ const styles = StyleSheet.create({
     top: -15,
     right: Platform.OS === "web" ? -395 : -197,
   },
-
-
-
-
 
   addToCartButton: {
     width: 85,

@@ -9,8 +9,8 @@ import {
   Image,
 } from "react-native";
 import axios from "axios";
-import config from "../config";
-import ProductList from "./ProductList";
+import config from "../../config";
+import ProductList from "./ProductListAddProd";
 
 const { height } = Dimensions.get("window");
 
@@ -59,7 +59,7 @@ const ProductFavorites = ({ onProductsFetched, userMail }) => {
       Alert.alert("Validation Error", "All fields are required!");
       return;
     }
-    console.log("delete", product.label)
+    console.log("delete", product.label);
     removeFavoriteProduct(product);
   };
 
@@ -98,7 +98,6 @@ const ProductFavorites = ({ onProductsFetched, userMail }) => {
       )
     );
   };
-
 
   const toggleStarColor = (id) => {
     const product = products.find((p) => p.id === id);
@@ -146,10 +145,11 @@ const ProductFavorites = ({ onProductsFetched, userMail }) => {
       {/* Render ProductList */}
       {!isLoading && products.length === 0 ? (
         <View style={styles.centerContent}>
-          <Image source={require("../assets/logo.png")} style={styles.logo} />
-          <Text style={styles.description}>
-            לא נמצאו מוצרים במועדפים
-          </Text>
+          <Image
+            source={require("../../assets/logo.png")}
+            style={styles.logo}
+          />
+          <Text style={styles.description}>לא נמצאו מוצרים במועדפים</Text>
         </View>
       ) : (
         <ProductList

@@ -1,12 +1,16 @@
 import React, { useState } from "react";
 import { View, Button, StyleSheet, Alert, Text } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
-import { createStackNavigator } from "@react-navigation/stack";
+import {
+  createStackNavigator,
+  CardStyleInterpolators,
+} from "@react-navigation/stack";
 import axios from "axios";
 import Home from "./screens/home";
 import addUser from "./screens/addUser";
 import MyCarts from "./screens/myCarts";
-import AddProducts from "./screens/AddProducts";
+import AddProducts from "./screens/AddProducts/AddProducts";
+import ShoppingCart from "./screens/shoppingCart/ShoppingCart";
 import config from "./config";
 
 const Stack = createStackNavigator();
@@ -19,7 +23,6 @@ const MainScreen = ({ navigation }) => {
   const [isGoogle, setIsGoogle] = useState(false);
 
   const fetchUserData = async () => {
-    
     try {
       const email = "orismail@gmail.com";
       const apiUrl = `http://${config.apiServer}/api/user/user/${email}`;
@@ -98,7 +101,22 @@ export default function App() {
         <Stack.Screen
           name="AddProducts"
           component={AddProducts}
-          options={{ headerShown: false }}
+          options={{
+            headerShown: false,
+            gestureEnabled: true,
+            gestureDirection: "horizontal",
+            cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
+          }}
+        />
+        <Stack.Screen
+          name="ShoppingCart"
+          component={ShoppingCart}
+          options={{
+            headerShown: false,
+            gestureEnabled: true,
+            gestureDirection: "horizontal-inverted",
+            cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
+          }}
         />
       </Stack.Navigator>
     </NavigationContainer>
