@@ -26,20 +26,19 @@ const ShoppingCart = ({ route }) => {
   const navigation = useNavigation();
 
     useEffect(() => {
-      const fetchFavs = async () => {
+      const fetchCartProducts = async () => {
         setIsLoading(true);
         setError(null);
 
         try {
-          const apiUrl = `http://${config.apiServer}/api/product/products`;
+          const apiUrl = `http://${config.apiServer}/api/productInCart/productInCart/cartKey/6780156b30d83502d781672d`;
           const response = await axios.get(apiUrl);
-          const data = response.data.products;
+          const data = response.data;
           const cartProducts = data.map((product) => ({
-            id: product._id,
+            id: product.productId,
             label: product.name,
             image: product.image || null,
-            quantity: 1, //product.quantity
-            starColor: "blue",
+            quantity: product.quantity,
           }));
           setFilteredProducts(cartProducts);
           setProducts(cartProducts);
@@ -50,7 +49,7 @@ const ShoppingCart = ({ route }) => {
           setIsLoading(false);
         }
       };
-      fetchFavs();
+      fetchCartProducts();
     }, [userMail]);
 
     const handleStarClickOff = async (product) => {
@@ -87,12 +86,6 @@ const ShoppingCart = ({ route }) => {
         console.error("Product not found.");
         return;
       }
-
-      if (product.starColor === "#FFD700") {
-        handleStarClickOff(product);
-      }
-
-      console.log("toggle favorite");
 
       setProducts((prevProducts) => prevProducts.filter((p) => p.id !== id));
       setFilteredProducts((prevFiltered) =>
