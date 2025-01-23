@@ -17,6 +17,12 @@ router.delete(
   favorites.delete.handler
 );
 
+router.put(
+  "/favorite/:productId/:mail",
+  favorites.put.validator,
+  favorites.put.handler
+);
+
 router.delete(
   "/favorite/byDetails",
   favorites.deleteByDetails.validator,

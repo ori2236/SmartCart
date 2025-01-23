@@ -22,6 +22,7 @@ const ShoppingCart = ({ route }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [debounceTimeouts, setDebounceTimeouts] = useState({});
   const [error, setError] = useState(null);
   const navigation = useNavigation();
 
@@ -60,24 +61,48 @@ const ShoppingCart = ({ route }) => {
 
 
   const handleQuantityChange = (id, change) => {
+    const product = products.find((p) => p.id === id);
+    if (!product) return;
+
+    const newQuantity = Math.max(product.quantity + change, 0);
+    
     setProducts((prevProducts) =>
       prevProducts.map((product) =>
-        product.id === id
-          ? { ...product, quantity: Math.max(product.quantity + change, 0) }
-          : product
+        product.id === id ? { ...product, quantity: newQuantity } : product
       )
     );
 
     setFilteredProducts((prevFilteredProducts) =>
       prevFilteredProducts.map((product) =>
-        product.id === id
-          ? { ...product, quantity: Math.max(product.quantity + change, 0) }
-          : product
+        product.id === id ? { ...product, quantity: newQuantity } : product
       )
     );
+    if (debounceTimeouts[id]) {
+      clearTimeout(debounceTimeouts[id]);
+    }
+
+    const timeout = setTimeout(() => {
+      updateQuantityInDatabase(id, newQuantity);
+    }, 500);
+
+    setDebounceTimeouts((prev) => ({ ...prev, [id]: timeout }));
   };
 
+  const updateQuantityInDatabase = async (productId, quantity) => {
+    const product = products.find((p) => p.id === productId);
+    if (!product) return;
 
+    try {
+      const apiUrl = `http://${config.apiServer}/api/productInCart/productInCart/${cart.cartKey}/${productId}`;
+      const response = await axios.put(apiUrl, { quantity });
+      if (response.status !== 200) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+    } catch (error) {
+      console.error("Error updating quantity:", error.message);
+    }
+  };
+    
   const handleSearch = (text) => {
     setSearchTerm(text);
     if (text.trim() === "") {

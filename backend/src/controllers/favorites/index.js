@@ -92,7 +92,19 @@ export default {
           const productIds = favorites.map((fav) => fav.productId);
           const products = await Product.find({ _id: { $in: productIds } });
 
-          return res.status(200).json(products);
+          const response = favorites.map((fav) => {
+            const product = products.find(
+              (prod) => prod._id.toString() === fav.productId
+            );
+            return {
+              _id: fav.productId,
+              name: product?.name || "Unknown",
+              image: product?.image || null,
+              quantity: fav.quantity,
+            };
+          });
+
+          return res.status(200).json(response);
         } else if (type === "productId") {
           const favorites = await Favorite.find({ productId: content });
 
@@ -116,6 +128,46 @@ export default {
         res.status(500).json({
           error: "An error occurred while processing your request.",
           details: error.message,
+        });
+      }
+    },
+  },
+  put: {
+    validator: async (req, res, next) => {
+      const { productId, mail } = req.params;
+      const { quantity } = req.body;
+
+      if (!productId || !mail || quantity === undefined) {
+        return res
+          .status(400)
+          .json({ error: "productId, mail, and quantity are required." });
+      }
+
+      next();
+    },
+    handler: async (req, res) => {
+      const { productId, mail } = req.params;
+      const { quantity } = req.body;
+
+      try {
+        const updatedProductInFavs = await Favorite.findOneAndUpdate(
+          { productId, mail },
+          { quantity },
+          { new: true, runValidators: true }
+        );
+
+        if (!updatedProductInFavs) {
+          return res.status(404).json({ error: "Product not found in favorites." });
+        }
+
+        res.status(200).json({
+          message: "Product quantity updated successfully in favorites.",
+          favorite: updatedProductInFavs,
+        });
+      } catch (error) {
+        console.error("Error updating product in favorites:", error.message);
+        res.status(500).json({
+          error: "An error occurred while updating the product in favorites.",
         });
       }
     },
@@ -174,7 +226,6 @@ export default {
           await Product.findByIdAndDelete(productId);
         }
 
-
         res.status(200).json({
           message: "Favorite deleted successfully.",
           productDeleted: remainingFavorites.length === 0,
@@ -205,7 +256,7 @@ export default {
         const productId = product._id.toString();
         req.params.productId = productId;
         req.params.mail = mail;
-        
+
         next();
       } catch (error) {
         res.status(500).json({
