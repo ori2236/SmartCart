@@ -11,13 +11,12 @@ import {
 } from "react-native";
 import ProductSearch from "./ProductSearch";
 import ProductFavorites from "./ProductFavorites";
-import ProductListAddProd from "./ProductListAddProd";
 import { useNavigation } from "@react-navigation/native";
 
 const { width, height } = Dimensions.get("window");
 
 const AddProducts = ({ route }) => {
-  const { userMail } = route.params;
+  const { userMail, cart } = route.params;
   const [selectedTab, setSelectedTab] = useState("name");
   const [products, setProducts] = useState([]);
   const navigation = useNavigation();
@@ -28,7 +27,7 @@ const AddProducts = ({ route }) => {
         Math.abs(gestureState.dx) > 20,
       onPanResponderRelease: (evt, gestureState) => {
         if (gestureState.dx < 20) {
-          navigation.navigate("ShoppingCart", { userMail });
+          navigation.navigate("ShoppingCart", { userMail, cart });
         }
       },
     })
@@ -39,38 +38,6 @@ const AddProducts = ({ route }) => {
     setProducts([]);
   };
 
-  const handleProductsFetched = (fetchedProducts) => {
-    setProducts(fetchedProducts);
-  };
-
-  const handleFilteredProducts = (filteredProducts) => {
-    setProducts(filteredProducts);
-  };
-
-  const handleQuantityChange = (id, change) => {
-    setProducts((prevProducts) =>
-      prevProducts.map((product) =>
-        product.id === id
-          ? { ...product, quantity: Math.max(product.quantity + change, 0) }
-          : product
-      )
-    );
-  };
-
-  const handleToggleStar = (id) => {
-    setProducts((prevProducts) =>
-      prevProducts.map((product) =>
-        product.id === id
-          ? {
-              ...product,
-              starColor:
-                product.starColor === "#D9D9D9" ? "#FFD700" : "#D9D9D9",
-            }
-          : product
-      )
-    );
-  };
-
   const renderContent = () => {
     if (selectedTab === "name") {
       return (
@@ -78,15 +45,8 @@ const AddProducts = ({ route }) => {
           <ProductSearch
             shoppingAddress="נתניה"
             userMail={userMail}
-            onProductsFetched={handleProductsFetched}
+            cart={cart}
           />
-          {products.length > 0 && (
-            <ProductListAddProd
-              products={products}
-              onQuantityChange={handleQuantityChange}
-              onToggleStar={handleToggleStar}
-            />
-          )}
         </>
       );
     } else if (selectedTab === "favorites") {
@@ -94,16 +54,8 @@ const AddProducts = ({ route }) => {
         <>
           <ProductFavorites
             userMail={userMail}
-            onProductsFetched={handleProductsFetched}
+            cart={cart}
           />
-          {products.length > 0 && (
-            <ProductListAddProd
-              products={products}
-              onQuantityChange={handleQuantityChange}
-              onToggleStar={handleToggleStar}
-              selectedTab
-            />
-          )}
         </>
       );
     }
@@ -113,7 +65,7 @@ const AddProducts = ({ route }) => {
     if (button == "home") {
       navigation.navigate("Home", { userMail });
     } else if (button == "shoppingCart") {
-      navigation.navigate("ShoppingCart", { userMail });
+      navigation.navigate("ShoppingCart", { userMail, cart });
     }
   };
 
@@ -287,204 +239,6 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     tintColor: "#0F872B",
-  },
-  productImage: {
-    width: 95,
-    height: 95,
-    borderRadius: 5,
-    position: "absolute",
-    right: -15,
-  },
-  productText: {
-    fontSize: 14,
-    textAlign: "right",
-    flexShrink: 1,
-    flexWrap: "wrap",
-    color: "#000000",
-    marginRight: 70,
-    marginTop: 10,
-    fontWeight: "bold",
-  },
-  productContainer: {
-    flexDirection: "column",
-    justifyContent: "center",
-    padding: 10,
-    margin: 10,
-    borderWidth: 1,
-    borderColor: "#CCCCCC",
-    borderRadius: 20,
-    backgroundColor: "#FFFFFF",
-    width: Platform.OS === "web" ? width * 0.5 : width * 0.9,
-    paddingHorizontal: 20,
-    height: 180,
-    elevation: 2,
-    overflow: "hidden",
-  },
-  productContainerTop: {
-    flexDirection: "row",
-    top: 0,
-    justifyContent: "center",
-    borderBottomColor: "#CCCCCC",
-    borderBottomWidth: 1,
-    backgroundColor: "#FFFFFF",
-    height: 110,
-  },
-  productContainerBottom: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 10,
-    height: 40,
-  },
-
-  minusIcon: {
-    position: "absolute",
-    top: -28,
-    left: -12,
-    fontSize: 35,
-    color: "#FF7E3E",
-  },
-
-  plusIcon: {
-    position: "absolute",
-    top: -25,
-    fontSize: 32,
-    color: "#FF7E3E",
-  },
-
-  quantityContainer: {
-    width: 30,
-    height: 40,
-    borderWidth: 1,
-    borderColor: "#CCCCCC",
-    borderRadius: 5,
-    justifyContent: "center",
-    alignItems: "center",
-    marginHorizontal: 5,
-    backgroundColor: "#FFFFFF",
-    padding: 0,
-    overflow: "hidden",
-  },
-  quantityText: {
-    fontSize: 15,
-    color: "#000000",
-    textAlign: "center",
-    textAlignVertical: "center",
-    padding: 0,
-    margin: 0,
-    height: "100%",
-    width: "100%",
-  },
-
-  unitText: {
-    fontSize: 16,
-    color: "#000000",
-    marginHorizontal: 5,
-    textAlign: "center",
-  },
-
-  star: {
-    position: "absolute",
-    top: -15,
-    right: Platform.OS === "web" ? -395 : -197,
-  },
-
-  addToCartButton: {
-    width: 85,
-    borderRadius: 20,
-    position: "absolute",
-    left: 5,
-    backgroundColor: "#0F872B",
-    justifyContent: "center",
-    alignItems: "center",
-    marginLeft: -12,
-  },
-  addToCartText: {
-    fontSize: 15,
-    color: "#FFFFFF",
-    marginVertical: 7,
-  },
-  searchContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginHorizontal: 15,
-    marginTop: 10,
-    marginBottom: 10,
-  },
-  searchInput: {
-    flex: 1,
-    height: 40,
-    borderWidth: 1,
-    borderColor: "#CCCCCC",
-    borderRadius: 20,
-    paddingHorizontal: 15,
-    backgroundColor: "#F9F9F9",
-    textAlignVertical: "center",
-    marginTop: 5,
-  },
-  searchButton: {
-    marginTop: 0,
-    marginRight: 10,
-    backgroundColor: "#FF7E3E",
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
-  },
-  searchButtonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-  },
-  logo: {
-    alignSelf: "center",
-    width: 180,
-    height: 150,
-    marginTop: height * 0.13,
-    marginBottom: 7,
-  },
-  description: {
-    textAlign: "center",
-    fontSize: 16,
-    color: "#333333",
-    fontWeight: "bold",
-    marginBottom: 10,
-  },
-  loadingText: {
-    fontSize: 18,
-    color: "#FF7E3E",
-  },
-  logo: {
-    alignSelf: "center",
-    width: 180,
-    height: 150,
-    marginTop: height * 0.13,
-    marginBottom: 7,
-  },
-  description: {
-    textAlign: "center",
-    fontSize: 16,
-    color: "#333333",
-    fontWeight: "bold",
-    marginBottom: 10,
-  },
-  contentContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  loadingText: {
-    fontSize: 18,
-    color: "#FF7E3E",
-    textAlign: "center",
-    marginTop: 20,
-  },
-  flatListContent: {
-    alignItems: "center",
-    paddingBottom: 80,
-  },
-  centerContent: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
   },
 });
 

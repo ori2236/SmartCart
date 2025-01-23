@@ -1,49 +1,70 @@
 import ProductInCart from "../../models/ProductInCart.js";
 import Product from "../../models/Product.js";
+import Cart from "../../models/Cart.js"
+import Favorite from "../../models/Favorite.js";
+import ProductController from "../products/index.js";
 
 export default {
   post: {
     validator: async (req, res, next) => {
-      const { cartKey, productId, quantity } = req.body;
-
-      if (!cartKey || !productId || quantity === undefined) {
-        return res
-          .status(400)
-          .json({ error: "cartKey, productId, and quantity are required." });
+      const { name, image, cartKey, quantity } = req.body;
+      if (!name || !image || !cartKey || quantity === undefined) {
+        return res.status(400).json({
+          error: "name, image, cartKey and quantity are required.",
+        });
       }
-
       next();
     },
     handler: async (req, res) => {
-      const { cartKey, productId, quantity } = req.body;
-
+      const { name, image, cartKey, quantity } = req.body;
+      let productId = "";
       try {
-        console.log("1");
+        let product = await Product.findOne({ name, image });
+        if (!product) {
+          const reqMock = {
+            body: {
+              name: name,
+              image: image,
+            },
+          };
+          const resMock = {
+            data: null,
+            json: function (response) {
+              this.data = response;
+              return response;
+            },
+            status: function (statusCode) {
+              return this;
+            },
+          };
+          const createdProduct = await ProductController.post.handler(
+            reqMock,
+            resMock
+          );
+          product = resMock.data.product;
+        }
+        productId = product._id.toString();
         const existingProductInCart = await ProductInCart.findOne({
           cartKey,
           productId,
         });
-        console.log("2");
         if (existingProductInCart) {
           return res
             .status(200)
-            .json({ message: "Product already in the cart." });
+            .json({
+              message: "This product is already in the cart.",
+            });
         }
-        console.log("3");
         const newProductInCart = await ProductInCart.create({
           cartKey,
           productId,
           quantity,
         });
-
-        console.log("4");
-        
         res.status(201).json({
           message: "Product added to cart successfully.",
           productInCart: newProductInCart,
         });
       } catch (error) {
-        console.error("Error adding product to cart:", error.message);
         res.status(500).json({
           message: "Error adding product to cart.",
           error: error.message,
@@ -60,26 +81,20 @@ export default {
 
       try {
         if (type === "cartKey") {
-            console.log("1")
           const productsInCart = await ProductInCart.find({ cartKey: content });
-            console.log("2");
           if (!productsInCart) {
-            console.log("2222");
             return res
               .status(404)
               .json({ error: "No products found for the provided cartKey." });
           }
-          console.log("3");
           if (productsInCart.length === 0) {
             return res
               .status(200)
               .json({ message: "No products found for the provided cartKey." });
           }
-          console.log("4");
           const productDetails = await Product.find({
             _id: { $in: productsInCart.map((item) => item.productId) },
           });
-          console.log("5");
           const response = productsInCart.map((item) => {
             const product = productDetails.find(
               (prod) => prod._id.toString() === item.productId.toString()
@@ -164,7 +179,29 @@ export default {
           .json({ error: "cartKey and productId are required." });
       }
 
-      next();
+      try {
+        const productExists = await Product.findById(productId);
+        if (!productExists) {
+          return res.status(404).json({
+            error: "Product not found.",
+          });
+        }
+
+        const cartExists = await Cart.findById(cartKey);
+        if (!cartExists) {
+          return res.status(404).json({
+            error: "No cart found for the provided cartKey.",
+            cartKey: cartKey
+          });
+        }
+
+        next();
+      } catch (error) {
+        res.status(500).json({
+          error: "An error occurred during validation.",
+          details: error.message,
+        });
+      }
     },
     handler: async (req, res) => {
       const { cartKey, productId } = req.params;
@@ -177,6 +214,12 @@ export default {
 
         if (!deletedProductInCart) {
           return res.status(404).json({ error: "Product not found in cart." });
+        }
+
+        const prodInFavs = await Favorite.findOne({ productId });
+        const prodInCarts = await ProductInCart.findOne({ productId });
+        if (!prodInFavs && !prodInCarts) {
+          await Product.findByIdAndDelete(productId);
         }
 
         res.status(200).json({

@@ -9,17 +9,19 @@ import {
   Platform,
   Dimensions,
   FlatList,
+  Alert,
 } from "react-native";
 import Svg, { Polygon } from "react-native-svg";
-
+import axios from "axios";
+import config from "../../config";
 const { width, height } = Dimensions.get("window");
 
-const ProductList = ({
+const ProductListAddProd = ({
   products,
   isLoading,
   onQuantityChange,
   onToggleStar,
-  selectedTab,
+  cart,
 }) => {
   const renderProduct = ({ item }) => {
     const imageSource = item.image
@@ -79,7 +81,10 @@ const ProductList = ({
             <Text style={styles.plusIcon}>+</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.addToCartButton}>
+          <TouchableOpacity
+            style={styles.addToCartButton}
+            onPress={() => handleAddProductToCart(item)}
+          >
             <Text style={styles.addToCartText}>הוספה</Text>
           </TouchableOpacity>
         </View>
@@ -96,6 +101,37 @@ const ProductList = ({
     );
   }
 
+  const handleAddProductToCart = async (product) => {
+    const name = product.label
+    const image = product.image
+    const cartKey = cart.cartKey
+    const quantity = product.quantity
+    const newProd = {
+      name,
+      image,
+      cartKey,
+      quantity,
+    };
+
+    try {
+      const apiUrl = `http://${config.apiServer}/api/productInCart/productInCart`;
+      const response = await axios.post(apiUrl, newProd);
+      const data = response.data;
+      if (response.status >= 200 && response.status < 300) {
+        const res = response.data;
+        if (res.message === "Product added to cart successfully.") {
+          Alert.alert("הצלחה", "המוצר נוסף לעגלה בהצלחה!");
+        } else if (res.message === "This product is already in the cart.") {
+          Alert.alert("שים לב", "המוצר שבחרת כבר נמצא בעגלה!");
+        }
+      } else {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+    } catch (error) {
+      console.error("Error fetching cart products:", error.message);
+    }
+  };
+  
   return (
     <FlatList
       data={products}
@@ -239,5 +275,4 @@ const styles = StyleSheet.create({
   },
 });
 
-
-export default ProductList;
+export default ProductListAddProd;

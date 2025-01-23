@@ -12,11 +12,11 @@ import {
 } from "react-native";
 import axios from "axios";
 import config from "../../config";
-import ProductList from "./ProductListAddProd";
+import ProductListAddProd from "./ProductListAddProd";
 
 const { width, height } = Dimensions.get("window");
 
-const ProductSearch = ({ shoppingAddress, userMail }) => {
+const ProductSearch = ({ shoppingAddress, userMail, cart }) => {
   const [products, setProducts] = useState([]);
   const [favorites, setFavorites] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -128,10 +128,7 @@ const ProductSearch = ({ shoppingAddress, userMail }) => {
       Alert.alert("Validation Error", "All fields are required!");
       return;
     }
-    removeFavoriteProduct(product);
-  };
 
-  const removeFavoriteProduct = async (product) => {
     try {
       const removeFavoriteProduct = {
         name: product.label,
@@ -170,8 +167,6 @@ const ProductSearch = ({ shoppingAddress, userMail }) => {
     } else {
       handleStarClickOff(product);
     }
-
-    console.log("toggle search");
 
     setProducts((prevProducts) =>
       prevProducts.map((product) =>
@@ -212,11 +207,12 @@ const ProductSearch = ({ shoppingAddress, userMail }) => {
           <Text style={styles.description}>חפש מוצר שברצונך לרכוש</Text>
         </View>
       ) : (
-        <ProductList
+        <ProductListAddProd
           products={products}
           isLoading={isLoading}
           onQuantityChange={handleQuantityChange}
           onToggleStar={toggleStarColor}
+          cart={cart}
         />
       )}
     </View>

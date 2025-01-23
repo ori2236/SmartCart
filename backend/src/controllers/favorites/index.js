@@ -1,5 +1,6 @@
 import Favorite from "../../models/Favorite.js";
 import Product from "../../models/Product.js";
+import ProductInCart from "../../models/ProductInCart.js";
 import User from "../../models/User.js";
 import ProductController from "../products/index.js";
 
@@ -167,10 +168,12 @@ export default {
           });
         }
 
-        const remainingFavorites = await Favorite.find({ productId });
-        if (remainingFavorites.length === 0) {
+        const prodInFavs = await Favorite.findOne({ productId });
+        const prodInCarts = await ProductInCart.findOne({ productId });
+        if (!prodInFavs && !prodInCarts) {
           await Product.findByIdAndDelete(productId);
         }
+
 
         res.status(200).json({
           message: "Favorite deleted successfully.",
@@ -224,15 +227,13 @@ export default {
             error: "No favorite found for the provided productId and mail.",
           });
         }
-
-        const remainingFavorites = await Favorite.find({ productId });
-        if (remainingFavorites.length === 0) {
+        const prodInFavs = await Favorite.findOne({ productId });
+        const prodInCarts = await ProductInCart.findOne({ productId });
+        if (!prodInFavs && !prodInCarts) {
           await Product.findByIdAndDelete(productId);
         }
-
         res.status(200).json({
           message: "Favorite deleted successfully.",
-          productDeleted: remainingFavorites.length === 0,
         });
       } catch (error) {
         res.status(500).json({

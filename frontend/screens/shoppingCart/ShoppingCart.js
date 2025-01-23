@@ -17,7 +17,7 @@ import config from "../../config";
 const { width, height } = Dimensions.get("window");
 
 const ShoppingCart = ({ route }) => {
-  const { userMail } = route.params;
+  const { userMail, cart } = route.params;
   const [products, setProducts] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredProducts, setFilteredProducts] = useState([]);
@@ -25,15 +25,20 @@ const ShoppingCart = ({ route }) => {
   const [error, setError] = useState(null);
   const navigation = useNavigation();
 
-    useEffect(() => {
-      const fetchCartProducts = async () => {
-        setIsLoading(true);
-        setError(null);
+  useEffect(() => {
+    const fetchCartProducts = async () => {
+      setIsLoading(true);
+      setError(null);
 
-        try {
-          const apiUrl = `http://${config.apiServer}/api/productInCart/productInCart/cartKey/6780156b30d83502d781672d`;
-          const response = await axios.get(apiUrl);
-          const data = response.data;
+      try {
+        const apiUrl = `http://${config.apiServer}/api/productInCart/productInCart/cartKey/${cart.cartKey}`;
+        const response = await axios.get(apiUrl);
+        const data = response.data;
+  
+        if (data.message === "No products found for the provided cartKey.") {
+          setProducts([]);
+          setFilteredProducts([]);
+        } else {
           const cartProducts = data.map((product) => ({
             id: product.productId,
             label: product.name,
@@ -42,56 +47,36 @@ const ShoppingCart = ({ route }) => {
           }));
           setFilteredProducts(cartProducts);
           setProducts(cartProducts);
-        } catch (error) {
-          console.error("Error fetching cart products:", error.message);
-          setProducts([]);
-        } finally {
-          setIsLoading(false);
         }
-      };
-      fetchCartProducts();
-    }, [userMail]);
-
-    const handleStarClickOff = async (product) => {
-      if (!product.label || !product.image || !userMail) {
-        Alert.alert("Validation Error", "All fields are required!");
-        return;
+      } catch (error) {
+        console.error("Error fetching cart products:", error.message);
+        setProducts([]);
+      } finally {
+        setIsLoading(false);
       }
-      console.log("delete", product.label);
-      removeFavoriteProduct(product);
     };
+    fetchCartProducts();
+  }, [userMail]);
 
 
-    const handleQuantityChange = (id, change) => {
-      setProducts((prevProducts) =>
-        prevProducts.map((product) =>
-          product.id === id
-            ? { ...product, quantity: Math.max(product.quantity + change, 0) }
-            : product
-        )
-      );
+  const handleQuantityChange = (id, change) => {
+    setProducts((prevProducts) =>
+      prevProducts.map((product) =>
+        product.id === id
+          ? { ...product, quantity: Math.max(product.quantity + change, 0) }
+          : product
+      )
+    );
 
-      setFilteredProducts((prevFilteredProducts) =>
-        prevFilteredProducts.map((product) =>
-          product.id === id
-            ? { ...product, quantity: Math.max(product.quantity + change, 0) }
-            : product
-        )
-      );
-    };
+    setFilteredProducts((prevFilteredProducts) =>
+      prevFilteredProducts.map((product) =>
+        product.id === id
+          ? { ...product, quantity: Math.max(product.quantity + change, 0) }
+          : product
+      )
+    );
+  };
 
-    const toggleStarColor = (id) => {
-      const product = products.find((p) => p.id === id);
-      if (!product) {
-        console.error("Product not found.");
-        return;
-      }
-
-      setProducts((prevProducts) => prevProducts.filter((p) => p.id !== id));
-      setFilteredProducts((prevFiltered) =>
-        prevFiltered.filter((p) => p.id !== id)
-      );
-    };
 
   const handleSearch = (text) => {
     setSearchTerm(text);
@@ -103,14 +88,33 @@ const ShoppingCart = ({ route }) => {
       );
       setFilteredProducts(filtered);
     }
-  };
+  };  
 
+  const handleRemoveProductFromCart = async (productId) => {
+    try {
+      const apiUrl = `http://${config.apiServer}/api/productInCart/productInCart/${cart.cartKey}/${productId}`;
+      const response = await axios.delete(apiUrl);
+      if (response.status == 200) {
+        setProducts((prevProducts) =>
+          prevProducts.filter((p) => p.id !== productId)
+        );
+        setFilteredProducts((prevFiltered) =>
+          prevFiltered.filter((p) => p.id !== productId)
+        );
+      } else {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+    } catch (error) {
+      Alert.alert("שגיאה", "נכשל להסיר מוצר מהמועדפים. נסה שוב.");
+      console.error("Error message:", error.message);
+    }
+  };
 
   const handleBottomRow = (button) => {
     if (button == "home") {
       navigation.navigate("Home", { userMail });
     } else if (button == "addProducts") {
-      navigation.navigate("AddProducts", { userMail });
+      navigation.navigate("AddProducts", { userMail, cart });
     }
   };
 
@@ -135,7 +139,7 @@ const ShoppingCart = ({ route }) => {
           </View>
         </View>
       </View>
-      <Text style={styles.cartName}>בית אמא</Text>
+      <Text style={styles.cartName}>{cart.name}</Text>
 
       {/* Render ProductList */}
       {!isLoading && products.length === 0 ? (
@@ -151,7 +155,7 @@ const ShoppingCart = ({ route }) => {
           products={filteredProducts}
           isLoading={isLoading}
           onQuantityChange={handleQuantityChange}
-          onToggleStar={toggleStarColor}
+          onRemoveProductFromCart={handleRemoveProductFromCart}
         />
       )}
 

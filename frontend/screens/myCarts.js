@@ -12,7 +12,7 @@ const { width, height } = Dimensions.get("window");
 const MyCartsScreen = ({ route }) => {
   const { userMail } = route.params;
   const navigation = useNavigation();
-  const [cartNames, setCartNames] = useState([]);
+  const [carts, setCarts] = useState([]);
 
   useEffect(() => {
     const fetchCartData = async () => {
@@ -20,8 +20,7 @@ const MyCartsScreen = ({ route }) => {
         const apiUrl = `http://${config.apiServer}/api/userInCart/userInCart/mail/${userMail}`;
         const response = await axios.get(apiUrl);
         const carts = response.data;
-        const names = carts.map((cart) => cart.name);
-        setCartNames(names);
+        setCarts(carts);
       } catch (error) {
         console.error("Error fetching cart data:", error.message);
       }
@@ -46,7 +45,7 @@ const MyCartsScreen = ({ route }) => {
       </View>
 
       <ScrollView style={styles.scrollableContainer}>
-        {cartNames.map((name, index) => (
+        {carts.map((cart, index) => (
           <View key={index} style={styles.buttonWrapper}>
             <Ionicons
               name="information-circle-outline"
@@ -56,9 +55,14 @@ const MyCartsScreen = ({ route }) => {
             />
             <TouchableOpacity
               style={styles.buttonCart}
-              onPress={() => navigation.navigate("AddProducts", { userMail })}
+              onPress={() =>
+                navigation.navigate(
+                  "AddProducts",
+                  { userMail, cart },
+                )
+              }
             >
-              <Text style={styles.buttonCartText}>{name}</Text>
+              <Text style={styles.buttonCartText}>{cart.name}</Text>
             </TouchableOpacity>
           </View>
         ))}
@@ -86,7 +90,7 @@ const styles = StyleSheet.create({
   backButton: {
     position: "absolute",
     left: 20,
-    top: Platform.OS === "web" ? 30: 45,
+    top: Platform.OS === "web" ? 30 : 45,
   },
   logo: {
     height: Platform.OS === "web" ? height * 0.22 : height * 0.2,
@@ -132,6 +136,5 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 });
-
 
 export default MyCartsScreen;

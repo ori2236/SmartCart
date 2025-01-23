@@ -18,7 +18,7 @@ const ProductListShopList = ({
   products,
   isLoading,
   onQuantityChange,
-  onToggleStar,
+  onRemoveProductFromCart,
 }) => {
   const renderProduct = ({ item }) => {
     const imageSource = item.image
@@ -40,7 +40,9 @@ const ProductListShopList = ({
           />
         </View>
         <View style={styles.productContainerBottom}>
-          <View onStartShouldSetResponder={() => onToggleStar(item.id)}>
+          <View
+            onStartShouldSetResponder={() => onRemoveProductFromCart(item.id)}
+          >
             <Image
               source={require("../../assets/trash.png")}
               style={styles.trashIcon}

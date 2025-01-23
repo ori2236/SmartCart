@@ -10,11 +10,11 @@ import {
 } from "react-native";
 import axios from "axios";
 import config from "../../config";
-import ProductList from "./ProductListAddProd";
+import ProductListAddProd from "./ProductListAddProd";
 
 const { height } = Dimensions.get("window");
 
-const ProductFavorites = ({ onProductsFetched, userMail }) => {
+const ProductFavorites = ({ userMail, cart }) => {
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -52,18 +52,14 @@ const ProductFavorites = ({ onProductsFetched, userMail }) => {
       }
     };
     fetchFavorites();
-  }, [userMail, onProductsFetched]);
+  }, [userMail]);
 
   const handleStarClickOff = async (product) => {
     if (!product.label || !product.image || !userMail) {
       Alert.alert("Validation Error", "All fields are required!");
       return;
     }
-    console.log("delete", product.label);
-    removeFavoriteProduct(product);
-  };
 
-  const removeFavoriteProduct = async (product) => {
     try {
       const apiUrl = `http://${config.apiServer}/api/favorite/favorite/${product.id}/${userMail}`;
       const response = await axios.delete(apiUrl);
@@ -110,8 +106,6 @@ const ProductFavorites = ({ onProductsFetched, userMail }) => {
       handleStarClickOff(product);
     }
 
-    console.log("toggle favorite");
-
     setProducts((prevProducts) => prevProducts.filter((p) => p.id !== id));
     setFilteredProducts((prevFiltered) =>
       prevFiltered.filter((p) => p.id !== id)
@@ -152,11 +146,12 @@ const ProductFavorites = ({ onProductsFetched, userMail }) => {
           <Text style={styles.description}>לא נמצאו מוצרים במועדפים</Text>
         </View>
       ) : (
-        <ProductList
+        <ProductListAddProd
           products={filteredProducts}
           isLoading={isLoading}
           onQuantityChange={handleQuantityChange}
           onToggleStar={toggleStarColor}
+          cart={cart}
         />
       )}
     </View>
