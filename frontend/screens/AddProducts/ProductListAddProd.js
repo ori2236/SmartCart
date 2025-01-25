@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -14,6 +14,7 @@ import {
 import Svg, { Polygon } from "react-native-svg";
 import axios from "axios";
 import config from "../../config";
+
 const { width, height } = Dimensions.get("window");
 
 const ProductListAddProd = ({
@@ -23,14 +24,100 @@ const ProductListAddProd = ({
   onToggleStar,
   cart,
 }) => {
+  const [cartProducts, setCartProducts] = useState([]);
+  const [buttonStates, setButtonStates] = useState(() => {
+    return products.reduce((acc, product) => {
+      const isInCart = cartProducts.some((cartProd) => cartProd.id === product.id);
+      acc[product.id] = { isAdded: isInCart, isUpdated: false };
+      return acc;
+    }, {});
+  });
+
+
+  const fetchCartProducts = async () => {
+    try {
+      const apiUrl = `http://${config.apiServer}/api/productInCart/productInCart/cartKey/${cart.cartKey}`;
+      const response = await axios.get(apiUrl);
+      const data = response.data;
+
+      if (data.message === "No products found for the provided cartKey.") {
+        setCartProducts([]);
+      } else {
+        const cartProductsData = data.map((product) => ({
+          id: product.productId,
+          label: product.name,
+          image: product.image || null,
+          quantity: product.quantity,
+        }));
+        setCartProducts(cartProductsData);
+      }
+    } catch (error) {
+      console.error("Error fetching cart products:", error.message);
+      setCartProducts([]);
+    }
+  };
+
+  useEffect(() => {
+    fetchCartProducts();
+  }, []);
+
+  const updateButtonState = (id, state) => {
+    setButtonStates((prevState) => ({
+      ...prevState,
+      [id]: { ...prevState[id], ...state },
+    }));
+  };
+
+  const handleAddProductToCart = async (product) => {
+    const name = product.label;
+    const image = product.image;
+    const cartKey = cart.cartKey;
+    const quantity = product.quantity;
+    const newProd = {
+      name,
+      image,
+      cartKey,
+      quantity,
+    };
+
+    try {
+      const apiUrl = `http://${config.apiServer}/api/productInCart/productInCart`;
+      const response = await axios.post(apiUrl, newProd);
+      if (response.status >= 200 && response.status < 300) {
+        Alert.alert("הצלחה", "המוצר נוסף לעגלה בהצלחה!");
+        product.productId = response.data._id;
+        console.log(product);
+        console.log(product.productId);
+        console.log(response.data._id);
+        updateButtonState(product.id, { isAdded: true, isUpdated: false });
+      }
+    } catch (error) {
+      console.error("Error adding product to cart:", error.message);
+    }
+  };
+
+  const handleUpdateProductInCart = async (product) => {
+    const quantity = product.quantity;
+    try {
+      
+      const apiUrl = `http://${config.apiServer}/api/productInCart/productInCart/${cart.cartKey}/${product.productId}`;
+      const response = await axios.put(apiUrl, { quantity });
+      if (response.status === 200) {
+        Alert.alert("הצלחה", "הכמות עודכנה בהצלחה!");
+        updateButtonState(product.id, { isUpdated: false });
+      }
+    } catch (error) {
+      console.error("Error updating product quantity:", error.message);
+    }
+  };
+
+  const handleQuantityChangeAndUpdate = (id, change) => {
+    onQuantityChange(id, change);
+    updateButtonState(id, { isUpdated: true });
+  };
+
   const renderProduct = ({ item }) => {
-    const imageSource = item.image
-      ? {
-          uri: item.image.startsWith("data:image")
-            ? item.image
-            : `data:image/png;base64,${item.image}`,
-        }
-      : require("../../assets/logo.png");
+    const { isAdded, isUpdated } = buttonStates[item.id] || {};
 
     return (
       <View style={styles.productContainer}>
@@ -38,7 +125,15 @@ const ProductListAddProd = ({
           <Text style={styles.productText}>{item.label}</Text>
           <Image
             style={styles.productImage}
-            source={imageSource}
+            source={
+              item.image
+                ? {
+                    uri: item.image.startsWith("data:image")
+                      ? item.image
+                      : `data:image/png;base64,${item.image}`,
+                  }
+                : require("../../assets/logo.png")
+            }
             resizeMode="contain"
           />
         </View>
@@ -59,7 +154,9 @@ const ProductListAddProd = ({
             </Svg>
           </View>
 
-          <TouchableOpacity onPress={() => onQuantityChange(item.id, -1)}>
+          <TouchableOpacity
+            onPress={() => handleQuantityChangeAndUpdate(item.id, -1)}
+          >
             <Text style={styles.minusIcon}>-</Text>
           </TouchableOpacity>
 
@@ -71,21 +168,46 @@ const ProductListAddProd = ({
               value={item.quantity.toString()}
               onChangeText={(value) => {
                 const parsedValue = parseInt(value) || 0;
-                onQuantityChange(item.id, parsedValue - item.quantity);
+                handleQuantityChangeAndUpdate(
+                  item.id,
+                  parsedValue - item.quantity
+                );
               }}
               keyboardType="numeric"
             />
           </View>
 
-          <TouchableOpacity onPress={() => onQuantityChange(item.id, 1)}>
+          <TouchableOpacity
+            onPress={() => handleQuantityChangeAndUpdate(item.id, +1)}
+          >
             <Text style={styles.plusIcon}>+</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.addToCartButton}
-            onPress={() => handleAddProductToCart(item)}
+            style={[
+              styles.addToCartButton,
+              {
+                backgroundColor: isUpdated
+                  ? "#0F872B"
+                  : isAdded
+                  ? "#CCCCCC"
+                  : "#0F872B",
+              },
+            ]}
+            onPress={() =>
+              isAdded && isUpdated
+                ? handleUpdateProductInCart(item)
+                : handleAddProductToCart(item)
+            }
           >
-            <Text style={styles.addToCartText}>הוספה</Text>
+            <Text
+              style={[
+                styles.addToCartText,
+                { color: isUpdated || !isAdded ? "#FFFFFF" : "#0F872B" },
+              ]}
+            >
+              {isUpdated ? "עדכון" : isAdded ? "עדכון" : "הוספה"}
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -101,47 +223,15 @@ const ProductListAddProd = ({
     );
   }
 
-  const handleAddProductToCart = async (product) => {
-    const name = product.label
-    const image = product.image
-    const cartKey = cart.cartKey
-    const quantity = product.quantity
-    const newProd = {
-      name,
-      image,
-      cartKey,
-      quantity,
-    };
-
-    try {
-      const apiUrl = `http://${config.apiServer}/api/productInCart/productInCart`;
-      const response = await axios.post(apiUrl, newProd);
-      const data = response.data;
-      if (response.status >= 200 && response.status < 300) {
-        const res = response.data;
-        if (res.message === "Product added to cart successfully.") {
-          Alert.alert("הצלחה", "המוצר נוסף לעגלה בהצלחה!");
-        } else if (res.message === "This product is already in the cart.") {
-          Alert.alert("שים לב", "המוצר שבחרת כבר נמצא בעגלה!");
-        }
-      } else {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-    } catch (error) {
-      console.error("Error fetching cart products:", error.message);
-    }
-  };
-  
   return (
     <FlatList
       data={products}
       renderItem={renderProduct}
-      keyExtractor={(item, index) => index.toString()}
+      keyExtractor={(item) => item.id.toString()}
       contentContainerStyle={styles.flatListContent}
     />
   );
 };
-
 
 const styles = StyleSheet.create({
   productContainer: {

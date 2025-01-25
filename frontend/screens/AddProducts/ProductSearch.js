@@ -19,6 +19,7 @@ const { width, height } = Dimensions.get("window");
 const ProductSearch = ({ shoppingAddress, userMail, cart }) => {
   const [products, setProducts] = useState([]);
   const [favorites, setFavorites] = useState([]);
+  const [cartProducts, setCartProducts] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -36,9 +37,39 @@ const ProductSearch = ({ shoppingAddress, userMail, cart }) => {
     }
   };
 
+  const fetchCartProducts = async () => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const apiUrl = `http://${config.apiServer}/api/productInCart/productInCart/cartKey/${cart.cartKey}`;
+      const response = await axios.get(apiUrl);
+      const data = response.data;
+
+      if (data.message === "No products found for the provided cartKey.") {
+        setProducts([]);
+        setFilteredProducts([]);
+      } else {
+        const cartProductsData = data.map((product) => ({
+          id: product.productId,
+          label: product.name,
+          image: product.image || null,
+          quantity: product.quantity,
+        }));
+        setCartProducts(cartProductsData);
+      }
+    } catch (error) {
+      console.error("Error fetching cart products:", error.message);
+      setProducts([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (userMail) {
       fetchFavorites();
+      fetchCartProducts();
     }
   }, [userMail]);
 
@@ -48,36 +79,65 @@ const ProductSearch = ({ shoppingAddress, userMail, cart }) => {
       return;
     }
 
-    fetchFavorites();
     setIsLoading(true);
     setError(null);
 
     try {
-      const response = await fetch(
-        `http://${
-          config.apiServer
-        }/api/product/productsFromSearch/?term=${encodeURIComponent(
-          searchTerm
-        )}&shopping_address=${encodeURIComponent(shoppingAddress)}`
-      );
+      // הרץ את שלוש הקריאות לשרת במקביל
+      const [favoritesData, cartProductsData, searchResponse] =
+        await Promise.all([
+          (async () => {
+            const apiUrl = `http://${config.apiServer}/api/favorite/favorite/mail/${userMail}`;
+            const response = await axios.get(apiUrl);
+            return response.data || [];
+          })(),
+          (async () => {
+            const apiUrl = `http://${config.apiServer}/api/productInCart/productInCart/cartKey/${cart.cartKey}`;
+            const response = await axios.get(apiUrl);
+            if (
+              response.data.message ===
+              "No products found for the provided cartKey."
+            ) {
+              return [];
+            }
+            return response.data.map((product) => ({
+              id: product.productId,
+              label: product.name,
+              image: product.image || null,
+              quantity: product.quantity,
+            }));
+          })(),
+          (async () => {
+            const apiUrl = `http://${
+              config.apiServer
+            }/api/product/productsFromSearch/?term=${encodeURIComponent(
+              searchTerm
+            )}&shopping_address=${encodeURIComponent(shoppingAddress)}`;
+            const response = await fetch(apiUrl);
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+          })(),
+        ]);
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      const updatedProducts = data.map((product, index) => {
-        const isFavorite = favorites.some(
+      const updatedProducts = searchResponse.map((product, index) => {
+        const isFavorite = favoritesData.some(
           (fav) => fav.name === product.label && fav.image === product.image
         );
+        const prodInCart = cartProductsData.find(
+          (prod) => prod.label === product.label && prod.image === product.image
+        );
+
         return {
           ...product,
-          id: index,
-          quantity: 1,
+          id: prodInCart ? prodInCart.id : index,
+          quantity: prodInCart ? prodInCart.quantity : 1,
           starColor: isFavorite ? "#FFD700" : "#D9D9D9",
         };
       });
-
+      setCartProducts(cartProductsData);
+      setFavorites(favoritesData);
       setProducts(updatedProducts);
     } catch (error) {
       setError(error.message || "שגיאה בטעינת המוצרים");
@@ -85,6 +145,7 @@ const ProductSearch = ({ shoppingAddress, userMail, cart }) => {
       setIsLoading(false);
     }
   };
+
 
   const handleStarClickOn = async (product) => {
     if (!product.label || !product.image || !userMail) {

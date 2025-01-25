@@ -231,5 +231,4 @@ const styles = StyleSheet.create({
   },
 });
 
-
 export default ProductListShopList;

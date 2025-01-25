@@ -61,6 +61,7 @@ export default {
           quantity,
         });
         res.status(201).json({
+          _id: productId,
           message: "Product added to cart successfully.",
           productInCart: newProductInCart,
         });
