@@ -38,7 +38,7 @@ const ProductFavorites = ({ userMail, cart }) => {
 
         const data = await response.json();
         const updatedProducts = data.map((product, index) => ({
-          id: product._id,
+          productId: product._id,
           label: product.name,
           image: product.image || null,
           quantity: product.quantity,
@@ -62,12 +62,12 @@ const ProductFavorites = ({ userMail, cart }) => {
     }
 
     try {
-      const apiUrl = `http://${config.apiServer}/api/favorite/favorite/${product.id}/${userMail}`;
+      const apiUrl = `http://${config.apiServer}/api/favorite/favorite/${product.productId}/${userMail}`;
       const response = await axios.delete(apiUrl);
 
       if (response.status == 200) {
         setProducts((prevProducts) =>
-          prevProducts.filter((p) => p.id !== product.id)
+          prevProducts.filter((p) => p.productId !== product.productId)
         );
       } else {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -78,36 +78,36 @@ const ProductFavorites = ({ userMail, cart }) => {
     }
   };
 
-  const handleQuantityChange = (id, change) => {
-    const product = products.find((p) => p.id === id);
+  const handleQuantityChange = (productId, change) => {
+    const product = products.find((p) => p.productId === productId);
     if (!product) return;
 
     const newQuantity = Math.max(product.quantity + change, 0);
 
     setProducts((prevProducts) =>
       prevProducts.map((product) =>
-        product.id === id ? { ...product, quantity: newQuantity } : product
+        product.productId === productId ? { ...product, quantity: newQuantity } : product
       )
     );
 
     setFilteredProducts((prevFilteredProducts) =>
       prevFilteredProducts.map((product) =>
-        product.id === id ? { ...product, quantity: newQuantity } : product
+        product.productId === productId ? { ...product, quantity: newQuantity } : product
       )
     );
-    if (debounceTimeouts[id]) {
-      clearTimeout(debounceTimeouts[id]);
+    if (debounceTimeouts[productId]) {
+      clearTimeout(debounceTimeouts[productId]);
     }
 
     const timeout = setTimeout(() => {
-      updateQuantityInDatabase(id, newQuantity);
+      updateQuantityInDatabase(productId, newQuantity);
     }, 500);
 
-    setDebounceTimeouts((prev) => ({ ...prev, [id]: timeout }));
+    setDebounceTimeouts((prev) => ({ ...prev, [productId]: timeout }));
   };
 
   const updateQuantityInDatabase = async (productId, quantity) => {
-    const product = products.find((p) => p.id === productId);
+    const product = products.find((p) => p.productId === productId);
     if (!product) return;
 
     try {
@@ -121,8 +121,8 @@ const ProductFavorites = ({ userMail, cart }) => {
     }
   };
 
-  const toggleStarColor = (id) => {
-    const product = products.find((p) => p.id === id);
+  const toggleStarColor = (productId) => {
+    const product = products.find((p) => p.productId === productId);
     if (!product) {
       console.error("Product not found.");
       return;
@@ -132,9 +132,9 @@ const ProductFavorites = ({ userMail, cart }) => {
       handleStarClickOff(product);
     }
 
-    setProducts((prevProducts) => prevProducts.filter((p) => p.id !== id));
+    setProducts((prevProducts) => prevProducts.filter((p) => p.productId !== productId));
     setFilteredProducts((prevFiltered) =>
-      prevFiltered.filter((p) => p.id !== id)
+      prevFiltered.filter((p) => p.productId !== productId)
     );
   };
 

@@ -25,14 +25,32 @@ const ProductListAddProd = ({
   cart,
 }) => {
   const [cartProducts, setCartProducts] = useState([]);
-  const [buttonStates, setButtonStates] = useState(() => {
-    return products.reduce((acc, product) => {
-      const isInCart = cartProducts.some((cartProd) => cartProd.id === product.id);
-      acc[product.id] = { isAdded: isInCart, isUpdated: false };
-      return acc;
-    }, {});
-  });
+  const [buttonStates, setButtonStates] = useState([]);
 
+  useEffect(() => {
+    setButtonStates((prevState) => {
+      const updatedStates = { ...prevState };
+
+      products.forEach((product) => {
+        if (!updatedStates[product.productId]) {
+          const inCart = cartProducts.find(
+            (cartProd) => cartProd.productId === product.productId
+          );
+          updatedStates[product.productId] = {
+            isAdded: !!inCart,
+            isUpdated: false,
+            originalQuantity: inCart ? inCart.quantity : 0,
+          };
+        }
+      });
+
+      return updatedStates;
+    });
+  }, [products, cartProducts]);
+
+  useEffect(() => {
+    fetchCartProducts();
+  }, []);
 
   const fetchCartProducts = async () => {
     try {
@@ -44,7 +62,7 @@ const ProductListAddProd = ({
         setCartProducts([]);
       } else {
         const cartProductsData = data.map((product) => ({
-          id: product.productId,
+          productId: product.productId,
           label: product.name,
           image: product.image || null,
           quantity: product.quantity,
@@ -57,14 +75,10 @@ const ProductListAddProd = ({
     }
   };
 
-  useEffect(() => {
-    fetchCartProducts();
-  }, []);
-
-  const updateButtonState = (id, state) => {
+  const updateButtonState = (productId, state) => {
     setButtonStates((prevState) => ({
       ...prevState,
-      [id]: { ...prevState[id], ...state },
+      [productId]: { ...prevState[productId], ...state },
     }));
   };
 
@@ -86,10 +100,11 @@ const ProductListAddProd = ({
       if (response.status >= 200 && response.status < 300) {
         Alert.alert("הצלחה", "המוצר נוסף לעגלה בהצלחה!");
         product.productId = response.data._id;
-        console.log(product);
-        console.log(product.productId);
-        console.log(response.data._id);
-        updateButtonState(product.id, { isAdded: true, isUpdated: false });
+        updateButtonState(product.productId, {
+          isAdded: true,
+          isUpdated: false,
+          originalQuantity: quantity,
+        });
       }
     } catch (error) {
       console.error("Error adding product to cart:", error.message);
@@ -98,26 +113,37 @@ const ProductListAddProd = ({
 
   const handleUpdateProductInCart = async (product) => {
     const quantity = product.quantity;
+    if (!buttonStates[product.productId]?.isUpdated) return;
     try {
-      
       const apiUrl = `http://${config.apiServer}/api/productInCart/productInCart/${cart.cartKey}/${product.productId}`;
       const response = await axios.put(apiUrl, { quantity });
       if (response.status === 200) {
         Alert.alert("הצלחה", "הכמות עודכנה בהצלחה!");
-        updateButtonState(product.id, { isUpdated: false });
+        updateButtonState(product.productId, {
+          isUpdated: false,
+          originalQuantity: quantity,
+        });
       }
     } catch (error) {
       console.error("Error updating product quantity:", error.message);
     }
   };
 
-  const handleQuantityChangeAndUpdate = (id, change) => {
-    onQuantityChange(id, change);
-    updateButtonState(id, { isUpdated: true });
+  const handleQuantityChangeAndUpdate = (productId, change) => {
+    onQuantityChange(productId, change);
+
+    const product = products.find((prod) => prod.productId === productId);
+    const newQuantity = product.quantity + change;
+
+    if (newQuantity === buttonStates[productId]?.originalQuantity) {
+      updateButtonState(productId, { isUpdated: false });
+    } else if (buttonStates[productId]?.isAdded) {
+      updateButtonState(productId, { isUpdated: true });
+    }
   };
 
   const renderProduct = ({ item }) => {
-    const { isAdded, isUpdated } = buttonStates[item.id] || {};
+    const { isAdded, isUpdated } = buttonStates[item.productId] || {};
 
     return (
       <View style={styles.productContainer}>
@@ -138,7 +164,7 @@ const ProductListAddProd = ({
           />
         </View>
         <View style={styles.productContainerBottom}>
-          <View onStartShouldSetResponder={() => onToggleStar(item.id)}>
+          <View onStartShouldSetResponder={() => onToggleStar(item.productId)}>
             <Svg
               height="30"
               width="30"
@@ -155,7 +181,7 @@ const ProductListAddProd = ({
           </View>
 
           <TouchableOpacity
-            onPress={() => handleQuantityChangeAndUpdate(item.id, -1)}
+            onPress={() => handleQuantityChangeAndUpdate(item.productId, -1)}
           >
             <Text style={styles.minusIcon}>-</Text>
           </TouchableOpacity>
@@ -169,7 +195,7 @@ const ProductListAddProd = ({
               onChangeText={(value) => {
                 const parsedValue = parseInt(value) || 0;
                 handleQuantityChangeAndUpdate(
-                  item.id,
+                  item.productId,
                   parsedValue - item.quantity
                 );
               }}
@@ -178,7 +204,7 @@ const ProductListAddProd = ({
           </View>
 
           <TouchableOpacity
-            onPress={() => handleQuantityChangeAndUpdate(item.id, +1)}
+            onPress={() => handleQuantityChangeAndUpdate(item.productId, +1)}
           >
             <Text style={styles.plusIcon}>+</Text>
           </TouchableOpacity>
@@ -194,11 +220,14 @@ const ProductListAddProd = ({
                   : "#0F872B",
               },
             ]}
-            onPress={() =>
+            onPress={() => {
+              if (isAdded && !isUpdated) {
+                return;
+              }
               isAdded && isUpdated
                 ? handleUpdateProductInCart(item)
-                : handleAddProductToCart(item)
-            }
+                : handleAddProductToCart(item);
+            }}
           >
             <Text
               style={[
@@ -227,7 +256,7 @@ const ProductListAddProd = ({
     <FlatList
       data={products}
       renderItem={renderProduct}
-      keyExtractor={(item) => item.id.toString()}
+      keyExtractor={(item) => item.productId.toString()}
       contentContainerStyle={styles.flatListContent}
     />
   );

@@ -1,3 +1,3 @@
 export default {
-  apiServer: "10.100.102.249:3000",
+  apiServer: "10.0.0.5:3000",
 };

@@ -47,11 +47,10 @@ const ProductSearch = ({ shoppingAddress, userMail, cart }) => {
       const data = response.data;
 
       if (data.message === "No products found for the provided cartKey.") {
-        setProducts([]);
-        setFilteredProducts([]);
+        setCartProducts([]);
       } else {
         const cartProductsData = data.map((product) => ({
-          id: product.productId,
+          productId: product.productId,
           label: product.name,
           image: product.image || null,
           quantity: product.quantity,
@@ -60,7 +59,7 @@ const ProductSearch = ({ shoppingAddress, userMail, cart }) => {
       }
     } catch (error) {
       console.error("Error fetching cart products:", error.message);
-      setProducts([]);
+      setCartProducts([]);
     } finally {
       setIsLoading(false);
     }
@@ -101,7 +100,7 @@ const ProductSearch = ({ shoppingAddress, userMail, cart }) => {
               return [];
             }
             return response.data.map((product) => ({
-              id: product.productId,
+              productId: product.productId,
               label: product.name,
               image: product.image || null,
               quantity: product.quantity,
@@ -131,7 +130,7 @@ const ProductSearch = ({ shoppingAddress, userMail, cart }) => {
 
         return {
           ...product,
-          id: prodInCart ? prodInCart.id : index,
+          productId: prodInCart ? prodInCart.productId : index,
           quantity: prodInCart ? prodInCart.quantity : 1,
           starColor: isFavorite ? "#FFD700" : "#D9D9D9",
         };
@@ -206,18 +205,18 @@ const ProductSearch = ({ shoppingAddress, userMail, cart }) => {
     }
   };
 
-  const handleQuantityChange = (id, change) => {
+  const handleQuantityChange = (productId, change) => {
     setProducts((prevProducts) =>
       prevProducts.map((product) =>
-        product.id === id
+        product.productId === productId
           ? { ...product, quantity: Math.max(product.quantity + change, 0) }
           : product
       )
     );
   };
 
-  const toggleStarColor = (id) => {
-    const product = products.find((p) => p.id === id);
+  const toggleStarColor = (productId) => {
+    const product = products.find((p) => p.productId === productId);
     if (!product) {
       console.error("Product not found.");
       return;
@@ -231,7 +230,7 @@ const ProductSearch = ({ shoppingAddress, userMail, cart }) => {
 
     setProducts((prevProducts) =>
       prevProducts.map((product) =>
-        product.id === id
+        product.productId === productId
           ? {
               ...product,
               starColor:
