@@ -8,6 +8,8 @@ node_modules/
 # Logs
 *.log
 
-config.js
+backend/src/config.js
+frontend/config.js
+.env
 
 .gitignore

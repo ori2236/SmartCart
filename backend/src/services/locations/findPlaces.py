@@ -5,11 +5,14 @@ import requests
 from bs4 import BeautifulSoup
 import sys
 import json
+from dotenv import load_dotenv
+
+load_dotenv()
+GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY")
 
 sys.stdout.reconfigure(encoding="utf-8")
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
 os.environ['PYTHONDONTWRITEBYTECODE'] = "1"
-GOOGLE_MAPS_API_KEY = "AIzaSyBxjDxmCW6c1uzmWBrbdg-S5OEQN4Qs2pA"
 
 from src.db.db import get_db
 client = get_db()
