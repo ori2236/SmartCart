@@ -56,7 +56,7 @@ export default {
       const { productName, cartAddress } = req.body;
 
       const pythonScriptPath = path.resolve(
-        "./src/services/locations/findPlaces.py"
+        "./src/services/comparingSupermarkets/findPlaces.py"
       );
       const env = {
         ...process.env,
