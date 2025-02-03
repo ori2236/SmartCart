@@ -16,7 +16,7 @@ import ProductListAddProd from "./ProductListAddProd";
 
 const { width, height } = Dimensions.get("window");
 
-const ProductSearch = ({ shoppingAddress, userMail, cart }) => {
+const ProductSearch = ({ userMail, cart }) => {
   const [products, setProducts] = useState([]);
   const [favorites, setFavorites] = useState([]);
   const [cartProducts, setCartProducts] = useState([]);
@@ -80,10 +80,10 @@ const ProductSearch = ({ shoppingAddress, userMail, cart }) => {
 
     setIsLoading(true);
     setError(null);
-
+    
     try {
-      // הרץ את שלוש הקריאות לשרת במקביל
       const [favoritesData, cartProductsData, searchResponse] =
+        // same time
         await Promise.all([
           (async () => {
             const apiUrl = `http://${config.apiServer}/api/favorite/favorite/mail/${userMail}`;
@@ -111,7 +111,7 @@ const ProductSearch = ({ shoppingAddress, userMail, cart }) => {
               config.apiServer
             }/api/product/productsFromSearch/?term=${encodeURIComponent(
               searchTerm
-            )}&shopping_address=${encodeURIComponent(shoppingAddress)}`;
+            )}&shopping_address=${encodeURIComponent(cart.address)}`;
             const response = await fetch(apiUrl);
             if (!response.ok) {
               throw new Error(`HTTP error! status: ${response.status}`);
@@ -119,7 +119,6 @@ const ProductSearch = ({ shoppingAddress, userMail, cart }) => {
             return response.json();
           })(),
         ]);
-
       const updatedProducts = searchResponse.map((product, index) => {
         const isFavorite = favoritesData.some(
           (fav) => fav.name === product.label && fav.image === product.image
@@ -144,7 +143,6 @@ const ProductSearch = ({ shoppingAddress, userMail, cart }) => {
       setIsLoading(false);
     }
   };
-
 
   const handleStarClickOn = async (product) => {
     if (!product.label || !product.image || !userMail) {

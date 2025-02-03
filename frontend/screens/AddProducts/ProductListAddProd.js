@@ -105,6 +105,24 @@ const ProductListAddProd = ({
           isUpdated: false,
           originalQuantity: quantity,
         });
+        try {
+          const productName = name
+          const cartAddress= cart.address
+
+          const addedProd = {
+            productName,
+            cartAddress,
+          };
+
+          const apiUrl = `http://${config.apiServer}/api/coordinates/coordinatesByProduct`;
+          const response = await axios.post(apiUrl, addedProd);
+          if (response.status == 200) {
+            console.log("coordinates added!");
+          
+          }
+        } catch (error) {
+          console.error("Error adding coordinates to database:", error.message);
+        }
       }
     } catch (error) {
       console.error("Error adding product to cart:", error.message);

@@ -43,7 +43,6 @@ const AddProducts = ({ route }) => {
       return (
         <>
           <ProductSearch
-            shoppingAddress="נתניה"
             userMail={userMail}
             cart={cart}
           />
