@@ -10,6 +10,11 @@ node_modules/
 
 backend/src/config.js
 frontend/config.js
+
+backend\src\services\comparingSupermarkets\__pycache__/
+*.pyc
+*.pyo
+
 .env
 
 .gitignore
