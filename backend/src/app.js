@@ -7,9 +7,9 @@ const app = express();
 
 connectDB();
 app.use(cors());
-app.use(express.json())
-    .use(express.urlencoded({extended: true}))
-    .use("/api", routes);
+app
+  .use(express.json())
+  .use(express.urlencoded({ extended: true }))
+  .use("/api", routes)
     
 export default app;
-

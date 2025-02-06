@@ -6,15 +6,10 @@ export default {
       next();
     },
     handler: async (req, res) => {
-      const name = req.body.name;
-      const address = req.body.address;
+      const { name, address } = req.body;
 
       try {
-        const newCart = await Cart.create({
-          name,
-          address,
-        });
-
+        const newCart = await Cart.create({ name, address });
         res.json({
           message: "inserted",
           cart: newCart,
@@ -27,17 +22,15 @@ export default {
       }
     },
   },
+
   get: {
     validator: async (req, res, next) => {
-      //check that the address is valid
-      console.log("cart");
       next();
     },
     handler: async (req, res) => {
-      const key = req.params.id;
-
+      const { cartKey } = req.params;
       try {
-        const cart = await Cart.findOne({ key });
+        const cart = await Cart.findById(cartKey);
         if (!cart) {
           return res.status(404).json({
             message: "Cart not found",
@@ -52,19 +45,19 @@ export default {
       }
     },
   },
+
   put: {
     validator: async (req, res, next) => {
       next();
     },
     handler: async (req, res) => {
-      const key = req.params.id;
-      const name = req.body.name;
-      const address = req.body.address;
+      const { cartKey } = req.params;
+      const { name, address } = req.body;
 
       try {
-        const updatedCart = await Cart.findOneAndUpdate(
-          { key },
-          { name, key, address },
+        const updatedCart = await Cart.findByIdAndUpdate(
+          cartKey,
+          { name, address },
           { new: true, runValidators: true }
         );
 
@@ -86,15 +79,16 @@ export default {
       }
     },
   },
+
   delete: {
     validator: async (req, res, next) => {
       next();
     },
     handler: async (req, res) => {
-      const key = req.params.id;
+      const { cartKey } = req.params;
 
       try {
-        const deletedCart = await Cart.findByIdAndDelete(key);
+        const deletedCart = await Cart.findByIdAndDelete(cartKey);
 
         if (!deletedCart) {
           return res.status(404).json({
@@ -113,6 +107,7 @@ export default {
       }
     },
   },
+
   deleteAll: {
     validator: async (req, res, next) => {
       next();
@@ -120,13 +115,32 @@ export default {
     handler: async (req, res) => {
       try {
         await Cart.deleteMany();
-
         res.json({
           message: "deleted all",
         });
       } catch (error) {
         res.status(500).json({
           message: "Error deleting all carts",
+          error: error.message,
+        });
+      }
+    },
+  },
+
+  getAll: {
+    validator: async (req, res, next) => {
+      next();
+    },
+    handler: async (req, res) => {
+      try {
+        const carts = await Cart.find({});
+        res.json({
+          message: "Fetched all carts",
+          carts,
+        });
+      } catch (error) {
+        res.status(500).json({
+          message: "Error fetching carts",
           error: error.message,
         });
       }

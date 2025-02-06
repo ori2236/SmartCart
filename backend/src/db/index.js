@@ -3,10 +3,7 @@ import mongoose from "mongoose"
 
 const connectDB = async () => {
     try{
-        mongoose.set('strictQuery', false);/*
-        const conn = await mongoose.connect(
-          "mongodb+srv://orile03:GEMsF8I9DL7T2ldU@cluster0.g1mzbrm.mongodb.net/?appName=Cluster0"
-        );*/
+        mongoose.set('strictQuery', false);
         const conn = await mongoose.connect(
           "mongodb+srv://ori:ori@cluster0.tmv7g.mongodb.net/SmartCart?retryWrites=true&w=majority&appName=Cluster0"
         );

@@ -8,7 +8,9 @@ import {
   StyleSheet,
 } from "react-native";
 
-const Home = () => {
+
+const Home = ({ navigation, route }) => {
+  const { userMail } = route.params;
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView style={styles.scrollView}>
@@ -34,7 +36,7 @@ const Home = () => {
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.button}
-          onPress={() => alert("Pressed!")}
+          onPress={() => navigation.navigate("MyCarts", { userMail })}
         >
           <Text style={styles.buttonText}>{"העגלות שלי"}</Text>
         </TouchableOpacity>
