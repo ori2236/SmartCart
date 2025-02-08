@@ -1,8 +1,8 @@
 import { Router } from "express";
-import getProducts from "../../services/comparingSupermarkets/getBestSupermarkets.js";
+import getBestSupermarkets from "../../services/comparingSupermarkets/getBestSupermarkets.js";
 
 const router = Router();
 
-router.get("/supermarkets", getProducts);
+router.get("/supermarkets/:cartKey", getBestSupermarkets);
 
 export default router;

@@ -24,6 +24,8 @@ def round_price(price):
     rounded = round(math.ceil(price * 100) / 100, 2)
     if str(rounded)[-1] == "1": #the price after division shouldn't end with x.x1
         rounded = round(rounded - 0.01, 2)
+    if str(rounded)[-1] == "9": #the price after division shouldn't end with x.x9
+        rounded = round(rounded + 0.01, 2)
     return rounded # 2 digits
 
 
@@ -37,6 +39,7 @@ def calculate_unit_prices(row, cart):
         return product_prices
 
 def get_best_supermarkets(cart, address, alpha):
+
     df, recommended_removals = get_store_data(list(cart.keys()), address)
 
     if df.empty:
@@ -56,12 +59,12 @@ def get_best_supermarkets(cart, address, alpha):
     distance_results = calculate_distances(address, store_addresses)
     distance_map = {entry["Address"]: entry["Distance (km)"] for entry in distance_results}
 
-    df['distance(km)'] = df['Address'].map(distance_map)
+    df['distance'] = df['Address'].map(distance_map)
 
     # scores
     max_price, min_price = df['price'].max(), df['price'].min()
     df['price_score'] = df['price'].apply(lambda x: price_score(x, max_price, min_price))
-    df['distance_score'] = df['distance(km)'].apply(distance_score)
+    df['distance_score'] = df['distance'].apply(distance_score)
 
     # final score
     df['final_score'] = (alpha * df['price_score'] + (1 - alpha) * df['distance_score'])
@@ -73,7 +76,7 @@ def get_best_supermarkets(cart, address, alpha):
 
 
     # sort by final score (descending order) and return top 5
-    columns_to_keep = ['Store', 'Address', 'price', 'distance(km)', 'final_score', 'product_prices']
+    columns_to_keep = ['Store', 'Address', 'price', 'distance', 'final_score', 'product_prices']
     top_5_supermarkets = df.sort_values(by='final_score', ascending=False).head(5)[columns_to_keep]
 
     return top_5_supermarkets.to_dict(orient="records"), recommended_removals
@@ -84,6 +87,7 @@ def decode_base64(encoded_str):
 
 if __name__ == "__main__":
     try:
+        
         cart = decode_base64(sys.argv[1])
         address = sys.argv[2]
         alpha = float(sys.argv[3])

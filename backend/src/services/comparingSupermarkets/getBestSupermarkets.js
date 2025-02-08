@@ -1,9 +1,8 @@
-import util from "util";
 import { spawn } from "child_process";
 import path from "path";
 import { fileURLToPath } from "url";
 import { Buffer } from "buffer";
-
+import ProductInCart from "../../controllers/productInCart/index.js"
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -29,6 +28,7 @@ const runScript = async (scriptPath, args = []) => {
 
     process.on("close", (code) => {
       if (code !== 0) {
+        console.error("Python stderr:", stderr);
         return reject(
           new Error(stderr.trim() || `Process exited with code ${code}`)
         );
@@ -44,12 +44,44 @@ const runScript = async (scriptPath, args = []) => {
 
 const getBestSupermarkets = async (req, res) => {
   try {
-    const { cart, address, alpha = 0.5 } = req.body;
+    const { cartKey } = req.params;
+    const { address, alpha = 0.5 } = req.body;
 
-    if (!cart || !address) {
-      return res
-        .status(400)
-        .json({ error: "Missing shopping cart or address" });
+    if (!cartKey || !address) {
+      return res.status(400).json({ error: "Missing cartKey or address" });
+    }
+
+    const type = "cartKey";
+    const content = cartKey;
+    const reqMock = {
+      params: {
+        type,
+        content,
+      },
+    };
+    const resMock = {
+        data: null,
+        json: function (response) {
+            this.data = response;
+            return response;
+        },
+        status: function (statusCode) {
+            return this;
+        },
+    };
+    await ProductInCart.get.handler(reqMock, resMock);
+    const products = resMock.data;
+
+    if (!products) {
+      return res.status(404).json({ error: "the cart not found" });
+    } else if (products.length === 0) {
+      return res.status(200).json({ message: "No products found in the cart." });
+    }
+
+    //convert to dictionary
+    const cart = {};
+    for (const item of products) {
+      cart[item.name] = item.quantity;
     }
 
     const encodedCart = encodeBase64(cart);

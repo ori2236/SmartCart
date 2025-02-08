@@ -9,8 +9,9 @@ import axios from "axios";
 import Home from "./screens/home";
 import addUser from "./screens/addUser";
 import MyCarts from "./screens/myCarts";
-import AddProducts from "./screens/AddProducts/AddProducts";
+import AddProducts from "./screens/addProducts/AddProducts";
 import ShoppingCart from "./screens/shoppingCart/ShoppingCart";
+import Supermarkets from "./screens/supermarkets/Supermarkets";
 import config from "./config";
 
 const Stack = createStackNavigator();
@@ -111,6 +112,16 @@ export default function App() {
         <Stack.Screen
           name="ShoppingCart"
           component={ShoppingCart}
+          options={{
+            headerShown: false,
+            gestureEnabled: true,
+            gestureDirection: "horizontal-inverted",
+            cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
+          }}
+        />
+        <Stack.Screen
+          name="Supermarkets"
+          component={Supermarkets}
           options={{
             headerShown: false,
             gestureEnabled: true,

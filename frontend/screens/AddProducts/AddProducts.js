@@ -65,6 +65,8 @@ const AddProducts = ({ route }) => {
       navigation.navigate("Home", { userMail });
     } else if (button == "shoppingCart") {
       navigation.navigate("ShoppingCart", { userMail, cart });
+    } else if (button == "supermarkets") {
+      navigation.navigate("Supermarkets", { userMail, cart });
     }
   };
 

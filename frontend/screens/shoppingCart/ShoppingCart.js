@@ -140,6 +140,8 @@ const ShoppingCart = ({ route }) => {
       navigation.navigate("Home", { userMail });
     } else if (button == "addProducts") {
       navigation.navigate("AddProducts", { userMail, cart });
+    } else if (button == "supermarkets") {
+      navigation.navigate("Supermarkets", { userMail, cart });
     }
   };
 
@@ -312,30 +314,6 @@ const styles = StyleSheet.create({
   loadingText: {
     fontSize: 18,
     color: "#FF7E3E",
-  },
-  logo: {
-    alignSelf: "center",
-    width: 180,
-    height: 150,
-    marginTop: height * 0.13,
-    marginBottom: 7,
-  },
-  description: {
-    textAlign: "center",
-    fontSize: 16,
-    color: "#333333",
-    fontWeight: "bold",
-    marginBottom: 10,
-  },
-  loadingText: {
-    fontSize: 18,
-    color: "#FF7E3E",
-    textAlign: "center",
-    marginTop: 20,
-  },
-  flatListContent: {
-    alignItems: "center",
-    paddingBottom: 80,
   },
   centerContent: {
     justifyContent: "center",

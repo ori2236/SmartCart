@@ -34,21 +34,20 @@ async def fetch_all_products(product_list, shopping_address):
         tasks = [fetch_store_data(session, product, shopping_address) for product in product_list]
         results = await asyncio.gather(*tasks)
 
-    store_data, missing_counts = {}, {product: 0 for product in product_list}
+    store_data = {}
     for product, prices in zip(product_list, results):
         if prices:
             for (store, address), price in prices.items():
                 store_data.setdefault((store, address), {"Store": store, "Address": address})[product] = price
-        else:
-            missing_counts[product] += 1  # count missing products
 
-    return store_data, missing_counts
+    return store_data
 
 def filter_stores(store_data, product_list):
     filtered_data, stores_missing_products = {}, {}
 
     for (store, address), data in store_data.items():
         missing_products = [p for p in product_list if p not in data]
+
         if not missing_products:
             filtered_data[(store, address)] = data
         else:
@@ -57,7 +56,8 @@ def filter_stores(store_data, product_list):
 
     return filtered_data, stores_missing_products
 
-def find_best_combinations(store_data, product_list, stores_missing_products, current_store_count):
+
+def find_best_combinations(store_data, stores_missing_products, current_store_count):
     problematic_products = list(stores_missing_products.keys())
     # 5 products top
     for r in range(1, min(len(problematic_products), 5) + 1):
@@ -76,38 +76,18 @@ def find_best_combinations(store_data, product_list, stores_missing_products, cu
     return []
 
 def get_store_data(product_list, shopping_address):
-    store_data, missing_counts = asyncio.run(fetch_all_products(product_list, shopping_address))
+    store_data = asyncio.run(fetch_all_products(product_list, shopping_address))
     filtered_data, stores_missing_products = filter_stores(store_data, product_list)
+
 
     # convert to DataFrame
     records = [{"Store": store, "Address": address, **data} for (store, address), data in filtered_data.items()]
+
     df = pd.DataFrame(records)
 
     # optimization suggestion if less then 5 supermarkets is suggesting
     recommended_removals = []
     if len(filtered_data) < 5:
-        recommended_removals = find_best_combinations(store_data, product_list, stores_missing_products, len(filtered_data))
+        recommended_removals = find_best_combinations(store_data, stores_missing_products, len(filtered_data))
     
     return df, recommended_removals
-"""
-# example
-if __name__ == "__main__":
-    product_list = [
-        "חלב", "שוקולד", "פסטה", "אורז", "קורנפלקס",
-        "שמן", "סוכר", "קמח", "מלפפונים", "חומוס",
-        "מלח", "רוטב", "קטשופ",
-    ]
-
-    shopping_address = "יששכר 1, נתניה"
-
-    df, recommended_removals = get_store_data(product_list, shopping_address)
-
-    print("\nStores selling all products:")
-    print(df.to_string(index=False) if not df.empty else "No supermarkets found.")
-
-    if recommended_removals:
-        print("\nOptimization suggestion:")
-        print(f"Remove these products: {', '.join(recommended_removals)}")
-    else:
-        print("\nNo optimization suggestions available.")
-"""
