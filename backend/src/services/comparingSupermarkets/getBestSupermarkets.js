@@ -3,6 +3,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { Buffer } from "buffer";
 import ProductInCart from "../../controllers/productInCart/index.js"
+import SupermarketImage from "../../models/SupermarketImage.js"
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -75,9 +76,16 @@ const getBestSupermarkets = async (req, res) => {
     if (!products) {
       return res.status(404).json({ error: "the cart not found" });
     } else if (products.length === 0) {
-      return res.status(200).json({ message: "No products found in the cart." });
+      return res
+        .status(200)
+        .json({ message: "No products found in the cart." });
     }
-
+    
+    const product_images_list = products.map((item) => ({
+      name: item.name,
+      image: item.image,
+    }));
+    
     //convert to dictionary
     const cart = {};
     for (const item of products) {
@@ -97,7 +105,37 @@ const getBestSupermarkets = async (req, res) => {
     // parse JSON response
     const { supermarkets, recommendations } = JSON.parse(pythonOutput);
 
-    res.status(200).json({ supermarkets, recommendations });
+    if (!supermarkets || supermarkets.length === 0){
+      console.log(supermarkets)
+      return res.status(200).json({
+        supermarkets,
+        recommendations,
+        product_images: [],
+      });
+    }
+
+    const supermarketNames = supermarkets.map((s) => s.Store);
+    const supermarketImages = await SupermarketImage.find({
+      name: { $in: supermarketNames },
+    });
+
+
+    const logoMap = {};
+    supermarketImages.forEach(({ name, image }) => {
+      logoMap[name] = image;
+    });
+
+    const supermarketsWithLogos = supermarkets.map((s) => ({
+      ...s,
+      logo: logoMap[s.Store] || null,
+    }));
+
+    res.status(200).json({
+      supermarkets: supermarketsWithLogos,
+      recommendations,
+      product_images: product_images_list,
+    });
+
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
