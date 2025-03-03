@@ -188,13 +188,13 @@ const ShoppingCart = ({ route }) => {
 
       {/* Bottom Navigation */}
       <View style={styles.bottomNavigation}>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={() => handleBottomRow("supermarkets")}>
           <Image
             source={require("../../assets/super-branches.png")}
             style={styles.bottomIcon}
           />
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => handleBottomRow("shoppingCart")}>
+        <TouchableOpacity>
           <Image
             source={require("../../assets/shopping-list.png")}
             style={styles.ShoppingCartIcon}

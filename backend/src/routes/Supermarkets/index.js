@@ -5,7 +5,7 @@ import supermarketsImage from "../../controllers/supermarkets/index.js";
 
 const router = Router();
 
-router.get("/supermarkets/:cartKey", getBestSupermarkets);
+router.post("/supermarkets/:cartKey", getBestSupermarkets);
 
 router.get(
   "/supermarketsImage",

@@ -14,11 +14,25 @@ import Svg, { Polygon } from "react-native-svg";
 
 const { width, height } = Dimensions.get("window");
 
-const ProductListShopList = ({ supermarketBranches, isLoading }) => {
-  const renderProduct = ({ item }) => {
+const SupermarketBranchesList = ({ supermarketBranches, isLoading }) => {
+  const renderItem = ({ item }) => {
     return (
       <View style={styles.supermarketsContainer}>
-
+        <Text style={styles.column}>{item.distance.toFixed(2)} ק"מ</Text>
+        <Text style={styles.column}>{item.price.toFixed(2)} ₪</Text>
+        <Image
+          style={styles.columnImage}
+          source={
+            item.logo
+              ? {
+                  uri: item.logo.startsWith("data:image")
+                    ? item.logo
+                    : `data:image/png;base64,${item.logo}`,
+                }
+              : require("../../assets/logo.png")
+          }
+          resizeMode="contain"
+        />
       </View>
     );
   };
@@ -33,127 +47,28 @@ const ProductListShopList = ({ supermarketBranches, isLoading }) => {
   }
 
   return (
-    <FlatList
-      data={supermarketBranches}
-      renderItem={renderProduct}
-      keyExtractor={(item, index) => index.toString()}
-      contentContainerStyle={styles.flatListContent}
-    />
+    <View style={styles.container}>
+      <View style={styles.headerRow}>
+        <Text style={styles.headerText}>מרחק</Text>
+        <Text style={styles.headerText}>מחיר עגלה</Text>
+        <Text style={styles.headerText}>סופרמרקט</Text>
+      </View>
+      <FlatList
+        data={supermarketBranches}
+        renderItem={renderItem}
+        keyExtractor={(item, index) => index.toString()}
+      />
+    </View>
   );
 };
 
 
 const styles = StyleSheet.create({
-  productContainer: {
-    flexDirection: "column",
-    justifyContent: "center",
+  supermarketsContainer: {
+    flexDirection: "row",
     padding: 10,
-    margin: 5,
-    borderWidth: 1,
-    borderColor: "#CCCCCC",
-    borderRadius: 20,
-    backgroundColor: "#FFFFFF",
-    width: Platform.OS === "web" ? width * 0.5 : width * 0.9,
-    paddingHorizontal: 20,
-    height: 180,
-    elevation: 2,
-    overflow: "hidden",
-  },
-  productContainerTop: {
-    flexDirection: "row",
-    justifyContent: "center",
-    borderBottomColor: "#CCCCCC",
     borderBottomWidth: 1,
-    backgroundColor: "#FFFFFF",
-    height: 110,
-  },
-  productText: {
-    fontSize: 14,
-    textAlign: "right",
-    flexShrink: 1,
-    flexWrap: "wrap",
-    color: "#000000",
-    marginRight: 70,
-    marginTop: 10,
-    fontWeight: "bold",
-  },
-  productImage: {
-    width: 95,
-    height: 95,
-    borderRadius: 5,
-    position: "absolute",
-    right: -15,
-  },
-  productContainerBottom: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 10,
-    height: 40,
-  },
-  trashIcon: {
-    position: "absolute",
-    top: -15,
-    right: Platform.OS === "web" ? -395 : -190,
-  },
-  minusIcon: {
-    position: "absolute",
-    top: -28,
-    left: -12,
-    fontSize: 35,
-    color: "#FF7E3E",
-  },
-  unitText: {
-    fontSize: 16,
-    color: "#000000",
-    marginHorizontal: 5,
-    textAlign: "center",
-  },
-  quantityContainer: {
-    width: 30,
-    height: 40,
-    borderWidth: 1,
     borderColor: "#CCCCCC",
-    borderRadius: 5,
-    justifyContent: "center",
-    alignItems: "center",
-    marginHorizontal: 5,
-    backgroundColor: "#FFFFFF",
-    overflow: "hidden",
-  },
-  quantityText: {
-    fontSize: 15,
-    color: "#000000",
-    textAlign: "center",
-    padding: 0,
-    margin: 0,
-    height: "100%",
-    width: "100%",
-  },
-  plusIcon: {
-    position: "absolute",
-    top: -25,
-    fontSize: 32,
-    color: "#FF7E3E",
-  },
-  addToCartButton: {
-    width: 85,
-    borderRadius: 20,
-    position: "absolute",
-    left: 5,
-    backgroundColor: "#0F872B",
-    justifyContent: "center",
-    alignItems: "center",
-    marginLeft: -12,
-  },
-  addToCartText: {
-    fontSize: 15,
-    color: "#FFFFFF",
-    marginVertical: 7,
-  },
-  flatListContent: {
-    alignItems: "center",
-    paddingBottom: 400,
   },
   centerContent: {
     justifyContent: "center",
@@ -173,6 +88,30 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginBottom: 10,
   },
+  container: {
+    marginTop: 10,
+  },
+  headerRow: {
+    flexDirection: "row",
+    padding: 10,
+  },
+  headerText: {
+    flex: 1,
+    color: "#000000",
+    fontWeight: "bold",
+    textAlign: "center",
+  },
+  column: {
+    flex: 1,
+    textAlign: "center",
+    textAlignVertical: "center",
+    fontSize: 16,
+  },
+  columnImage: {
+    flex: 1,
+    textAlign: "center",
+    height: 75,
+  },
 });
 
-export default ProductListShopList;
+export default SupermarketBranchesList;

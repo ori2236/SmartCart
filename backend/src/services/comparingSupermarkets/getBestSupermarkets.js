@@ -73,6 +73,14 @@ const getBestSupermarkets = async (req, res) => {
     await ProductInCart.get.handler(reqMock, resMock);
     const products = resMock.data;
 
+    if (!Array.isArray(products)) {
+      return res.status(200).json({
+        supermarkets: [],
+        recommendations: [],
+        product_images: [],
+      });
+    }
+    
     if (!products) {
       return res.status(404).json({ error: "the cart not found" });
     } else if (products.length === 0) {
@@ -106,9 +114,8 @@ const getBestSupermarkets = async (req, res) => {
     const { supermarkets, recommendations } = JSON.parse(pythonOutput);
 
     if (!supermarkets || supermarkets.length === 0){
-      console.log(supermarkets)
       return res.status(200).json({
-        supermarkets,
+        supermarkets: [],
         recommendations,
         product_images: [],
       });
@@ -137,6 +144,7 @@ const getBestSupermarkets = async (req, res) => {
     });
 
   } catch (error) {
+    console.log(error)
     res.status(500).json({ error: error.message });
   }
 };

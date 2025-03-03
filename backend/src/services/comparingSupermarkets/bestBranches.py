@@ -93,7 +93,6 @@ if __name__ == "__main__":
         alpha = float(sys.argv[3])
 
         supermarkets, recommendations = get_best_supermarkets(cart, address, alpha)
-
         output = {"supermarkets": supermarkets, "recommendations": recommendations}
         print(json.dumps(output))
     except Exception as e:
