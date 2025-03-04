@@ -10,30 +10,52 @@ import {
   Dimensions,
   FlatList,
 } from "react-native";
-import Svg, { Polygon } from "react-native-svg";
+import { useNavigation } from "@react-navigation/native";
 
 const { width, height } = Dimensions.get("window");
 
-const SupermarketBranchesList = ({ supermarketBranches, isLoading }) => {
+const SupermarketBranchesList = ({
+  supermarketBranches,
+  isLoading,
+  product_images,
+  userMail,
+  cart,
+}) => {
+  const navigation = useNavigation();
   const renderItem = ({ item }) => {
     return (
-      <View style={styles.supermarketsContainer}>
-        <Text style={styles.column}>{item.distance.toFixed(2)} ק"מ</Text>
-        <Text style={styles.column}>{item.price.toFixed(2)} ₪</Text>
-        <Image
-          style={styles.columnImage}
-          source={
-            item.logo
-              ? {
-                  uri: item.logo.startsWith("data:image")
-                    ? item.logo
-                    : `data:image/png;base64,${item.logo}`,
-                }
-              : require("../../assets/logo.png")
-          }
-          resizeMode="contain"
-        />
-      </View>
+      <TouchableOpacity
+        onPress={() =>
+          navigation.navigate("SupermarketBranch", {
+            name: item.Store,
+            address: item.Address,
+            logo: item.logo,
+            price: item.price.toFixed(2),
+            product_prices: item.product_prices,
+            product_images: product_images,
+            userMail,
+            cart,
+          })
+        }
+      >
+        <View style={styles.supermarketsContainer}>
+          <Text style={styles.column}>{item.distance.toFixed(2)} ק"מ</Text>
+          <Text style={styles.column}>{item.price.toFixed(2)} ₪</Text>
+          <Image
+            style={styles.columnImage}
+            source={
+              item.logo
+                ? {
+                    uri: item.logo.startsWith("data:image")
+                      ? item.logo
+                      : `data:image/png;base64,${item.logo}`,
+                  }
+                : require("../../assets/logo.png")
+            }
+            resizeMode="contain"
+          />
+        </View>
+      </TouchableOpacity>
     );
   };
 

@@ -22,6 +22,8 @@ const THUMB_SIZE = 30;
 const Supermarkets = ({ route }) => {
   const { userMail, cart } = route.params;
   const [supermarketBranches, setSupermarketBranches] = useState([]);
+  const [product_images, setProduct_images] = useState([]);
+
   const [isLoading, setIsLoading] = useState(true);
   const navigation = useNavigation();
   const [alpha, setAlpha] = useState(0.5);
@@ -68,7 +70,6 @@ const Supermarkets = ({ route }) => {
       const response = await axios.post(apiUrl, info);
       const data = response.data;
       if (response.status == 200) {
-        console.log(response);
         const supermarkets = data.supermarkets.map((branch) => ({
           Store: branch.Store,
           Address: branch.Address,
@@ -79,6 +80,11 @@ const Supermarkets = ({ route }) => {
           logo: branch.logo,
         }));
         setSupermarketBranches(supermarkets);
+        const product_images = data.product_images.map((prod) => ({
+          name: prod.name,
+          image: prod.image,
+        }));
+        setProduct_images(product_images);
       }
     } catch (error) {
       console.error("Error fetching supermarket branches:", error.message);
@@ -146,6 +152,9 @@ const Supermarkets = ({ route }) => {
         <SupermarketBranchesList
           supermarketBranches={supermarketBranches}
           isLoading={isLoading}
+          product_images={product_images}
+          userMail={userMail}
+          cart={cart}
         />
       )}
 
