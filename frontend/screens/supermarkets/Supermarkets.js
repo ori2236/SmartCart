@@ -22,12 +22,19 @@ const THUMB_SIZE = 30;
 const Supermarkets = ({ route }) => {
   const { userMail, cart } = route.params;
   const [supermarketBranches, setSupermarketBranches] = useState([]);
+  const [recommendedRemovals, setRecommendedRemovals] = useState([]);
   const [product_images, setProduct_images] = useState([]);
 
   const [isLoading, setIsLoading] = useState(true);
   const navigation = useNavigation();
   const [alpha, setAlpha] = useState(0.5);
   const [thumbPosition, setThumbPosition] = useState(SLIDER_WIDTH / 2);
+
+  const [isPopupVisible, setIsPopupVisible] = useState(false);
+
+  useEffect(() => {
+    fetchSupermarketBranches(alpha);
+  }, [alpha]);
 
   const panResponder = PanResponder.create({
     onStartShouldSetPanResponder: () => true,
@@ -79,6 +86,7 @@ const Supermarkets = ({ route }) => {
           product_prices: branch.product_prices,
           logo: branch.logo,
         }));
+        setRecommendedRemovals(data.recommendations);
         setSupermarketBranches(supermarkets);
         const product_images = data.product_images.map((prod) => ({
           name: prod.name,
@@ -93,10 +101,6 @@ const Supermarkets = ({ route }) => {
       setIsLoading(false);
     }
   };
-
-  useEffect(() => {
-    fetchSupermarketBranches(alpha);
-  }, [userMail, alpha]);
 
   const handleBottomRow = (button) => {
     if (button == "home") {
@@ -157,7 +161,7 @@ const Supermarkets = ({ route }) => {
           cart={cart}
         />
       )}
-
+      
       {/* Bottom Navigation */}
       <View style={styles.bottomNavigation}>
         <TouchableOpacity>

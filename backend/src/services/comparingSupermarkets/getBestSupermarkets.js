@@ -101,9 +101,7 @@ const getBestSupermarkets = async (req, res) => {
     }
 
     const encodedCart = encodeBase64(cart);
-
     const pythonScriptPath = path.resolve(__dirname, "bestBranches.py");
-
     const pythonOutput = await runScript(pythonScriptPath, [
       encodedCart,
       address,
@@ -113,14 +111,17 @@ const getBestSupermarkets = async (req, res) => {
     // parse JSON response
     const { supermarkets, recommendations } = JSON.parse(pythonOutput);
 
-    if (!supermarkets || supermarkets.length === 0){
+    if (!supermarkets) {
+      return res
+        .status(400)
+        .json({ error: "the supermarkets not found", recommendations });
+    } else if (supermarkets.length === 0) {
       return res.status(200).json({
         supermarkets: [],
         recommendations,
-        product_images: [],
+        product_images: product_images_list,
       });
     }
-
     const supermarketNames = supermarkets.map((s) => s.Store);
     const supermarketImages = await SupermarketImage.find({
       name: { $in: supermarketNames },

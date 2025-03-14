@@ -76,7 +76,6 @@ def calculate_distances(cart_address, address_list):
                 if d != "N/A":
                     distance = d
                     
-
         updated_distances[addr] = distance
 
     return [{"Address": addr, "Distance (km)": dist} for addr, dist in updated_distances.items()]

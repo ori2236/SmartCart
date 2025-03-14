@@ -19,42 +19,38 @@ def distance_score(distance):
         return 10  # very close
     else:
         return 10 - (distance / too_far) * 9  # scale score between 1 and 10
+
+
+def calculate_total_price(unit_price, quantity, sale_price, required_quantity):
+    if (pd.isna(sale_price) or pd.isna(required_quantity)):
+        return unit_price * quantity
+    num_of_discount_groups = quantity // required_quantity  # times to use the discount
+    remaining_units = quantity % required_quantity  # times to use regular price
     
-def round_price(price):
-    rounded = round(math.ceil(price * 100) / 100, 2)
-    if str(rounded)[-1] == "1": #the price after division shouldn't end with x.x1
-        rounded = round(rounded - 0.01, 2)
-    if str(rounded)[-1] == "9": #the price after division shouldn't end with x.x9
-        rounded = round(rounded + 0.01, 2)
-    return rounded # 2 digits
-
-
-def calculate_unit_prices(row, cart):
-        product_prices = {}
-        for product in cart:
-            if pd.notna(row[product]) and cart[product] > 0: #not NaN
-                product_prices[product] = round_price(row[product] / cart[product])
-            else:
-                product_prices[product] = None
-        return product_prices
+    total_price = (num_of_discount_groups * sale_price * required_quantity) + (remaining_units * unit_price)
+    return total_price
 
 def get_best_supermarkets(cart, address, alpha):
-
-    df, recommended_removals = get_store_data(list(cart.keys()), address)
-
+    df, recommended_removals = get_store_data(list(cart.keys()), address, cart) #send the products
+    
     if df.empty:
-        return None, []
-
+        return [], recommended_removals
 
     # price columns (second and above)
     price_columns = df.columns[2:]  
     for product in cart:
-        if product in df.columns:
-            df[product] = df[product].apply(pd.to_numeric, errors='coerce') * cart[product]
-
-    df['price'] = df[price_columns].sum(axis=1).apply(round_price)
-
-
+        if product in price_columns:
+            df[f"{product} (Total Price)"] = df.apply(
+                lambda row: calculate_total_price(
+                    unit_price=row[f"{product} (Regular Price)"],
+                    quantity=cart[product],
+                    sale_price=row[f"{product} (Sale Price)"],
+                    required_quantity=row[f"{product} (Required Quantity)"]
+                ),
+                axis=1
+            )
+            
+    df['price'] = df[[col for col in df.columns if "(Total Price)" in col]].sum(axis=1, min_count=1)
     store_addresses = df['Address'].tolist()
     distance_results = calculate_distances(address, store_addresses)
     distance_map = {entry["Address"]: entry["Distance (km)"] for entry in distance_results}
@@ -72,8 +68,7 @@ def get_best_supermarkets(cart, address, alpha):
 
 
     # add the price per product
-    df['product_prices'] = df.apply(lambda row: calculate_unit_prices(row, cart), axis=1)
-
+    df['product_prices'] = df[[f"{product}" for product in cart]].to_dict(orient="records")
 
     # sort by final score (descending order) and return top 5
     columns_to_keep = ['Store', 'Address', 'price', 'distance', 'final_score', 'product_prices']
@@ -87,15 +82,22 @@ def decode_base64(encoded_str):
 
 if __name__ == "__main__":
     try:
-        
+       
         cart = decode_base64(sys.argv[1])
         address = sys.argv[2]
         alpha = float(sys.argv[3])
+        """
 
+        alpha = 0.5
+        address = "יששכר 1, נתניה"
+        cart = {"חלב תנובה טרי 3% בקרטון, כשרות מהדרין, 1 ליטר": 1,
+                "ערגליות מיקס שוקותות גר` אסם, 300 גרם": 2,
+                'שוקולד במילוי תות בד"צ, 100 גרם': 7}
+ """
         supermarkets, recommendations = get_best_supermarkets(cart, address, alpha)
         output = {"supermarkets": supermarkets, "recommendations": recommendations}
-        print(json.dumps(output))
+
+        print(json.dumps(output), flush=True)
+
     except Exception as e:
-        print(json.dumps({"error": str(e)}))
-
-
+        print(json.dumps({"error": str(e)}), flush=True)
