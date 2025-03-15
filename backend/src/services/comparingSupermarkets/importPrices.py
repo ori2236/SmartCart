@@ -91,29 +91,34 @@ def filter_stores(store_data, product_list):
 
     return filtered_data, stores_missing_products
 
-
-def find_best_combinations(store_data, stores_missing_products, current_store_count):
-    problematic_products = list(stores_missing_products.keys())
-    # 5 products top
-    for r in range(1, min(len(problematic_products), 5) + 1):
-        for combo in combinations(problematic_products, r):
-            
-            new_store_count = 0 
-            for store in store_data:
-                store_products = store_data.get(store, set())
-                is_relevant = all(product not in store_products for product in combo)
-                if is_relevant:
-                    new_store_count += 1
-
-            if current_store_count + new_store_count >= 5:
-                return list(combo)
+def find_best_combinations(store_data, stores_missing_products, product_list):
+    """
+    store_data - supermarket branches and thier products
+    stores_missing_products - what products in each supermarket branches
+    product_list - all the products in the cart
+    """
     
+    problematic_products = list(stores_missing_products.keys())
+    
+    for r in range(1, len(problematic_products)):
+        for combo in combinations(problematic_products, r):
+            remaining_products = [p for p in product_list if p not in combo]
+            
+            #amount of supermarket branches that sells the remaining_products
+            temp_filtered_data, _ = filter_stores(store_data, remaining_products)
+            new_store_count = len(temp_filtered_data)
+            
+            if new_store_count >= 5:
+                return list(combo)
+
     return []
 
-def get_store_data(product_list, shopping_address, cart_quantities):
+
+def get_store_data(shopping_address, cart_quantities):
+    product_list = list(cart_quantities.keys())
     store_data, must_remove = asyncio.run(fetch_all_products(product_list, shopping_address))
     filtered_data, stores_missing_products = filter_stores(store_data, product_list)
-
+    
     # convert to DataFrame
     records = []
     for (store, address), data in filtered_data.items():
@@ -140,18 +145,19 @@ def get_store_data(product_list, shopping_address, cart_quantities):
     # optimization suggestion if less then 5 supermarkets is suggesting
     recommended_removals = []
     if len(filtered_data) < 5:
-        recommended_removals = find_best_combinations(store_data, stores_missing_products, len(filtered_data))
+        recommended_removals = find_best_combinations(store_data, stores_missing_products, product_list)
 
     return df, recommended_removals
 
 """
-# Modify the end of your main function to save the DataFrame to a file
 if __name__ == "__main__":
     try:
-        product_list = ["שוקולד חלב במילוי קרם ווניל ושבבי עוגיות אוראו, 100 גרם"]
         shopping_address = "יששכר 1, נתניה"
-        cart_quantities = {"שוקולד חלב במילוי קרם ווניל ושבבי עוגיות אוראו, 100 גרם": 1}
-        df, recommended_removals = get_store_data(product_list, shopping_address, cart_quantities)
+        cart_quantities = {"שוקולד חלב במילוי קרם ווניל ושבבי עוגיות אוראו, 100 גרם": 1,
+                           "טופי ממולא בטעמי פירות, 600 גרם": 2,
+                           "חלב תנובה טרי 3% בקרטון, 1 ליטר": 6,
+                           "טופי מקלוני טופי, 450 גרם": 1}
+        df, recommended_removals = get_store_data(shopping_address, cart_quantities)
         
         # Save to CSV file
         df.to_csv('store_comparison_data.csv', index=False, encoding='utf-8-sig')

@@ -31,7 +31,7 @@ def calculate_total_price(unit_price, quantity, sale_price, required_quantity):
     return total_price
 
 def get_best_supermarkets(cart, address, alpha):
-    df, recommended_removals = get_store_data(list(cart.keys()), address, cart) #send the products
+    df, recommended_removals = get_store_data(address, cart) #send the products
     
     if df.empty:
         return [], recommended_removals
@@ -64,7 +64,7 @@ def get_best_supermarkets(cart, address, alpha):
 
     # final score
     df['final_score'] = (alpha * df['price_score'] + (1 - alpha) * df['distance_score'])
-    df['final_score'] = df['final_score'].apply(lambda x: min(5, math.ceil(x / 2)))
+    df['final_score'] = df['final_score'].apply(lambda x: min(5, math.ceil(x / 2))) #final_score to 1-5: dividing by 2 and rounding up, 5 max
 
 
     # add the price per product
@@ -86,14 +86,14 @@ if __name__ == "__main__":
         cart = decode_base64(sys.argv[1])
         address = sys.argv[2]
         alpha = float(sys.argv[3])
-        """
 
+        """
         alpha = 0.5
         address = "יששכר 1, נתניה"
         cart = {"חלב תנובה טרי 3% בקרטון, כשרות מהדרין, 1 ליטר": 1,
                 "ערגליות מיקס שוקותות גר` אסם, 300 גרם": 2,
                 'שוקולד במילוי תות בד"צ, 100 גרם': 7}
- """
+        """
         supermarkets, recommendations = get_best_supermarkets(cart, address, alpha)
         output = {"supermarkets": supermarkets, "recommendations": recommendations}
 

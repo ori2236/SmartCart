@@ -8,6 +8,8 @@ import {
   Dimensions,
   Platform,
   PanResponder,
+  Modal,
+  ScrollView,
 } from "react-native";
 import axios from "axios";
 import { useNavigation } from "@react-navigation/native";
@@ -35,6 +37,12 @@ const Supermarkets = ({ route }) => {
   useEffect(() => {
     fetchSupermarketBranches(alpha);
   }, [alpha]);
+
+  useEffect(() => {
+    if (recommendedRemovals.length > 0) {
+      setIsPopupVisible(true);
+    }
+  }, [recommendedRemovals]);
 
   const panResponder = PanResponder.create({
     onStartShouldSetPanResponder: () => true,
@@ -161,7 +169,48 @@ const Supermarkets = ({ route }) => {
           cart={cart}
         />
       )}
-      
+
+      {/* Popup Modal */}
+      <Modal
+        transparent={true}
+        visible={isPopupVisible}
+        animationType="fade"
+        onRequestClose={() => setIsPopupVisible(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>
+              כדי שנוכל להמליץ לך על יותר סניפי סופרים כדאי להסיר או לשנות מס’
+              מוצרים בעגלה.
+            </Text>
+            <Text style={styles.modalSubtitle}>
+              מוצרים שכדאי להסיר / לשנות:
+            </Text>
+            <ScrollView style={styles.productList}>
+              {recommendedRemovals.map((product, index) => (
+                <Text key={index} style={styles.productText}>
+                  • {product}
+                </Text>
+              ))}
+            </ScrollView>
+            <View style={styles.buttons}>
+              <TouchableOpacity onPress={() => handleBottomRow("shoppingCart")}>
+                <Image
+                  source={require("../../assets/shopping-list.png")}
+                  style={styles.cartButton}
+                />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={() => setIsPopupVisible(false)}
+              >
+                <Text style={styles.closeButtonText}>הבנתי</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       {/* Bottom Navigation */}
       <View style={styles.bottomNavigation}>
         <TouchableOpacity>
@@ -236,7 +285,6 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     top: -2,
   },
-
   sliderContainer: {
     width: SLIDER_WIDTH,
     alignItems: "center",
@@ -254,7 +302,6 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     position: "absolute",
   },
-
   sliderThumb: {
     position: "absolute",
     width: THUMB_SIZE,
@@ -263,7 +310,61 @@ const styles = StyleSheet.create({
     backgroundColor: "#FF7E3E",
     top: 4,
   },
-
+  modalContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+  },
+  modalContent: {
+    backgroundColor: "white",
+    padding: 20,
+    borderRadius: 10,
+    width: "80%",
+    alignItems: "center",
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    textAlign: "center",
+    marginBottom: 20,
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    fontWeight: "bold",
+    marginBottom: 5,
+  },
+  productList: {
+    maxHeight: 150,
+  },
+  productText: {
+    fontSize: 14,
+    textAlign: "right",
+    width: "100%",
+  },
+  buttons: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    width: "100%",
+    marginTop: 15,
+  },
+  cartButton: {
+    tintColor: "#FF7E3E",
+    width: 40,
+    height: 40,
+  },
+  closeButton: {
+    backgroundColor: "#0F872B",
+    paddingVertical: 7,
+    paddingHorizontal: 10,
+    borderRadius: 5,
+    marginStart: 100,
+  },
+  closeButtonText: {
+    color: "white",
+    fontSize: 18,
+  },
   bottomNavigation: {
     flexDirection: "row",
     justifyContent: "space-around",
