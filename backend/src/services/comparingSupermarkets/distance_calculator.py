@@ -1,15 +1,19 @@
+import base64
+import json
 import requests
 import os
 import re
 import sys
 sys.dont_write_bytecode = True
 from dotenv import load_dotenv
+from urllib.parse import quote
 
+#load the .env: the GOOGLE_MAPS_API_KEY
 load_dotenv()
 GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY")
 
 def get_coordinates_from_google_maps(address):
-    from urllib.parse import quote
+    #encodes the address to match for URL
     encoded_address = quote(address)
     url = f"https://www.google.com/maps/search/{encoded_address}"
 
@@ -17,6 +21,7 @@ def get_coordinates_from_google_maps(address):
         response = requests.get(url)
         if response.status_code == 200:
             text = response.text
+            #search for coordinates by regex
             pattern = re.compile(r"\[\s*3,\s*([0-9]+\.[0-9]+),\s*([0-9]+\.[0-9]+)\s*\]")
             matches = pattern.findall(text)
             if matches:
@@ -29,7 +34,8 @@ def get_coordinates_from_google_maps(address):
 def get_coordinates_from_openstreetmap(address):
     url = "https://nominatim.openstreetmap.org/search"
     params = {"q": address + ", ישראל", "format": "json"}
-    headers = {"User-Agent": "MyProject/1.0 (contact: your_email@example.com)"}
+    #fake contact
+    headers = {"User-Agent": "MyProject/1.0 (contact: SmartCart@example.com)"}
 
     try:
         response = requests.get(url, params=params, headers=headers)
@@ -63,11 +69,10 @@ def calculate_distances(cart_address, address_list):
     distances = get_distance_from_google(cart_address, address_list)
 
     updated_distances = {}
+    cart_coords = get_coordinates_from_google_maps(cart_address)
     for addr, distance in distances.items():
         if distance is None or distance > 10:
-            cart_coords = get_coordinates_from_google_maps(cart_address)
             store_coords = get_coordinates_from_openstreetmap(addr)
-
             if cart_coords is not None and store_coords is not None:
                 lon1, lat1 = cart_coords
                 lat2, lon2 = store_coords
@@ -80,6 +85,29 @@ def calculate_distances(cart_address, address_list):
 
     return [{"Address": addr, "Distance (km)": dist} for addr, dist in updated_distances.items()]
 
+def decode_base64(encoded_str):
+    decoded_bytes = base64.b64decode(encoded_str)
+    return json.loads(decoded_bytes.decode('utf-8'))
+
+if __name__ == "__main__":
+    try:
+       
+        cart_address = sys.argv[1]
+        try:
+            address_list = decode_base64(sys.argv[2])
+            if not isinstance(address_list, list):
+                raise ValueError("Decoded address list is not a valid list")
+        except Exception as e:
+            print(json.dumps({"error": f"Failed to decode address list: {str(e)}"}), flush=True)
+            sys.exit(1)
+
+        distances = calculate_distances(cart_address, address_list)
+        output = {"distances": distances}
+
+        print(json.dumps(output), flush=True)
+
+    except Exception as e:
+        print(json.dumps({"error": str(e)}), flush=True)
 
 """
 # example

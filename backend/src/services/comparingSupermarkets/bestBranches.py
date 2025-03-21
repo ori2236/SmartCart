@@ -3,8 +3,32 @@ import json
 import sys
 import base64
 import math
-from distance_calculator import calculate_distances
+import requests
+import subprocess
 from importPrices import get_store_data
+from importlib.machinery import SourceFileLoader
+
+import requests
+import json
+
+def get_distances(cart_address, address_list):
+    url = "http://localhost:3000/api/distance/distances"
+    payload = {
+        "from": cart_address,
+        "destinations": address_list
+    }
+
+    try:
+        response = requests.post(url, json=payload)
+        
+        if response.status_code != 200:
+            return []
+
+        distances = response.json()
+        return distances
+
+    except requests.RequestException as e:
+        return []
 
 def price_score(price, max_price, min_price):
     if max_price == min_price:
@@ -32,10 +56,8 @@ def calculate_total_price(unit_price, quantity, sale_price, required_quantity):
 
 def get_best_supermarkets(cart, address, alpha):
     df, recommended_removals = get_store_data(address, cart) #send the products
-    
     if df.empty:
         return [], recommended_removals
-
     # price columns (second and above)
     price_columns = df.columns[2:]  
     for product in cart:
@@ -49,11 +71,14 @@ def get_best_supermarkets(cart, address, alpha):
                 ),
                 axis=1
             )
-            
     df['price'] = df[[col for col in df.columns if "(Total Price)" in col]].sum(axis=1, min_count=1)
     store_addresses = df['Address'].tolist()
-    distance_results = calculate_distances(address, store_addresses)
-    distance_map = {entry["Address"]: entry["Distance (km)"] for entry in distance_results}
+    distance_results = get_distances(address, store_addresses)
+    
+    if not distance_results:
+        return [], recommended_removals
+    
+    distance_map = {entry["to"]: entry["distance"] for entry in distance_results}
 
     df['distance'] = df['Address'].map(distance_map)
 
@@ -82,7 +107,7 @@ def decode_base64(encoded_str):
 
 if __name__ == "__main__":
     try:
-       
+        
         cart = decode_base64(sys.argv[1])
         address = sys.argv[2]
         alpha = float(sys.argv[3])
@@ -91,9 +116,9 @@ if __name__ == "__main__":
         alpha = 0.5
         address = "יששכר 1, נתניה"
         cart = {"חלב תנובה טרי 3% בקרטון, כשרות מהדרין, 1 ליטר": 1,
-                "ערגליות מיקס שוקותות גר` אסם, 300 גרם": 2,
                 'שוקולד במילוי תות בד"צ, 100 גרם': 7}
         """
+        
         supermarkets, recommendations = get_best_supermarkets(cart, address, alpha)
         output = {"supermarkets": supermarkets, "recommendations": recommendations}
 

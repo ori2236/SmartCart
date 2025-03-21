@@ -6,6 +6,7 @@ import Products from "./Products/index.js";
 import Favorites from "./Favorites/index.js";
 import ProductInCart from "./ProductInCart/index.js";
 import Supermarkets from "./Supermarkets/index.js";
+import Distance from "./Distance/index.js";
 
 const router = Router();
 
@@ -16,6 +17,7 @@ router
   .use("/product", Products)
   .use("/favorite", Favorites)
   .use("/productInCart", ProductInCart)
-  .use("/supermarkets", Supermarkets);
+  .use("/supermarkets", Supermarkets)
+  .use("/distance", Distance);
 
 export default router;

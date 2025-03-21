@@ -12,8 +12,9 @@ const encodeBase64 = (jsonObj) => {
   return Buffer.from(JSON.stringify(jsonObj), "utf-8").toString("base64");
 };
 
-const runScript = async (scriptPath, args = []) => {
+export const runScript = async (scriptName, args = []) => {
   return new Promise((resolve, reject) => {
+    const scriptPath = path.resolve(__dirname, scriptName);
     const process = spawn("python", [scriptPath, ...args]);
 
     let stdout = "";
@@ -101,8 +102,7 @@ const getBestSupermarkets = async (req, res) => {
     }
 
     const encodedCart = encodeBase64(cart);
-    const pythonScriptPath = path.resolve(__dirname, "bestBranches.py");
-    const pythonOutput = await runScript(pythonScriptPath, [
+    const pythonOutput = await runScript("bestBranches.py", [
       encodedCart,
       address,
       alpha.toString(),
