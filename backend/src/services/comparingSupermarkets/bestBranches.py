@@ -4,7 +4,6 @@ import sys
 import base64
 import math
 import requests
-import subprocess
 from importPrices import get_store_data
 from importlib.machinery import SourceFileLoader
 
@@ -20,7 +19,6 @@ def get_distances(cart_address, address_list):
 
     try:
         response = requests.post(url, json=payload)
-        
         if response.status_code != 200:
             return []
 
@@ -118,7 +116,7 @@ if __name__ == "__main__":
         cart = {"חלב תנובה טרי 3% בקרטון, כשרות מהדרין, 1 ליטר": 1,
                 'שוקולד במילוי תות בד"צ, 100 גרם': 7}
         """
-        
+
         supermarkets, recommendations = get_best_supermarkets(cart, address, alpha)
         output = {"supermarkets": supermarkets, "recommendations": recommendations}
 

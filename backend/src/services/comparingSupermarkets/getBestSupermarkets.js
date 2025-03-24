@@ -100,7 +100,6 @@ const getBestSupermarkets = async (req, res) => {
     for (const item of products) {
       cart[item.name] = item.quantity;
     }
-
     const encodedCart = encodeBase64(cart);
     const pythonOutput = await runScript("bestBranches.py", [
       encodedCart,
@@ -122,11 +121,11 @@ const getBestSupermarkets = async (req, res) => {
         product_images: product_images_list,
       });
     }
+
     const supermarketNames = supermarkets.map((s) => s.Store);
     const supermarketImages = await SupermarketImage.find({
       name: { $in: supermarketNames },
     });
-
 
     const logoMap = {};
     supermarketImages.forEach(({ name, image }) => {
@@ -137,7 +136,7 @@ const getBestSupermarkets = async (req, res) => {
       ...s,
       logo: logoMap[s.Store] || null,
     }));
-
+    
     res.status(200).json({
       supermarkets: supermarketsWithLogos,
       recommendations,
