@@ -13,6 +13,7 @@ import AddProducts from "./screens/addProducts/AddProducts";
 import ShoppingCart from "./screens/shoppingCart/ShoppingCart";
 import Supermarkets from "./screens/supermarkets/Supermarkets";
 import SupermarketBranch from "./screens/supermarkets/SupermarketBranch";
+import Register from "./screens/applicationEntry/Register";
 import config from "./config";
 
 const Stack = createStackNavigator();
@@ -62,6 +63,11 @@ const MainScreen = ({ navigation }) => {
         onPress={fetchUserData}
         style={styles.button}
       />
+      <Button
+        title="temp register"
+        onPress={() => navigation.navigate("Register")}
+        style={styles.button}
+      />
       <View style={styles.spacing} />
       <View style={styles.infoContainer}>
         <Text style={styles.infoText}>User ID: {userId}</Text>
@@ -88,6 +94,11 @@ export default function App() {
         <Stack.Screen
           name="Home"
           component={Home}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="Register"
+          component={Register}
           options={{ headerShown: false }}
         />
         <Stack.Screen

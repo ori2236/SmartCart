@@ -4,26 +4,42 @@ export default {
   post: {
     validator: async (req, res, next) => {
       //check that the mail is valid
-      //check that the passward is valid
-
-      const mail = req.body.mail;
+      const { mail, password } = req.body;
+      if (!mail || !password) {
+        return res
+          .status(400)
+          .json({ error: "mail and password are required" });
+      }
       const existingUser = await User.findOne({ mail });
       if (existingUser) {
-        return res.status(400).json({ error: "Email already exists." });
+        return res.status(400).json({ error: "Email already exists" });
+      }
+
+      /*
+        (?=.*[a-z]) - lowercase
+        (?=.*[A-Z]) - uppercase
+        (?=.*\d) - number
+        (?=.*[@$!%*?&]) - special char
+        [A-Za-z\d@$!%*?&]{8,} - at least 8 characters from any of these
+      */
+      const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+      if (!strongPasswordRegex.test(password)) {
+        return res.status(400).json({
+          error:
+            "weak password",
+        });
       }
 
       next();
     },
     handler: async (req, res) => {
-      const name = req.body.name;
       const mail = req.body.mail;
       const password = req.body.password;
       const is_Google = req.body.is_Google;
 
       try {
-        console.log("Inserting user:", { name, mail, password, is_Google });
+        console.log("Inserting user:", { mail, password, is_Google });
         const newUser = await User.create({
-          name,
           mail,
           password,
           is_Google,
@@ -74,12 +90,12 @@ export default {
     },
     handler: async (req, res) => {
       const mail = req.params.mail;
-      const { name, password, is_Google } = req.body;
+      const { password, is_Google } = req.body;
 
       try {
         const updatedUser = await User.findOneAndUpdate(
           { mail },
-          { name, password, is_Google },
+          { password, is_Google },
           { new: true, runValidators: true }
         );
 

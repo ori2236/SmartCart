@@ -25,13 +25,13 @@ def is_store_list_fresh(last_updated):
     if last_updated is None:
         return False
     last_updated = last_updated.replace(tzinfo=timezone.utc)
-    return datetime.now(timezone.utc) - last_updated < timedelta(days=2)
+    return datetime.now(timezone.utc) - last_updated < timedelta(days=20)
 
 def is_price_fresh(last_updated):
     if last_updated is None:
         return False
     last_updated = last_updated.replace(tzinfo=timezone.utc)
-    return datetime.now(timezone.utc) - last_updated < timedelta(hours=2)
+    return datetime.now(timezone.utc) - last_updated < timedelta(days=3)
 
 
 def parse_discount_text(discount_text):
