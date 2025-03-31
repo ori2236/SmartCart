@@ -21,18 +21,6 @@ const AddProducts = ({ route }) => {
   const [products, setProducts] = useState([]);
   const navigation = useNavigation();
 
-  const panResponder = useRef(
-    PanResponder.create({
-      onMoveShouldSetPanResponder: (evt, gestureState) =>
-        Math.abs(gestureState.dx) > 20,
-      onPanResponderRelease: (evt, gestureState) => {
-        if (gestureState.dx < 20) {
-          navigation.navigate("ShoppingCart", { userMail, cart });
-        }
-      },
-    })
-  ).current;
-
   const handleTabPress = (tab) => {
     setSelectedTab(tab);
     setProducts([]);
@@ -43,7 +31,6 @@ const AddProducts = ({ route }) => {
       return (
         <>
           <ProductSearch
-            shoppingAddress="נתניה"
             userMail={userMail}
             cart={cart}
           />
@@ -66,11 +53,13 @@ const AddProducts = ({ route }) => {
       navigation.navigate("Home", { userMail });
     } else if (button == "shoppingCart") {
       navigation.navigate("ShoppingCart", { userMail, cart });
+    } else if (button == "supermarkets") {
+      navigation.navigate("Supermarkets", { userMail, cart });
     }
   };
 
   return (
-    <View style={styles.backgroundColor}{...panResponder.panHandlers}>
+    <View style={styles.backgroundColor}>
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerText}>הוספת מוצר לעגלה</Text>
@@ -128,7 +117,7 @@ const AddProducts = ({ route }) => {
 
       {/* Bottom Navigation */}
       <View style={styles.bottomNavigation}>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={() => handleBottomRow("supermarkets")}>
           <Image
             source={require("../../assets/super-branches.png")}
             style={styles.bottomIcon}
@@ -140,7 +129,7 @@ const AddProducts = ({ route }) => {
             style={styles.bottomIcon}
           />
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => handleBottomRow("addProducts")}>
+        <TouchableOpacity>
           <Image
             source={require("../../assets/add-products.png")}
             style={styles.addProductsIcon}

@@ -1,5 +1,6 @@
-#Registration with various methods
 """
+#Registration with various methods
+
 import requests
 
 def test_register_with_email():

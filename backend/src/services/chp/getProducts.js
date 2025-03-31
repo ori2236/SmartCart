@@ -18,14 +18,14 @@ const runScript = async (scriptPath, args = []) => {
 };
 
 const getProducts = async (req, res) => {
-  const term = req.query.term || "חלב";
-  const shopping_address = req.query.shopping_address || "נתניה";
+  const term = req.query.term;
+  const shopping_address = req.query.shopping_address;
 
-  const chpScriptPath = path.resolve(__dirname, "chp.py");
-  const findScriptPath = path.resolve(__dirname, "find.py");
+  const searchProductsScriptPath = path.resolve(__dirname, "searchProducts.py");
+  const productImageScriptPath = path.resolve(__dirname, "productImage.py");
 
   try {
-    const productsJson = await runScript(chpScriptPath, [
+    const productsJson = await runScript(searchProductsScriptPath, [
       term,
       shopping_address,
     ]);
@@ -34,11 +34,11 @@ const getProducts = async (req, res) => {
     const updatedProducts = await Promise.all(
       products.map(async (product) => {
         try {
-          const findResultJson = await runScript(findScriptPath, [
-            shopping_address,
-            product.label,
-          ]);
-          const imageResult = JSON.parse(findResultJson);
+          const productImageResultJson = await runScript(
+            productImageScriptPath,
+            [shopping_address, product.label]
+          );
+          const imageResult = JSON.parse(productImageResultJson);
 
           return { ...product, image: imageResult.image };
         } catch (error) {

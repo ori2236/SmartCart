@@ -105,8 +105,6 @@ export default {
               quantity: item.quantity,
               ...(product && {
                 name: product.name,
-                description: product.description,
-                price: product.price,
                 image: product.image,
               }),
             };
