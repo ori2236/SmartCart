@@ -69,14 +69,14 @@ export default {
         const verificationCode = generateVerificationCode();
 
         await VerificationCode.deleteOne({ mail });
+        await sendVerificationEmail(mail, verificationCode);
+
         const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
         await VerificationCode.create({
           mail,
           code: verificationCode,
           hashedPassword,
         });
-        
-        await sendVerificationEmail(mail, verificationCode);
 
         res.json({
           message: "Verification code sent to email",
@@ -126,7 +126,6 @@ export default {
         });
 
       } catch (error) {
-        console.error("Error verifying code:", error.message);
         res.status(500).json({
           message: "Error verifying code",
           error: error.message,

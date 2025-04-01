@@ -14,6 +14,7 @@ import ShoppingCart from "./screens/shoppingCart/ShoppingCart";
 import Supermarkets from "./screens/supermarkets/Supermarkets";
 import SupermarketBranch from "./screens/supermarkets/SupermarketBranch";
 import Register from "./screens/applicationEntry/Register";
+import VerifyCode from "./screens/applicationEntry/VerifyCode"
 import config from "./config";
 
 const Stack = createStackNavigator();
@@ -27,7 +28,7 @@ const MainScreen = ({ navigation }) => {
 
   const fetchUserData = async () => {
     try {
-      const email = "orismail@gmail.com";
+      const email = "orile03@gmail.com";
       const apiUrl = `http://${config.apiServer}/api/user/user/${email}`;
       const response = await axios.get(apiUrl);
       const data = response.data;
@@ -99,6 +100,11 @@ export default function App() {
         <Stack.Screen
           name="Register"
           component={Register}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="VerifyCode"
+          component={VerifyCode}
           options={{ headerShown: false }}
         />
         <Stack.Screen

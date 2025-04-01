@@ -19,8 +19,11 @@ const MyCartsScreen = ({ route }) => {
       try {
         const apiUrl = `http://${config.apiServer}/api/userInCart/userInCart/mail/${userMail}`;
         const response = await axios.get(apiUrl);
-        const carts = response.data;
-        setCarts(carts);
+        if (response.data && response.data.message) {
+          setCarts([]);
+        } else {
+          setCarts(response.data);
+        }
       } catch (error) {
         console.error("Error fetching cart data:", error.message);
       }
@@ -45,27 +48,34 @@ const MyCartsScreen = ({ route }) => {
       </View>
 
       <ScrollView style={styles.scrollableContainer}>
-        {carts.map((cart, index) => (
-          <View key={index} style={styles.buttonWrapper}>
-            <Ionicons
-              name="information-circle-outline"
-              size={24}
-              color="black"
-              style={styles.info}
+        {carts.length === 0 ? (
+          <View style={styles.centerContent}>
+            <Image
+              source={require("../assets/logo.png")}
+              style={styles.logoNoCarts}
             />
-            <TouchableOpacity
-              style={styles.buttonCart}
-              onPress={() =>
-                navigation.navigate(
-                  "AddProducts",
-                  { userMail, cart },
-                )
-              }
-            >
-              <Text style={styles.buttonCartText}>{cart.name}</Text>
-            </TouchableOpacity>
+            <Text style={styles.description}>אין לך עגלות כרגע, צור עגלה</Text>
           </View>
-        ))}
+        ) : (
+          carts.map((cart, index) => (
+            <View key={index} style={styles.buttonWrapper}>
+              <Ionicons
+                name="information-circle-outline"
+                size={24}
+                color="black"
+                style={styles.info}
+              />
+              <TouchableOpacity
+                style={styles.buttonCart}
+                onPress={() =>
+                  navigation.navigate("AddProducts", { userMail, cart })
+                }
+              >
+                <Text style={styles.buttonCartText}>{cart.name}</Text>
+              </TouchableOpacity>
+            </View>
+          ))
+        )}
       </ScrollView>
     </View>
   );
@@ -134,6 +144,24 @@ const styles = StyleSheet.create({
   },
   scrollableContainer: {
     flex: 1,
+  },
+  centerContent: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  logoNoCarts: {
+    alignSelf: "center",
+    width: 180,
+    height: 150,
+    marginTop: height * 0.13,
+    marginBottom: 7,
+  },
+  description: {
+    textAlign: "center",
+    fontSize: 16,
+    color: "#333333",
+    fontWeight: "bold",
+    marginBottom: 10,
   },
 });
 

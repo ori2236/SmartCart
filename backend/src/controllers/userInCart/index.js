@@ -54,10 +54,15 @@ export default {
       try {
         if (type === "mail") {
           const userInCarts = await UserInCart.find({ mail: content });
-
-          if (!userInCarts || userInCarts.length === 0) {
+          if (userInCarts.length === 0){
+            return res.status(200).json({
+              message: "No user-cart relationships found for the provided mail.",
+            });
+          }
+          if (!userInCarts) {
             return res.status(404).json({
-              error: "No user-cart relationships found for the provided mail.",
+              error:
+                "No user-cart relationships found for the provided mail.",
             });
           }
 

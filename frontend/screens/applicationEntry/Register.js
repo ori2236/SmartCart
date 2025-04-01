@@ -3,7 +3,6 @@ import {
   View,
   Text,
   TextInput,
-  Alert,
   TouchableOpacity,
   Image,
   StyleSheet,
@@ -56,6 +55,10 @@ export default function Register() {
     try {
       const apiUrl = `http://${config.apiServer}/api/user/user/`;
       const response = await axios.post(apiUrl, newUser);
+
+      if (response?.data?.message === "Verification code sent to email"){
+        navigation.navigate("VerifyCode", {mail});
+      }
     } catch (error) {
       if (error.response) {
         const errorMessage = error.response.data.error || "";
@@ -71,6 +74,8 @@ export default function Register() {
             newErrors.password =
               "הסיסמה חייבת להיות לפחות 8 תווים ולכלול אות גדולה, אות קטנה, מספר ותו מיוחד.";
           }
+        } else if (errorMessage.includes("No recipients defined")) {
+          newErrors.mail = "יש להזין כתובת מייל קיימת";
         }
         setErrors(newErrors);
       }
