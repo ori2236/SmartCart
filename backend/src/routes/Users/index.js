@@ -1,11 +1,27 @@
 import users from "../../controllers/users/index.js";
+import rateLimit from "express-rate-limit";
 import { Router } from "express";
 
 const router = Router();
 
+const verifyLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000, //10 minutes
+  max: 5,
+  message: {
+    error: "Too many attempts. Please wait 10 minutes before trying again.",
+  },
+});
+
 router.post("/user", 
     users.post.validator,
     users.post.handler
+);
+
+router.post(
+  "/verifyCode",
+  verifyLimiter,
+  users.verifyCode.validator,
+  users.verifyCode.handler
 );
 
 router.get("/user/:mail",

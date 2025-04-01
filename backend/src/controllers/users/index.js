@@ -1,9 +1,37 @@
+import bcrypt from "bcrypt";
 import User from "../../models/User.js";
+import VerificationCode from "../../models/VerificationCode.js";
+import nodemailer from "nodemailer";
+
+const SALT_ROUNDS = 10;
+
+const generateVerificationCode = () => {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+};
+
+const sendVerificationEmail = async (email, code) => {
+  const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+  });
+
+  const mailOptions = {
+    from: '"SmartCart" <smartcartbi@gmail.com>',
+    to: email,
+    subject: "Verification Code for SmartCart",
+    text: `Your verification code is: ${code}`,
+  };
+
+  await transporter.sendMail(mailOptions);
+};
+
 
 export default {
   post: {
     validator: async (req, res, next) => {
-      //check that the mail is valid
       const { mail, password } = req.body;
       if (!mail || !password) {
         return res
@@ -22,11 +50,11 @@ export default {
         (?=.*[@$!%*?&]) - special char
         [A-Za-z\d@$!%*?&]{8,} - at least 8 characters from any of these
       */
-      const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+      const strongPasswordRegex =
+        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
       if (!strongPasswordRegex.test(password)) {
         return res.status(400).json({
-          error:
-            "weak password",
+          error: "weak password",
         });
       }
 
@@ -38,22 +66,69 @@ export default {
       const is_Google = req.body.is_Google;
 
       try {
-        console.log("Inserting user:", { mail, password, is_Google });
-        const newUser = await User.create({
+        const verificationCode = generateVerificationCode();
+
+        await VerificationCode.deleteOne({ mail });
+        const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+        await VerificationCode.create({
           mail,
-          password,
-          is_Google,
+          code: verificationCode,
+          hashedPassword,
         });
-        console.log("User inserted:", newUser);
+        
+        await sendVerificationEmail(mail, verificationCode);
 
         res.json({
-          message: "inserted",
-          user: newUser,
+          message: "Verification code sent to email",
         });
       } catch (error) {
-        console.error("Error inserting user:", error.message);
+        console.error("Error sending email:", error.message);
         res.status(500).json({
-          message: "Error inserting user",
+          message: "Error sending verification email",
+          error: error.message,
+        });
+      }
+    },
+  },
+  verifyCode: {
+    validator: async (req, res, next) => {
+      const { mail, code } = req.body;
+
+      if (!mail || !code ) {
+        return res
+          .status(400)
+          .json({ error: "mail, password, and code are required" });
+      }
+
+      next();
+    },
+    handler: async (req, res) => {
+      const { mail, code } = req.body;
+
+      try {
+        const verificationEntry = await VerificationCode.findOne({ mail });
+
+        if (!verificationEntry || verificationEntry.code !== Number(code)) {
+          return res.status(400).json({ error: "Invalid verification code" });
+        }
+
+        await VerificationCode.deleteOne({ mail });
+
+        const newUser = await User.create({
+          mail,
+          password: verificationEntry.hashedPassword,
+          is_Google: false,
+        });
+
+        res.json({
+          message: "User verified and created successfully",
+          user: newUser.mail,
+        });
+
+      } catch (error) {
+        console.error("Error verifying code:", error.message);
+        res.status(500).json({
+          message: "Error verifying code",
           error: error.message,
         });
       }
