@@ -37,16 +37,16 @@ export default function VerifyCode({ route }) {
     };
 
     try {
-      const apiUrl = `http://${config.apiServer}/api/user/verifyCode/`;
+      const apiUrl = `http://${config.apiServer}/api/user/verifyCode`;
       const response = await axios.post(apiUrl, codeObject);
 
       if (
         response?.data?.message === "User verified and created successfully"
       ) {
-        navigation.navigate("Home", { mail });
+        const userMail = response.data.userMail;
+        navigation.navigate("Home", { userMail });
       }
     } catch (error) {
-        console.log(error);
       const errorMessage = error.response.data.error || "";
       if (errorMessage.includes("Invalid verification code")) {
         setError("הקוד אינו נכון");

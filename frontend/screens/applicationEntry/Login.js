@@ -15,18 +15,16 @@ import config from "../../config";
 
 const { width, height } = Dimensions.get("window");
 
-export default function Register() {
+export default function Login() {
   const navigation = useNavigation();
   const [mail, setMail] = useState("");
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [errors, setErrors] = useState({
     mail: "",
     password: "",
-    confirmPassword: "",
   });
 
-  const handleAddUser = async () => {
+  const handleCheckUser = async () => {
     let newErrors = { mail: "", password: "", confirmPassword: "" };
 
     if (!mail.trim()) {
@@ -34,11 +32,6 @@ export default function Register() {
     }
     if (!password.trim()) {
       newErrors.password = "שדה זה הינו חובה";
-    } else if (password !== confirmPassword) {
-      newErrors.password = "הסיסמא חייבת להיות תואמת לוידוא הסיסמא"
-    }
-    if (!confirmPassword.trim()) {
-      newErrors.confirmPassword = "שדה זה הינו חובה";
     }
 
     setErrors(newErrors);
@@ -46,39 +39,33 @@ export default function Register() {
       return;
     }
 
-    const newUser = {
+    const existingUser = {
       mail,
       password,
       is_Google: false,
     };
 
     try {
-      const apiUrl = `http://${config.apiServer}/api/user/register`;
-      const response = await axios.post(apiUrl, newUser);
-
-      if (response?.data?.message === "Verification code sent to email"){
-        navigation.navigate("VerifyCode", {mail});
+      const apiUrl = `http://${config.apiServer}/api/user/login`;
+      const response = await axios.post(apiUrl, existingUser);
+      if (response?.data?.message === "Login successful") {
+        
+        const userMail = response.data.userMail
+        navigation.navigate("Home", { userMail });
       }
     } catch (error) {
-      if (error.response) {
-        const errorMessage = error.response.data.error || "";
-        let newErrors = { mail: "", password: "", confirmPassword: "" };
+      let newErrors = { mail: "", password: ""};
 
-        if (error.response.status === 400) {
-          if (errorMessage.includes("mail and password are required")) {
-            newErrors.mail = "שדה זה הינו חובה";
-            newErrors.password = "שדה זה הינו חובה";
-          } else if (errorMessage.includes("Email already exists")) {
-            newErrors.mail = "האימייל כבר קיים במערכת";
-          } else if (errorMessage.includes("weak password")) {
-            newErrors.password =
-              "הסיסמא חייבת להיות לפחות 8 תווים ולכלול אות גדולה, אות קטנה, מספר ותו מיוחד.";
-          }
-        } else if (errorMessage.includes("No recipients defined")) {
-          newErrors.mail = "יש להזין כתובת מייל קיימת";
-        }
-        setErrors(newErrors);
-      }
+      if (error.status === 400) {
+        newErrors.mail = "שדה זה הינו חובה";
+        newErrors.password = "שדה זה הינו חובה";
+      } else if (error.status === 401 || error.status === 404) {
+        newErrors.mail = "מייל או סיסמא לא נכונים";
+        newErrors.password = "מייל או סיסמא לא נכונים";
+      } else if (error.status === 500) {
+        console.error(error);
+      } 
+      setErrors(newErrors);
     }
   };
 
@@ -92,7 +79,7 @@ export default function Register() {
       </TouchableOpacity>
       <View style={styles.title}>
         <Ionicons name="person-outline" style={styles.profileIcon} />
-        <Text style={styles.titleText}>הרשמה</Text>
+        <Text style={styles.titleText}>התחברות</Text>
       </View>
       <View style={styles.container}>
         <View style={styles.inputContainer}>
@@ -129,25 +116,8 @@ export default function Register() {
           ) : null}
         </View>
 
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.input}
-            placeholder="וידוא סיסמא"
-            value={confirmPassword}
-            onChangeText={(text) => {
-              setConfirmPassword(text);
-              setErrors({ ...errors, confirmPassword: "" });
-            }}
-            secureTextEntry
-            textAlign="right"
-          />
-          {errors.confirmPassword ? (
-            <Text style={styles.errorText}>{errors.confirmPassword}</Text>
-          ) : null}
-        </View>
-
-        <TouchableOpacity style={styles.button} onPress={handleAddUser}>
-          <Text style={styles.buttonText}>אישור</Text>
+        <TouchableOpacity style={styles.button} onPress={handleCheckUser}>
+          <Text style={styles.buttonText}>כניסה</Text>
         </TouchableOpacity>
 
         <Text style={styles.orText}>או</Text>

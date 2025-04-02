@@ -15,6 +15,7 @@ import Supermarkets from "./screens/supermarkets/Supermarkets";
 import SupermarketBranch from "./screens/supermarkets/SupermarketBranch";
 import Register from "./screens/applicationEntry/Register";
 import VerifyCode from "./screens/applicationEntry/VerifyCode"
+import Login from "./screens/applicationEntry/Login"
 import config from "./config";
 
 const Stack = createStackNavigator();
@@ -64,9 +65,16 @@ const MainScreen = ({ navigation }) => {
         onPress={fetchUserData}
         style={styles.button}
       />
+      <View style={styles.spacing} />
       <Button
         title="temp register"
         onPress={() => navigation.navigate("Register")}
+        style={styles.button}
+      />
+      <View style={styles.spacing} />
+      <Button
+        title="temp login"
+        onPress={() => navigation.navigate("Login")}
         style={styles.button}
       />
       <View style={styles.spacing} />
@@ -105,6 +113,11 @@ export default function App() {
         <Stack.Screen
           name="VerifyCode"
           component={VerifyCode}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="Login"
+          component={Login}
           options={{ headerShown: false }}
         />
         <Stack.Screen

@@ -30,9 +30,10 @@ const sendVerificationEmail = async (email, code) => {
 
 
 export default {
-  post: {
+  register: {
     validator: async (req, res, next) => {
-      const { mail, password } = req.body;
+      let { mail, password } = req.body;
+      mail = mail.toLowerCase();
       if (!mail || !password) {
         return res
           .status(400)
@@ -61,9 +62,8 @@ export default {
       next();
     },
     handler: async (req, res) => {
-      const mail = req.body.mail;
-      const password = req.body.password;
-      const is_Google = req.body.is_Google;
+      let { mail, password, is_Google } = req.body;
+      mail = mail.toLowerCase();
 
       try {
         const verificationCode = generateVerificationCode();
@@ -94,7 +94,7 @@ export default {
     validator: async (req, res, next) => {
       const { mail, code } = req.body;
 
-      if (!mail || !code ) {
+      if (!mail || !code) {
         return res
           .status(400)
           .json({ error: "mail, password, and code are required" });
@@ -103,8 +103,8 @@ export default {
       next();
     },
     handler: async (req, res) => {
-      const { mail, code } = req.body;
-
+      let { mail, code } = req.body;
+      mail = mail.toLowerCase();
       try {
         const verificationEntry = await VerificationCode.findOne({ mail });
 
@@ -122,9 +122,8 @@ export default {
 
         res.json({
           message: "User verified and created successfully",
-          user: newUser.mail,
+          userMail: mail
         });
-
       } catch (error) {
         res.status(500).json({
           message: "Error verifying code",
@@ -133,28 +132,39 @@ export default {
       }
     },
   },
-  get: {
+  login: {
     validator: async (req, res, next) => {
+      const { mail, password } = req.body;
+
+      if (!mail || !password) {
+        return res
+          .status(400)
+          .json({ error: "mail and password are required" });
+      }
+      
       next();
     },
     handler: async (req, res) => {
-      const { mail } = req.params;
-
+      let { mail, password } = req.body;
+      mail = mail.toLowerCase();
+      
       try {
-        const user = await User.findOne({ mail: mail });
+        const user = await User.findOne({ mail });
         if (!user) {
-          return res.status(404).json({
-            message: "User not found",
-          });
+          return res.status(404).json({ error: "User not found" });
         }
-        res.json(user);
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (isMatch) {
+          return res.status(200).json({ message: "Login successful", userMail: user.mail });
+        }
+        return res.status(401).json({ error: "Invalid password" });
       } catch (error) {
         res.status(500).json({
-          message: "Error fetching user",
+          message: "Error logging in",
           error: error.message,
         });
       }
-    },
+    }
   },
   put: {
     validator: async (req, res, next) => {
@@ -163,7 +173,8 @@ export default {
       next();
     },
     handler: async (req, res) => {
-      const mail = req.params.mail;
+      let mail = req.params.mail;
+      mail = mail.toLowerCase();
       const { password, is_Google } = req.body;
 
       try {
@@ -196,8 +207,8 @@ export default {
       next();
     },
     handler: async (req, res) => {
-      const { mail } = req.params;
-
+      let { mail } = req.params;
+      mail = mail.toLowerCase();
       try {
         const deletedUser = await User.findOneAndDelete({ mail: mail });
         if (!deletedUser) {

@@ -12,10 +12,7 @@ const verifyLimiter = rateLimit({
   },
 });
 
-router.post("/user", 
-    users.post.validator,
-    users.post.handler
-);
+router.post("/register", users.register.validator, users.register.handler);
 
 router.post(
   "/verifyCode",
@@ -24,10 +21,7 @@ router.post(
   users.verifyCode.handler
 );
 
-router.get("/user/:mail",
-  users.get.validator, 
-  users.get.handler
-);
+router.post("/login", users.login.validator, users.login.handler);
 
 router.put("/user/:mail",
   users.put.validator,
