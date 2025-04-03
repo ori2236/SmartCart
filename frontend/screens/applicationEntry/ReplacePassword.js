@@ -15,27 +15,23 @@ import config from "../../config";
 
 const { width, height } = Dimensions.get("window");
 
-export default function Register() {
+export default function ReplacePassword({ route }) {
+    const { mail } = route.params;
   const navigation = useNavigation();
-  const [mail, setMail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [errors, setErrors] = useState({
-    mail: "",
     password: "",
     confirmPassword: "",
   });
 
-  const handleAddUser = async () => {
-    let newErrors = { mail: "", password: "", confirmPassword: "" };
+  const handleReplacing = async () => {
+    let newErrors = { password: "", confirmPassword: "" };
 
-    if (!mail.trim()) {
-      newErrors.mail = "שדה זה הינו חובה";
-    }
     if (!password.trim()) {
       newErrors.password = "שדה זה הינו חובה";
     } else if (password !== confirmPassword) {
-      newErrors.password = "הסיסמא חייבת להיות תואמת לוידוא"
+      newErrors.password = "הסיסמא חייבת להיות תואמת לוידוא";
     }
     if (!confirmPassword.trim()) {
       newErrors.confirmPassword = "שדה זה הינו חובה";
@@ -46,19 +42,18 @@ export default function Register() {
       return;
     }
 
-    const newUser = {
+    const newPassword = {
       mail,
       password,
       is_Google: false,
     };
 
     try {
-      const apiUrl = `http://${config.apiServer}/api/user/register`;
-      const response = await axios.post(apiUrl, newUser);
-
-      if (response?.data?.message === "Verification code sent to email"){
-        explanation = "register"
-        navigation.navigate("VerifyCode", { mail, explanation });
+      const apiUrl = `http://${config.apiServer}/api/user/replacePassword`;
+      const response = await axios.put(apiUrl, newPassword);
+      if (response?.data?.message === "password replaced") {
+        const userMail = response.data.userMail;
+        navigation.navigate("Home", { userMail });
       }
     } catch (error) {
       if (error.response) {
@@ -67,16 +62,11 @@ export default function Register() {
 
         if (error.response.status === 400) {
           if (errorMessage.includes("mail and password are required")) {
-            newErrors.mail = "שדה זה הינו חובה";
             newErrors.password = "שדה זה הינו חובה";
-          } else if (errorMessage.includes("Email already exists")) {
-            newErrors.mail = "האימייל כבר קיים במערכת";
           } else if (errorMessage.includes("weak password")) {
             newErrors.password =
               "הסיסמא חייבת להיות לפחות 8 תווים ולכלול אות גדולה, אות קטנה, מספר ותו מיוחד.";
           }
-        } else if (errorMessage.includes("No recipients defined")) {
-          newErrors.mail = "יש להזין כתובת מייל קיימת";
         }
         setErrors(newErrors);
       }
@@ -93,30 +83,13 @@ export default function Register() {
       </TouchableOpacity>
       <View style={styles.title}>
         <Ionicons name="person-outline" style={styles.profileIcon} />
-        <Text style={styles.titleText}>הרשמה</Text>
+        <Text style={styles.titleText}>שינוי סיסמא</Text>
       </View>
       <View style={styles.container}>
         <View style={styles.inputContainer}>
           <TextInput
             style={styles.input}
-            placeholder="מייל"
-            value={mail}
-            onChangeText={(text) => {
-              setMail(text);
-              setErrors({ ...errors, mail: "" });
-            }}
-            keyboardType="email-address"
-            textAlign="right"
-          />
-          {errors.mail ? (
-            <Text style={styles.errorText}>{errors.mail}</Text>
-          ) : null}
-        </View>
-
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.input}
-            placeholder="סיסמא"
+            placeholder="סיסמא חדשה"
             value={password}
             onChangeText={(text) => {
               setPassword(text);
@@ -133,7 +106,7 @@ export default function Register() {
         <View style={styles.inputContainer}>
           <TextInput
             style={styles.input}
-            placeholder="וידוא סיסמא"
+            placeholder="וידוא סיסמא חדשה"
             value={confirmPassword}
             onChangeText={(text) => {
               setConfirmPassword(text);
@@ -147,18 +120,8 @@ export default function Register() {
           ) : null}
         </View>
 
-        <TouchableOpacity style={styles.button} onPress={handleAddUser}>
+        <TouchableOpacity style={styles.button} onPress={handleReplacing}>
           <Text style={styles.buttonText}>אישור</Text>
-        </TouchableOpacity>
-
-        <Text style={styles.orText}>או</Text>
-
-        <TouchableOpacity style={styles.googleButton}>
-          <Image
-            source={require("../../assets/googleLogo.png")}
-            style={styles.googleIcon}
-          />
-          <Text style={styles.googleText}>הצטרף עם גוגל</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -227,28 +190,5 @@ const styles = StyleSheet.create({
   buttonText: {
     color: "#fff",
     fontSize: 18,
-  },
-  orText: {
-    marginTop: 18,
-    marginBottom: 18,
-    fontSize: 18,
-    color: "#000000",
-  },
-  googleButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#000",
-    paddingVertical: 2,
-    paddingHorizontal: 30,
-    borderRadius: 35,
-  },
-  googleIcon: {
-    width: 50,
-    height: 50,
-    marginRight: 5,
-  },
-  googleText: {
-    fontSize: 22,
   },
 });

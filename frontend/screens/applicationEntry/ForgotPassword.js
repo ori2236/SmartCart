@@ -14,47 +14,32 @@ import config from "../../config";
 
 const { width, height } = Dimensions.get("window");
 
-export default function VerifyCode({ route }) {
-  const { mail, explanation } = route.params;
+export default function ForgotPassword() {
   const navigation = useNavigation();
-  const [code, setCode] = useState("");
+  const [mail, setMail] = useState("");
   const [error, setError] = useState("");
 
-  const handleVerifyCode = async () => {
-    if (!code.trim()) {
+  const sendCode = async () => {
+    let newError = { mail: "" };
+
+    if (!mail.trim()) {
       setError("שדה זה הינו חובה");
       return;
     }
 
-    if (!/^\d+$/.test(code)) {
-      setError("יש להזין ספרות בלבד");
-      return;
-    }
-
-    const codeObject = {
-      mail,
-      code,
-      explanation,
-    };
     try {
-      const apiUrl = `http://${config.apiServer}/api/user/verifyCode`;
-      const response = await axios.post(apiUrl, codeObject);
-      if (
-        response?.data?.message === "User verified and created successfully"
-      ) {
-        const userMail = response.data.userMail;
-        navigation.navigate("Home", { userMail });
-      } else if (
-        response?.data?.message === "User verified"
-      ) {
-        const mail = response.data.userMail;
-        navigation.navigate("ReplacePassword", { mail });
+      const apiUrl = `http://${config.apiServer}/api/user/sendCode`;
+      const response = await axios.post(apiUrl, { mail });
+      if (response?.data?.message === "Verification code sent to email") {
+        explanation = "forgotPassword";
+        navigation.navigate("VerifyCode", { mail, explanation });
       }
-    } catch (error) {    
-      const errorMessage = error.response.data.error || "";
-      if (errorMessage.includes("Invalid verification code")) {
-        setError("הקוד אינו נכון");
-      } else {
+    } catch (error) {
+      if (error.status === 400) {
+        setError("שדה זה הינו חובה");
+      } else if (error.status === 404) {
+        setError("מייל זה אינו קיים במערכת");
+      } else if (error.status === 500) {
         console.error(error);
       }
     }
@@ -71,28 +56,28 @@ export default function VerifyCode({ route }) {
 
       <View style={styles.title}>
         <Ionicons name="lock-closed-outline" style={styles.profileIcon} />
-        <Text style={styles.titleText}>קוד אימות</Text>
+        <Text style={styles.titleText}>שכחתי סיסמא</Text>
       </View>
 
       <View style={styles.container}>
         <View style={styles.inputContainer}>
-          <Text style={styles.codeSentText}>נשלח אליך קוד לאימות במייל</Text>
+          <Text style={styles.mailText}>ישלח אליך קוד לאימות במייל</Text>
           <TextInput
             style={styles.input}
-            placeholder="הזן קוד"
-            value={code}
+            placeholder="הזן מייל"
+            value={mail}
             onChangeText={(text) => {
-              setCode(text);
+              setMail(text);
               setError("");
             }}
-            keyboardType="numeric"
+            keyboardType="email-address"
             textAlign="right"
           />
           {error ? <Text style={styles.errorText}>{error}</Text> : null}
         </View>
 
-        <TouchableOpacity style={styles.button} onPress={handleVerifyCode}>
-          <Text style={styles.buttonText}>אישור</Text>
+        <TouchableOpacity style={styles.button} onPress={sendCode}>
+          <Text style={styles.buttonText}>שלח קוד</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -136,10 +121,10 @@ const styles = StyleSheet.create({
   inputContainer: {
     width: "95%",
   },
-  codeSentText: {
+  mailText: {
     fontSize: 14,
     marginBottom: 15,
-    textAlign: "right"
+    textAlign: "right",
   },
   input: {
     height: 40,

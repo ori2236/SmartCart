@@ -23,9 +23,14 @@ router.post(
 
 router.post("/login", users.login.validator, users.login.handler);
 
-router.put("/user/:mail",
-  users.put.validator,
-  users.put.handler
+router.post("/sendCode", users.sendCode.validator, users.sendCode.handler);
+
+router.get("/user/:mail", users.get.validator, users.get.handler);
+
+router.put(
+  "/replacePassword",
+  users.replacePassword.validator,
+  users.replacePassword.handler
 );
 
 router.delete("/user/:mail",

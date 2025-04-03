@@ -16,6 +16,8 @@ import SupermarketBranch from "./screens/supermarkets/SupermarketBranch";
 import Register from "./screens/applicationEntry/Register";
 import VerifyCode from "./screens/applicationEntry/VerifyCode"
 import Login from "./screens/applicationEntry/Login"
+import ForgotPassword from "./screens/applicationEntry/ForgotPassword"
+import ReplacePassword from "./screens/applicationEntry/ReplacePassword"
 import config from "./config";
 
 const Stack = createStackNavigator();
@@ -118,6 +120,16 @@ export default function App() {
         <Stack.Screen
           name="Login"
           component={Login}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="ForgotPassword"
+          component={ForgotPassword}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="ReplacePassword"
+          component={ReplacePassword}
           options={{ headerShown: false }}
         />
         <Stack.Screen

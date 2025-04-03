@@ -2,6 +2,7 @@ import bcrypt from "bcrypt";
 import User from "../../models/User.js";
 import VerificationCode from "../../models/VerificationCode.js";
 import nodemailer from "nodemailer";
+import { get } from "mongoose";
 
 const SALT_ROUNDS = 10;
 
@@ -92,38 +93,40 @@ export default {
   },
   verifyCode: {
     validator: async (req, res, next) => {
-      const { mail, code } = req.body;
-
-      if (!mail || !code) {
+      const { mail, code, explanation } = req.body;
+      if (!mail || !code || !explanation) {
         return res
           .status(400)
-          .json({ error: "mail, password, and code are required" });
+          .json({ error: "mail, code, and explanation are required" });
       }
-
       next();
     },
     handler: async (req, res) => {
-      let { mail, code } = req.body;
+      let { mail, code, explanation } = req.body;
       mail = mail.toLowerCase();
       try {
         const verificationEntry = await VerificationCode.findOne({ mail });
-
         if (!verificationEntry || verificationEntry.code !== Number(code)) {
           return res.status(400).json({ error: "Invalid verification code" });
         }
-
         await VerificationCode.deleteOne({ mail });
+        if (explanation === "register") {
+          const newUser = await User.create({
+            mail,
+            password: verificationEntry.hashedPassword,
+            is_Google: false,
+          });
 
-        const newUser = await User.create({
-          mail,
-          password: verificationEntry.hashedPassword,
-          is_Google: false,
-        });
-
-        res.json({
-          message: "User verified and created successfully",
-          userMail: mail
-        });
+          return res.status(200).json({
+            message: "User verified and created successfully",
+            userMail: mail,
+          });
+        } else {
+          res.json({
+            message: "User verified",
+            userMail: mail,
+          });
+        }
       } catch (error) {
         res.status(500).json({
           message: "Error verifying code",
@@ -141,13 +144,13 @@ export default {
           .status(400)
           .json({ error: "mail and password are required" });
       }
-      
+
       next();
     },
     handler: async (req, res) => {
       let { mail, password } = req.body;
       mail = mail.toLowerCase();
-      
+
       try {
         const user = await User.findOne({ mail });
         if (!user) {
@@ -155,7 +158,9 @@ export default {
         }
         const isMatch = await bcrypt.compare(password, user.password);
         if (isMatch) {
-          return res.status(200).json({ message: "Login successful", userMail: user.mail });
+          return res
+            .status(200)
+            .json({ message: "Login successful", userMail: user.mail });
         }
         return res.status(401).json({ error: "Invalid password" });
       } catch (error) {
@@ -164,25 +169,125 @@ export default {
           error: error.message,
         });
       }
-    }
+    },
   },
-  put: {
+  sendCode: {
     validator: async (req, res, next) => {
-      //check that the mail is valid
-      //check that the passward is valid
+      let { mail } = req.body;
+      mail = mail.toLowerCase();
+      if (!mail) {
+        return res.status(400).json({ error: "mail is required" });
+      }
+      const existingUser = await User.findOne({ mail });
+      if (!existingUser) {
+        return res.status(404).json({ error: "Email not exists" });
+      }
+
+      next();
+    },
+    handler: async (req, res) => {
+      let { mail, password, is_Google } = req.body;
+      mail = mail.toLowerCase();
+
+      try {
+        const verificationCode = generateVerificationCode();
+
+        await VerificationCode.deleteOne({ mail });
+        await sendVerificationEmail(mail, verificationCode);
+
+        await VerificationCode.create({
+          mail,
+          code: verificationCode,
+          hashedPassword: "---",
+        });
+
+        res.json({
+          message: "Verification code sent to email",
+        });
+      } catch (error) {
+        console.error("Error sending email:", error.message);
+        res.status(500).json({
+          message: "Error sending verification email",
+          error: error.message,
+        });
+      }
+    },
+  },
+  get: {
+    validator: async (req, res, next) => {
+      let mail = req.params.mail;
+      mail = mail.toLowerCase();
+
+      if (!mail) {
+        return res.status(400).json({ error: "mail is required" });
+      }
+
       next();
     },
     handler: async (req, res) => {
       let mail = req.params.mail;
       mail = mail.toLowerCase();
-      const { password, is_Google } = req.body;
 
       try {
+        const existingUser = await User.findOne({ mail });
+        if (!existingUser) {
+          return res.status(404).json({ error: "Email not exists" });
+        }
+        return res.status(200).json({
+          message: "Email exists",
+          user: mail,
+        });
+      } catch (error) {
+        res.status(500).json({
+          message: "Error finding user",
+          error: error.message,
+        });
+      }
+    },
+  },
+  replacePassword: {
+    validator: async (req, res, next) => {
+      let { mail, password } = req.body;
+      mail = mail.toLowerCase();
+      if (!mail || !password) {
+        return res
+          .status(400)
+          .json({ error: "mail and password are required" });
+      }
+      const existingUser = await User.findOne({ mail });
+      if (!existingUser) {
+        return res.status(400).json({ error: "Email not exists" });
+      }
+
+      /*
+        (?=.*[a-z]) - lowercase
+        (?=.*[A-Z]) - uppercase
+        (?=.*\d) - number
+        (?=.*[@$!%*?&]) - special char
+        [A-Za-z\d@$!%*?&]{8,} - at least 8 characters from any of these
+      */
+      const strongPasswordRegex =
+        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+      if (!strongPasswordRegex.test(password)) {
+        return res.status(400).json({
+          error: "weak password",
+        });
+      }
+
+      next();
+    },
+    handler: async (req, res) => {
+      let { mail, password } = req.body;
+      mail = mail.toLowerCase();
+
+      try {
+        const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
         const updatedUser = await User.findOneAndUpdate(
           { mail },
-          { password, is_Google },
+          { password: hashedPassword },
           { new: true, runValidators: true }
         );
+
 
         if (!updatedUser) {
           return res.status(404).json({
@@ -190,9 +295,9 @@ export default {
           });
         }
 
-        res.json({
-          message: "updated",
-          user: updatedUser,
+        return res.status(200).json({
+          message: "password replaced",
+          userMail: updatedUser.mail,
         });
       } catch (error) {
         res.status(500).json({

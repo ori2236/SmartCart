@@ -24,6 +24,26 @@ export default function Login() {
     password: "",
   });
 
+  const handleForgotPassword = async () => {
+    try {
+      const apiUrl = `http://${config.apiServer}/api/user/user/${mail}`;
+      const response = await axios.get(apiUrl);
+      if (response?.status === 200) {
+        try {
+          const apiUrl = `http://${config.apiServer}/api/user/sendCode`;
+          const response = await axios.post(apiUrl, { mail });
+          if (response?.data?.message === "Verification code sent to email") {
+            const explanation = "forgotPassword";
+            navigation.navigate("VerifyCode", { mail, explanation });
+          }
+        } catch (error) {
+          console.error(error);
+        }
+      }
+    } catch {
+      navigation.navigate("ForgotPassword");
+    }
+  }
   const handleCheckUser = async () => {
     let newErrors = { mail: "", password: "", confirmPassword: "" };
 
@@ -114,6 +134,10 @@ export default function Login() {
           {errors.password ? (
             <Text style={styles.errorText}>{errors.password}</Text>
           ) : null}
+
+          <TouchableOpacity onPress={handleForgotPassword}>
+            <Text style={styles.forgotPasswordText}>שכחתי סיסמא</Text>
+          </TouchableOpacity>
         </View>
 
         <TouchableOpacity style={styles.button} onPress={handleCheckUser}>
@@ -183,6 +207,10 @@ const styles = StyleSheet.create({
     color: "red",
     fontSize: 14,
     marginBottom: 10,
+    textAlign: "right",
+  },
+  forgotPasswordText: {
+    fontSize: 15,
     textAlign: "right",
   },
   button: {
