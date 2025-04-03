@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import * as SecureStore from "expo-secure-store";
+import React, { useEffect, useState } from "react";
 import { View, Button, StyleSheet, Alert, Text } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import {
@@ -52,7 +53,7 @@ const MainScreen = ({ navigation }) => {
     <View style={styles.container}>
       <Button
         title="Go to Home"
-        onPress={() => navigation.navigate("Home", { userMail })}
+        onPress={() => navigation.navigate("Home")}
         style={styles.button}
       />
       <View style={styles.spacing} />
@@ -94,9 +95,26 @@ const MainScreen = ({ navigation }) => {
 };
 
 export default function App() {
+  const [initialRoute, setInitialRoute] = useState(null);
+
+  useEffect(() => {
+    const checkLoginStatus = async () => {
+      const userMail = await SecureStore.getItemAsync("userMail");
+      if (userMail) {
+        setInitialRoute("Home");
+      } else {
+        setInitialRoute("Login");
+      }
+    };
+
+    checkLoginStatus();
+  }, []);
+
+  if (!initialRoute) return null;
+
   return (
     <NavigationContainer>
-      <Stack.Navigator>
+      <Stack.Navigator initialRouteName={initialRoute}>
         <Stack.Screen
           name="Main"
           component={MainScreen}

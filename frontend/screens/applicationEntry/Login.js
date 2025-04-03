@@ -11,6 +11,7 @@ import {
 import axios from "axios";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
+import * as SecureStore from "expo-secure-store";
 import config from "../../config";
 
 const { width, height } = Dimensions.get("window");
@@ -71,7 +72,8 @@ export default function Login() {
       if (response?.data?.message === "Login successful") {
         
         const userMail = response.data.userMail
-        navigation.navigate("Home", { userMail });
+        await SecureStore.setItemAsync("userMail", userMail);
+        navigation.navigate("Home");
       }
     } catch (error) {
       let newErrors = { mail: "", password: ""};
@@ -140,7 +142,7 @@ export default function Login() {
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity style={styles.button} onPress={handleCheckUser}>
+        <TouchableOpacity style={styles.getInButton} onPress={handleCheckUser}>
           <Text style={styles.buttonText}>כניסה</Text>
         </TouchableOpacity>
 
@@ -151,7 +153,14 @@ export default function Login() {
             source={require("../../assets/googleLogo.png")}
             style={styles.googleIcon}
           />
-          <Text style={styles.googleText}>הצטרף עם גוגל</Text>
+          <Text style={styles.googleText}>התחבר עם גוגל</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.registerButton}
+          onPress={() => navigation.navigate("Register")}
+        >
+          <Ionicons name="person-outline" style={styles.profileIconRegister} />
+          <Text style={styles.buttonText}>צור משתמש</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -213,7 +222,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     textAlign: "right",
   },
-  button: {
+  getInButton: {
     width: "75%",
     backgroundColor: "#0F872B",
     marginTop: 35,
@@ -247,5 +256,19 @@ const styles = StyleSheet.create({
   },
   googleText: {
     fontSize: 22,
+  },
+  registerButton: {
+    flexDirection: "row",
+    width: "75%",
+    backgroundColor: "#0F872B",
+    marginTop: 135,
+    padding: 12,
+    borderRadius: 100,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  profileIconRegister: {
+    fontSize: 35,
+    color: "#FFFFFF",
   },
 });

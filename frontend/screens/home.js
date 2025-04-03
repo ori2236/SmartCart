@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   SafeAreaView,
   ScrollView,
@@ -7,10 +7,19 @@ import {
   TouchableOpacity,
   StyleSheet,
 } from "react-native";
+import * as SecureStore from "expo-secure-store";
 
+const Home = ({ navigation }) => {
+  const [userMail, setUserMail] = useState("");
+  
+  useEffect(() => {
+    const fetchUserMail = async () => {
+      const mail = await SecureStore.getItemAsync("userMail");
+      setUserMail(mail || "guest");
+    };
+    fetchUserMail();
+  }, []);
 
-const Home = ({ navigation, route }) => {
-  const { userMail } = route.params;
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView style={styles.scrollView}>
