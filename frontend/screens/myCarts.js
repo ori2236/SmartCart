@@ -1,44 +1,112 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, Image } from "react-native";
+import { View, Text, TouchableOpacity, Image, Modal } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { StyleSheet, Dimensions, Platform } from "react-native";
 import { ScrollView } from "react-native";
 import config from "../config";
 import axios from "axios";
-
+import * as SecureStore from "expo-secure-store";
 const { width, height } = Dimensions.get("window");
 
-const MyCartsScreen = ({ route }) => {
-  const { userMail } = route.params;
+const MyCartsScreen = () => {
+  const [userMail, setUserMail] = useState("");
   const navigation = useNavigation();
   const [carts, setCarts] = useState([]);
+  const [isMenuVisible, setIsMenuVisible] = useState(false);
 
-  useEffect(() => {
-    const fetchCartData = async () => {
-      try {
-        const apiUrl = `http://${config.apiServer}/api/userInCart/userInCart/mail/${userMail}`;
-        const response = await axios.get(apiUrl);
-        if (response.data && response.data.message) {
-          setCarts([]);
-        } else {
-          setCarts(response.data);
-        }
-      } catch (error) {
-        console.error("Error fetching cart data:", error.message);
+useEffect(() => {
+  const fetchData = async () => {
+    try {
+      const mail = await SecureStore.getItemAsync("userMail");
+      const resolvedMail = mail || "guest";
+      setUserMail(resolvedMail);
+
+      const apiUrl = `http://${config.apiServer}/api/userInCart/userInCart/mail/${resolvedMail}`;
+      const response = await axios.get(apiUrl);
+
+      if (response.data && response.data.message) {
+        setCarts([]);
+      } else {
+        setCarts(response.data);
       }
-    };
+    } catch (error) {
+      console.error("Error fetching data:", error.message);
+    }
+  };
 
-    fetchCartData();
-  }, [userMail]);
+  fetchData();
+}, []);
+
+
+  const handleMenuOption = (option) => {
+    setIsMenuVisible(false);
+    switch (option) {
+      case "create":
+        console.log("CreateCart");
+        //navigation.navigate("CreateCart", { userMail });
+        break;
+      case "join":
+        console.log("JoinCart");
+        //navigation.navigate("JoinCart", { userMail });
+        break;
+      case "logout":
+        navigation.navigate("Login");
+        break;
+      default:
+        break;
+    }
+  };
+
+
+
   return (
     <View style={styles.backgroundColor}>
+      <Modal
+        visible={isMenuVisible}
+        transparent={true}
+        animationType="none"
+        onRequestClose={() => setIsMenuVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          onPress={() => setIsMenuVisible(false)}
+        >
+          <View style={styles.modalMenu}>
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => handleMenuOption("create")}
+            >
+              <Text style={styles.menuText}>צור עגלה</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => handleMenuOption("join")}
+            >
+              <Text style={styles.menuText}>הצטרף לעגלה</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => handleMenuOption("logout")}
+            >
+              <Text style={styles.menuText}>התנתקות</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={styles.backButton}
         >
           <Ionicons name="arrow-back" size={24} color="white" />
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => setIsMenuVisible(true)}
+          style={styles.menuButton}
+        >
+          <Ionicons name="menu-outline" size={24} color="white" />
         </TouchableOpacity>
         <Image
           source={require("../assets/full-logo-white.png")}
@@ -100,7 +168,12 @@ const styles = StyleSheet.create({
   backButton: {
     position: "absolute",
     left: 20,
-    top: Platform.OS === "web" ? 30 : 45,
+    top: 45,
+  },
+  menuButton: {
+    position: "absolute",
+    right: 20,
+    top: 45,
   },
   logo: {
     height: Platform.OS === "web" ? height * 0.22 : height * 0.2,
@@ -162,6 +235,26 @@ const styles = StyleSheet.create({
     color: "#333333",
     fontWeight: "bold",
     marginBottom: 10,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
+  },
+  modalMenu: {
+    backgroundColor: "white",
+    padding: 20,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+  },
+  menuItem: {
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderColor: "#ddd",
+  },
+  menuText: {
+    fontSize: 18,
+    textAlign: "center",
   },
 });
 

@@ -53,7 +53,7 @@ export default function ReplacePassword({ route }) {
       const response = await axios.put(apiUrl, newPassword);
       if (response?.data?.message === "password replaced") {
         const userMail = response.data.userMail;
-        navigation.navigate("Home", { userMail });
+        navigation.navigate("MyCarts");
       }
     } catch (error) {
       if (error.response) {

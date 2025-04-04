@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -25,6 +25,10 @@ export default function Login() {
     password: "",
   });
 
+  useEffect(() => {
+    SecureStore.deleteItemAsync("userMail");
+  }, []);
+
   const handleForgotPassword = async () => {
     try {
       const apiUrl = `http://${config.apiServer}/api/user/user/${mail}`;
@@ -44,7 +48,8 @@ export default function Login() {
     } catch {
       navigation.navigate("ForgotPassword");
     }
-  }
+  };
+
   const handleCheckUser = async () => {
     let newErrors = { mail: "", password: "", confirmPassword: "" };
 
@@ -70,13 +75,12 @@ export default function Login() {
       const apiUrl = `http://${config.apiServer}/api/user/login`;
       const response = await axios.post(apiUrl, existingUser);
       if (response?.data?.message === "Login successful") {
-        
-        const userMail = response.data.userMail
+        const userMail = response.data.userMail;
         await SecureStore.setItemAsync("userMail", userMail);
-        navigation.navigate("Home");
+        navigation.navigate("MyCarts");
       }
     } catch (error) {
-      let newErrors = { mail: "", password: ""};
+      let newErrors = { mail: "", password: "" };
 
       if (error.status === 400) {
         newErrors.mail = "שדה זה הינו חובה";
@@ -86,7 +90,7 @@ export default function Login() {
         newErrors.password = "מייל או סיסמא לא נכונים";
       } else if (error.status === 500) {
         console.error(error);
-      } 
+      }
       setErrors(newErrors);
     }
   };

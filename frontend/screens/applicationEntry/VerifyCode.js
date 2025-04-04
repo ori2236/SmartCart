@@ -43,7 +43,7 @@ export default function VerifyCode({ route }) {
         response?.data?.message === "User verified and created successfully"
       ) {
         const userMail = response.data.userMail;
-        navigation.navigate("Home");
+        navigation.navigate("MyCarts");
       } else if (
         response?.data?.message === "User verified"
       ) {

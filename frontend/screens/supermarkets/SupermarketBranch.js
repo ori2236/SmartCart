@@ -47,7 +47,7 @@ const SupermarketBranch = ({ route }) => {
 
   const handleBottomRow = (button) => {
     if (button == "home") {
-      navigation.navigate("Home", { userMail });
+      navigation.navigate("MyCarts");
     } else if (button == "addProducts") {
       navigation.navigate("AddProducts", { userMail, cart });
     } else if (button == "shoppingCart") {
