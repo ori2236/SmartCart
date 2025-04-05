@@ -1,3 +1,4 @@
+import "react-native-get-random-values";
 import * as SecureStore from "expo-secure-store";
 import React, { useEffect, useState } from "react";
 import { NavigationContainer } from "@react-navigation/native";
@@ -12,10 +13,11 @@ import ShoppingCart from "./screens/shoppingCart/ShoppingCart";
 import Supermarkets from "./screens/supermarkets/Supermarkets";
 import SupermarketBranch from "./screens/supermarkets/SupermarketBranch";
 import Register from "./screens/applicationEntry/Register";
-import VerifyCode from "./screens/applicationEntry/VerifyCode"
-import Login from "./screens/applicationEntry/Login"
-import ForgotPassword from "./screens/applicationEntry/ForgotPassword"
-import ReplacePassword from "./screens/applicationEntry/ReplacePassword"
+import VerifyCode from "./screens/applicationEntry/VerifyCode";
+import Login from "./screens/applicationEntry/Login";
+import ForgotPassword from "./screens/applicationEntry/ForgotPassword";
+import ReplacePassword from "./screens/applicationEntry/ReplacePassword";
+import NewCart from "./screens/applicationEntry/NewCart";
 
 const Stack = createStackNavigator();
 
@@ -63,6 +65,11 @@ export default function App() {
         <Stack.Screen
           name="ReplacePassword"
           component={ReplacePassword}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="NewCart"
+          component={NewCart}
           options={{ headerShown: false }}
         />
         <Stack.Screen

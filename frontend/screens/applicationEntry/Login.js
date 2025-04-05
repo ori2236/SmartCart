@@ -51,7 +51,7 @@ export default function Login() {
   };
 
   const handleCheckUser = async () => {
-    let newErrors = { mail: "", password: "", confirmPassword: "" };
+    let newErrors = { mail: "", password: ""};
 
     if (!mail.trim()) {
       newErrors.mail = "שדה זה הינו חובה";

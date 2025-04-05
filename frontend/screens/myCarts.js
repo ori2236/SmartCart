@@ -43,8 +43,7 @@ useEffect(() => {
     setIsMenuVisible(false);
     switch (option) {
       case "create":
-        console.log("CreateCart");
-        //navigation.navigate("CreateCart", { userMail });
+        navigation.navigate("NewCart", { userMail });
         break;
       case "join":
         console.log("JoinCart");
@@ -122,7 +121,8 @@ useEffect(() => {
               source={require("../assets/logo.png")}
               style={styles.logoNoCarts}
             />
-            <Text style={styles.description}>אין לך עגלות כרגע, צור עגלה</Text>
+            <Text style={styles.description}>אין לך עגלות כרגע</Text>
+            <Text style={styles.createCart} onPress={() => {navigation.navigate("NewCart", { userMail })}}>לחץ כאן ליצירת עגלה</Text>
           </View>
         ) : (
           carts.map((cart, index) => (
@@ -234,7 +234,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#333333",
     fontWeight: "bold",
-    marginBottom: 10,
+  },
+  createCart: {
+    textAlign: "center",
+    fontSize: 16,
+    color: "#FFFFFF",
+    backgroundColor: "#FF7E3E",
+    fontWeight: "bold",
+    borderRadius: 100,
+    marginTop: 120,
+    padding: 10,
   },
   modalOverlay: {
     flex: 1,

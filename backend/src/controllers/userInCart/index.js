@@ -1,6 +1,5 @@
 import UserInCart from "../../models/UserInCart.js";
 import Cart from "../../models/Cart.js";
-import User from "../../models/User.js";
 
 export default {
   post: {
