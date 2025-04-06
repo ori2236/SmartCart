@@ -50,8 +50,9 @@ export default {
           productId,
         });
         if (existingProductInCart) {
-          return res.status(200).json({
+          return res.status(400).json({
             message: "This product is already in the cart.",
+            productId: existingProductInCart.productId,
           });
         }
         const newProductInCart = await ProductInCart.create({

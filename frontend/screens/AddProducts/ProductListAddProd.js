@@ -107,25 +107,81 @@ const ProductListAddProd = ({
         });
       }
     } catch (error) {
-      console.error("Error adding product to cart:", error.message);
+      if (error.response && error.response.status === 400) {
+        // if the product already in the cart update it
+        try {
+          const updatedProd = {
+            name: product.label,
+            image: product.image,
+            cartKey: cart.cartKey,
+            quantity: product.quantity,
+          };
+
+          existingProductId = error.response.data.productId;
+          console.log(existingProductId);
+          const updateUrl = `http://${config.apiServer}/api/productInCart/productInCart/${cartKey}/${existingProductId}`;
+          const updateRes = await axios.put(updateUrl, { quantity });
+
+          if (updateRes.status === 200) {
+            product.productId = existingProductId;
+            updateButtonState(product.productId, {
+              isAdded: true,
+              isUpdated: false,
+              originalQuantity: quantity,
+            });
+          }
+        } catch (updateError) {
+          console.error("Error updating product to cart:", updateError.message);
+        }
+      } else {
+        console.error("Error adding product to cart:", error.message);
+      }
     }
   };
 
   const handleUpdateProductInCart = async (product) => {
     const quantity = product.quantity;
-    if (!buttonStates[product.productId]?.isUpdated) return;
+
     try {
-      const apiUrl = `http://${config.apiServer}/api/productInCart/productInCart/${cart.cartKey}/${product.productId}`;
-      const response = await axios.put(apiUrl, { quantity });
-      if (response.status === 200) {
+      const putUrl = `http://${config.apiServer}/api/productInCart/productInCart/${cart.cartKey}/${product.productId}`;
+      const putResponse = await axios.put(putUrl, { quantity });
+
+      if (putResponse.status === 200) {
         Alert.alert("הצלחה", "הכמות עודכנה בהצלחה!");
         updateButtonState(product.productId, {
           isUpdated: false,
           originalQuantity: quantity,
         });
+        return;
       }
     } catch (error) {
-      console.error("Error updating product quantity:", error.message);
+      if (error.response && error.response.status === 404) {
+        // if the product not in the cart re-add it
+        try {
+          const newProd = {
+            name: product.label,
+            image: product.image,
+            cartKey: cart.cartKey,
+            quantity: product.quantity,
+          };
+
+          const postUrl = `http://${config.apiServer}/api/productInCart/productInCart`;
+          const postResponse = await axios.post(postUrl, newProd);
+
+          if (postResponse.status >= 200 && postResponse.status < 300) {
+            product.productId = postResponse.data._id;
+            updateButtonState(product.productId, {
+              isAdded: true,
+              isUpdated: false,
+              originalQuantity: quantity,
+            });
+          }
+        } catch (postError) {
+          console.error("Error re-adding product to cart:", postError.message);
+        }
+      } else {
+        console.error("Error updating product quantity:", error.message);
+      }
     }
   };
 

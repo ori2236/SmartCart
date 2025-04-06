@@ -15,6 +15,11 @@ export function initSocket(server) {
       socket.join(cartKey);
     });
 
+    socket.on("joinUserFavorites", (userMail) => {
+      socket.join(`favorites-${userMail}`);
+      console.log(`הצטרף למועדפים של: ${userMail}`);
+    });
+
     socket.on("disconnect", () => {
     });
   });
@@ -23,5 +28,11 @@ export function initSocket(server) {
 export function emitCartUpdate(cartKey, update) {
   if (io) {
     io.to(cartKey).emit("cartUpdated", update);
+  }
+}
+
+export function emitFavoritesUpdate(userMail, update) {
+  if (io) {
+    io.to(`favorites-${userMail}`).emit("favoritesUpdated", update);
   }
 }

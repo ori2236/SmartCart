@@ -1,3 +1,4 @@
+import { emitFavoritesUpdate } from "../../socket.js";
 import Favorite from "../../models/Favorite.js";
 import Product from "../../models/Product.js";
 import ProductInCart from "../../models/ProductInCart.js";
@@ -55,6 +56,16 @@ export default {
           });
         }
         const newFavorite = await Favorite.create({ productId, mail });
+
+        emitFavoritesUpdate(mail, {
+          type: "add",
+          product: {
+            productId: productId,
+            name,
+            image,
+            quantity: 1,
+          },
+        });
 
         return res.status(201).json({
           message: "Product added to favorites successfully.",
@@ -157,8 +168,16 @@ export default {
         );
 
         if (!updatedProductInFavs) {
-          return res.status(404).json({ error: "Product not found in favorites." });
+          return res
+            .status(404)
+            .json({ error: "Product not found in favorites." });
         }
+
+        emitFavoritesUpdate(mail, {
+          type: "update",
+          productId,
+          quantity,
+        });
 
         res.status(200).json({
           message: "Product quantity updated successfully in favorites.",
@@ -220,11 +239,11 @@ export default {
           });
         }
 
-        const prodInFavs = await Favorite.findOne({ productId });
-        const prodInCarts = await ProductInCart.findOne({ productId });
-        if (!prodInFavs && !prodInCarts) {
-          await Product.findByIdAndDelete(productId);
-        }
+        emitFavoritesUpdate(mail, {
+          type: "remove",
+          productId,
+        });
+
 
         res.status(200).json({
           message: "Favorite deleted successfully.",
