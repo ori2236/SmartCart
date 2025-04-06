@@ -2,7 +2,6 @@ import bcrypt from "bcrypt";
 import User from "../../models/User.js";
 import VerificationCode from "../../models/VerificationCode.js";
 import nodemailer from "nodemailer";
-import { get } from "mongoose";
 
 const SALT_ROUNDS = 10;
 

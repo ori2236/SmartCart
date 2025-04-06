@@ -137,7 +137,7 @@ export default function NewCart({ route }) {
                   },
                 }}
                 query={{
-                  key: "AIzaSyBxjDxmCW6c1uzmWBrbdg-S5OEQN4Qs2pA",
+                  key: config.GOOGLE_MAPS_API_KEY,
                   language: "iw",
                   components: "country:il",
                 }}
