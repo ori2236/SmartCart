@@ -12,11 +12,12 @@ const UserSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    is_Google: {
-      type: Boolean,
+    nickname: {
+      type: String,
       required: true,
     },
-  }, { versionKey: false }
+  },
+  { versionKey: false }
 );
 
 const User = mongoose.model("User", UserSchema);

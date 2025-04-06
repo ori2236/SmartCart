@@ -204,7 +204,6 @@ const styles = StyleSheet.create({
     marginTop: height * 0.075,
     resizeMode: "contain",
   },
-
   title: {
     flexDirection: "row",
     justifyContent: "center",

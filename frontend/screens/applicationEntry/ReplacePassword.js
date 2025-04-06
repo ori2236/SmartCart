@@ -45,7 +45,6 @@ export default function ReplacePassword({ route }) {
     const newPassword = {
       mail,
       password,
-      is_Google: false,
     };
 
     try {

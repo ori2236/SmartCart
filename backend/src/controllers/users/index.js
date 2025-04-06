@@ -33,12 +33,12 @@ const sendVerificationEmail = async (email, code) => {
 export default {
   register: {
     validator: async (req, res, next) => {
-      let { mail, password } = req.body;
+      let { mail, password, nickname } = req.body;
       mail = mail.toLowerCase();
-      if (!mail || !password) {
+      if (!mail || !password || !nickname) {
         return res
           .status(400)
-          .json({ error: "mail and password are required" });
+          .json({ error: "mail, password and nickname are required" });
       }
       const existingUser = await User.findOne({ mail });
       if (existingUser) {
@@ -63,7 +63,7 @@ export default {
       next();
     },
     handler: async (req, res) => {
-      let { mail, password, is_Google } = req.body;
+      let { mail, password, nickname } = req.body;
       mail = mail.toLowerCase();
 
       try {
@@ -77,6 +77,7 @@ export default {
           mail,
           code: verificationCode,
           hashedPassword,
+          nickname,
         });
 
         res.json({
@@ -114,12 +115,13 @@ export default {
           const newUser = await User.create({
             mail,
             password: verificationEntry.hashedPassword,
-            is_Google: false,
+            nickname: verificationEntry.nickname,
           });
 
           return res.status(200).json({
             message: "User verified and created successfully",
             userMail: mail,
+            nickname: newUser.nickname,
           });
         } else {
           res.json({
@@ -160,7 +162,11 @@ export default {
         if (isMatch) {
           return res
             .status(200)
-            .json({ message: "Login successful", userMail: user.mail });
+            .json({
+              message: "Login successful",
+              userMail: user.mail,
+              nickname: user.nickname,
+            });
         }
         return res.status(401).json({ error: "Invalid password" });
       } catch (error) {
@@ -186,7 +192,7 @@ export default {
       next();
     },
     handler: async (req, res) => {
-      let { mail, password, is_Google } = req.body;
+      let { mail, password } = req.body;
       mail = mail.toLowerCase();
 
       try {

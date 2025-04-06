@@ -21,6 +21,7 @@ useEffect(() => {
       const mail = await SecureStore.getItemAsync("userMail");
       const resolvedMail = mail || "guest";
       setUserMail(resolvedMail);
+      const nickname = await SecureStore.getItemAsync("nickname");
 
       const apiUrl = `http://${config.apiServer}/api/userInCart/userInCart/mail/${resolvedMail}`;
       const response = await axios.get(apiUrl);
@@ -96,12 +97,6 @@ useEffect(() => {
 
       <View style={styles.header}>
         <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={styles.backButton}
-        >
-          <Ionicons name="arrow-back" size={24} color="white" />
-        </TouchableOpacity>
-        <TouchableOpacity
           onPress={() => setIsMenuVisible(true)}
           style={styles.menuButton}
         >
@@ -164,11 +159,6 @@ const styles = StyleSheet.create({
     width: "100%",
     top: 0,
     paddingTop: height * 0.05,
-  },
-  backButton: {
-    position: "absolute",
-    left: 20,
-    top: 45,
   },
   menuButton: {
     position: "absolute",

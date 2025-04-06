@@ -21,6 +21,10 @@ const VerificationCodeSchema = new mongoose.Schema(
       default: Date.now,
       expires: 600,
     },
+    nickname: {
+      type: String,
+      required: true,
+    },
   },
   { versionKey: false }
 );

@@ -10,6 +10,7 @@ import {
 import axios from "axios";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
+import * as SecureStore from "expo-secure-store";
 import config from "../../config";
 
 const { width, height } = Dimensions.get("window");
@@ -43,6 +44,9 @@ export default function VerifyCode({ route }) {
         response?.data?.message === "User verified and created successfully"
       ) {
         const userMail = response.data.userMail;
+        await SecureStore.setItemAsync("userMail", userMail);
+        const nickname = response.data.nickname;
+        await SecureStore.setItemAsync("nickname", nickname);
         navigation.navigate("MyCarts");
       } else if (
         response?.data?.message === "User verified"

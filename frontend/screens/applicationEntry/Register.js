@@ -20,14 +20,21 @@ export default function Register() {
   const [mail, setMail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [nickname, setNickname] = useState("");
   const [errors, setErrors] = useState({
     mail: "",
     password: "",
     confirmPassword: "",
+    nickname: "",
   });
 
   const handleAddUser = async () => {
-    let newErrors = { mail: "", password: "", confirmPassword: "" };
+    let newErrors = {
+      mail: "",
+      password: "",
+      confirmPassword: "",
+      nickname: "",
+    };
 
     if (!mail.trim()) {
       newErrors.mail = "שדה זה הינו חובה";
@@ -40,8 +47,11 @@ export default function Register() {
     if (!confirmPassword.trim()) {
       newErrors.confirmPassword = "שדה זה הינו חובה";
     }
-
+    if (!nickname.trim()) {
+      newErrors.nickname = "שדה זה הינו חובה";
+    }
     setErrors(newErrors);
+
     if (Object.values(newErrors).some((error) => error !== "")) {
       return;
     }
@@ -49,31 +59,41 @@ export default function Register() {
     const newUser = {
       mail,
       password,
-      is_Google: false,
+      nickname,
     };
 
     try {
       const apiUrl = `http://${config.apiServer}/api/user/register`;
       const response = await axios.post(apiUrl, newUser);
-
       if (response?.data?.message === "Verification code sent to email"){
         explanation = "register"
         navigation.navigate("VerifyCode", { mail, explanation });
       }
     } catch (error) {
       if (error.response) {
+        
         const errorMessage = error.response.data.error || "";
-        let newErrors = { mail: "", password: "", confirmPassword: "" };
+        let newErrors = {
+          mail: "",
+          password: "",
+          confirmPassword: "",
+          nickname: "",
+        };
 
         if (error.response.status === 400) {
-          if (errorMessage.includes("mail and password are required")) {
+          if (
+            errorMessage.includes("mail, password and nickname are required")
+          ) {
             newErrors.mail = "שדה זה הינו חובה";
             newErrors.password = "שדה זה הינו חובה";
+            newErrors.nickname = "שדה זה הינו חובה";
           } else if (errorMessage.includes("Email already exists")) {
             newErrors.mail = "האימייל כבר קיים במערכת";
           } else if (errorMessage.includes("weak password")) {
             newErrors.password =
               "הסיסמא חייבת להיות לפחות 8 תווים ולכלול אות גדולה, אות קטנה, מספר ותו מיוחד.";
+          } else {
+            console.error(error.response?.data?.error);
           }
         } else if (errorMessage.includes("No recipients defined")) {
           newErrors.mail = "יש להזין כתובת מייל קיימת";
@@ -91,6 +111,10 @@ export default function Register() {
       >
         <Ionicons name="arrow-back" size={24} color="black" />
       </TouchableOpacity>
+      <Image
+        source={require("../../assets/fullLogo.png")}
+        style={styles.headerImage}
+      />
       <View style={styles.title}>
         <Ionicons name="person-outline" style={styles.profileIcon} />
         <Text style={styles.titleText}>הרשמה</Text>
@@ -147,18 +171,23 @@ export default function Register() {
           ) : null}
         </View>
 
+        <View style={styles.inputContainer}>
+          <TextInput
+            style={styles.input}
+            placeholder="כינוי"
+            value={nickname}
+            onChangeText={(text) => {
+              setNickname(text);
+              setErrors({ ...errors, nickname: "" });
+            }}
+            textAlign="right"
+          />
+          {errors.nickname ? (
+            <Text style={styles.errorText}>{errors.nickname}</Text>
+          ) : null}
+        </View>
         <TouchableOpacity style={styles.button} onPress={handleAddUser}>
           <Text style={styles.buttonText}>אישור</Text>
-        </TouchableOpacity>
-
-        <Text style={styles.orText}>או</Text>
-
-        <TouchableOpacity style={styles.googleButton}>
-          <Image
-            source={require("../../assets/googleLogo.png")}
-            style={styles.googleIcon}
-          />
-          <Text style={styles.googleText}>הצטרף עם גוגל</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -175,11 +204,17 @@ const styles = StyleSheet.create({
     left: 20,
     top: 45,
   },
+  headerImage: {
+    width: "80%",
+    alignSelf: "center",
+    marginTop: height * 0.075,
+    resizeMode: "contain",
+  },
   title: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    paddingTop: height * 0.125,
+    marginTop: -20,
   },
   titleText: {
     color: "#0F872B",
@@ -233,22 +268,5 @@ const styles = StyleSheet.create({
     marginBottom: 18,
     fontSize: 18,
     color: "#000000",
-  },
-  googleButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#000",
-    paddingVertical: 2,
-    paddingHorizontal: 30,
-    borderRadius: 35,
-  },
-  googleIcon: {
-    width: 50,
-    height: 50,
-    marginRight: 5,
-  },
-  googleText: {
-    fontSize: 22,
   },
 });

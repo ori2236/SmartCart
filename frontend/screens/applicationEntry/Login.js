@@ -68,7 +68,6 @@ export default function Login() {
     const existingUser = {
       mail,
       password,
-      is_Google: false,
     };
 
     try {
@@ -77,6 +76,8 @@ export default function Login() {
       if (response?.data?.message === "Login successful") {
         const userMail = response.data.userMail;
         await SecureStore.setItemAsync("userMail", userMail);
+        const nickname = response.data.nickname;
+        await SecureStore.setItemAsync("nickname", nickname);
         navigation.navigate("MyCarts");
       }
     } catch (error) {
@@ -97,12 +98,10 @@ export default function Login() {
 
   return (
     <View style={styles.backgroundColor}>
-      <TouchableOpacity
-        onPress={() => navigation.goBack()}
-        style={styles.backButton}
-      >
-        <Ionicons name="arrow-back" size={24} color="black" />
-      </TouchableOpacity>
+      <Image
+        source={require("../../assets/fullLogo.png")}
+        style={styles.headerImage}
+      />
       <View style={styles.title}>
         <Ionicons name="person-outline" style={styles.profileIcon} />
         <Text style={styles.titleText}>התחברות</Text>
@@ -150,15 +149,6 @@ export default function Login() {
           <Text style={styles.buttonText}>כניסה</Text>
         </TouchableOpacity>
 
-        <Text style={styles.orText}>או</Text>
-
-        <TouchableOpacity style={styles.googleButton}>
-          <Image
-            source={require("../../assets/googleLogo.png")}
-            style={styles.googleIcon}
-          />
-          <Text style={styles.googleText}>התחבר עם גוגל</Text>
-        </TouchableOpacity>
         <TouchableOpacity
           style={styles.registerButton}
           onPress={() => navigation.navigate("Register")}
@@ -176,16 +166,17 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#FFFFFF",
   },
-  backButton: {
-    position: "absolute",
-    left: 20,
-    top: 45,
+  headerImage: {
+    width: "80%",
+    alignSelf: "center",
+    marginTop: height * 0.075,
+    resizeMode: "contain",
   },
   title: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    paddingTop: height * 0.125,
+    marginTop: -20,
   },
   titleText: {
     color: "#0F872B",
@@ -237,29 +228,6 @@ const styles = StyleSheet.create({
   buttonText: {
     color: "#fff",
     fontSize: 18,
-  },
-  orText: {
-    marginTop: 18,
-    marginBottom: 18,
-    fontSize: 18,
-    color: "#000000",
-  },
-  googleButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#000",
-    paddingVertical: 2,
-    paddingHorizontal: 30,
-    borderRadius: 35,
-  },
-  googleIcon: {
-    width: 50,
-    height: 50,
-    marginRight: 5,
-  },
-  googleText: {
-    fontSize: 22,
   },
   registerButton: {
     flexDirection: "row",
