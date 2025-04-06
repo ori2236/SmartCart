@@ -12,6 +12,7 @@ import {
 import axios from "axios";
 import { useNavigation } from "@react-navigation/native";
 import ProductListShopList from "./ProductListShopList";
+import { io } from "socket.io-client";
 import config from "../../config";
 
 const { width, height } = Dimensions.get("window");
@@ -25,6 +26,48 @@ const ShoppingCart = ({ route }) => {
   const [debounceTimeouts, setDebounceTimeouts] = useState({});
   const [error, setError] = useState(null);
   const navigation = useNavigation();
+
+  const socket = io(`http://${config.apiServer}`);
+
+  useEffect(() => {
+    socket.emit("joinCart", cart.cartKey);
+
+    socket.on("cartUpdated", (update) => {
+      if (update.type === "add") {
+        const exists = products.find((p) => p.id === update.product.productId);
+        if (!exists) {
+          const newProduct = {
+            id: update.product.productId,
+            label: update.product.name,
+            image: update.product.image,
+            quantity: update.product.quantity,
+          };
+          setProducts((prev) => [...prev, newProduct]);
+          setFilteredProducts((prev) => [...prev, newProduct]);
+        }
+      } else if (update.type === "update") {
+        setProducts((prev) =>
+          prev.map((p) =>
+            p.id === update.productId ? { ...p, quantity: update.quantity } : p
+          )
+        );
+        setFilteredProducts((prev) =>
+          prev.map((p) =>
+            p.id === update.productId ? { ...p, quantity: update.quantity } : p
+          )
+        );
+      } else if (update.type === "remove") {
+        setProducts((prev) => prev.filter((p) => p.id !== update.productId));
+        setFilteredProducts((prev) =>
+          prev.filter((p) => p.id !== update.productId)
+        );
+      }
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [cart.cartKey]);
 
   useEffect(() => {
     const fetchCartProducts = async () => {
@@ -310,10 +353,6 @@ const styles = StyleSheet.create({
     color: "#333333",
     fontWeight: "bold",
     marginBottom: 10,
-  },
-  loadingText: {
-    fontSize: 18,
-    color: "#FF7E3E",
   },
   centerContent: {
     justifyContent: "center",

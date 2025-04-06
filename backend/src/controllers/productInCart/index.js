@@ -1,6 +1,7 @@
+import { emitCartUpdate } from "../../socket.js";
 import ProductInCart from "../../models/ProductInCart.js";
 import Product from "../../models/Product.js";
-import Cart from "../../models/Cart.js"
+import Cart from "../../models/Cart.js";
 import Favorite from "../../models/Favorite.js";
 import ProductController from "../products/index.js";
 
@@ -49,17 +50,25 @@ export default {
           productId,
         });
         if (existingProductInCart) {
-          return res
-            .status(200)
-            .json({
-              message: "This product is already in the cart.",
-            });
+          return res.status(200).json({
+            message: "This product is already in the cart.",
+          });
         }
         const newProductInCart = await ProductInCart.create({
           cartKey,
           productId,
           quantity,
         });
+        emitCartUpdate(cartKey, {
+          type: "add",
+          product: {
+            productId: newProductInCart.productId,
+            quantity: newProductInCart.quantity,
+            name: product.name,
+            image: product.image,
+          },
+        });
+
         res.status(201).json({
           _id: productId,
           message: "Product added to cart successfully.",
@@ -112,7 +121,6 @@ export default {
 
           return res.status(200).json(response);
 
-
           return res.status(200).json(response);
         } else {
           return res
@@ -156,6 +164,12 @@ export default {
           return res.status(404).json({ error: "Product not found in cart." });
         }
 
+        emitCartUpdate(cartKey, {
+          type: "update",
+          productId,
+          quantity,
+        });
+
         res.status(200).json({
           message: "Product updated in cart successfully.",
           productInCart: updatedProductInCart,
@@ -190,7 +204,7 @@ export default {
         if (!cartExists) {
           return res.status(404).json({
             error: "No cart found for the provided cartKey.",
-            cartKey: cartKey
+            cartKey: cartKey,
           });
         }
 
@@ -215,11 +229,10 @@ export default {
           return res.status(404).json({ error: "Product not found in cart." });
         }
 
-        const prodInFavs = await Favorite.findOne({ productId });
-        const prodInCarts = await ProductInCart.findOne({ productId });
-        if (!prodInFavs && !prodInCarts) {
-          await Product.findByIdAndDelete(productId);
-        }
+        emitCartUpdate(cartKey, {
+          type: "remove",
+          productId,
+        });
 
         res.status(200).json({
           message: "Product removed from cart successfully.",
@@ -260,7 +273,9 @@ export default {
         if (!productsInCart) {
           return res.status(404).json({ error: "No products in cart found." });
         } else if (productsInCart.length === 0) {
-          return res.status(200).json({ message: "No products in cart found." });
+          return res
+            .status(200)
+            .json({ message: "No products in cart found." });
         }
         res.status(200).json(productsInCart);
       } catch (error) {
