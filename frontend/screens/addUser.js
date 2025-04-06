@@ -4,19 +4,17 @@ import axios from "axios";
 import config from "../config";
 
 export default function CreateUser() {
-  const [name, setName] = useState("");
   const [mail, setMail] = useState("");
   const [password, setPassword] = useState("");
 
   const handleAddUser = async () => {
     console.log("Add User button pressed!");
-    if (!name || !mail || !password) {
+    if (!mail || !password) {
       Alert.alert("Validation Error", "All fields are required!");
       return;
     }
 
     const newUser = {
-      name,
       mail,
       password,
       is_Google: false,
@@ -38,12 +36,6 @@ export default function CreateUser() {
   return (
     console.log("Add User hello"),
     <View style={styles.container}>
-      <TextInput
-        style={styles.input}
-        placeholder="Name"
-        value={name}
-        onChangeText={(text) => setName(text)}
-      />
       <TextInput
         style={styles.input}
         placeholder="Email"

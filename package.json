@@ -1,9 +1,16 @@
 {
   "dependencies": {
     "@react-native-community/slider": "^4.5.6",
+    "bcrypt": "^5.1.1",
+    "dotenv": "^16.4.7",
+    "expo-secure-store": "~14.0.1",
+    "express-rate-limit": "^7.5.0",
+    "nodemailer": "^6.10.0",
+    "nodemailer-mailgun-transport": "^2.1.5",
     "react-native": "^0.76.6",
     "react-native-elements": "^3.4.3",
     "react-native-fast-image": "^8.6.3",
+    "react-native-google-places-autocomplete": "^2.5.7",
     "react-native-svg": "^15.11.1",
     "react-native-vector-icons": "^10.2.0"
   }

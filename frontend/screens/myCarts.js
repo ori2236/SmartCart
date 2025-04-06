@@ -1,41 +1,106 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, Image } from "react-native";
+import { View, Text, TouchableOpacity, Image, Modal } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { StyleSheet, Dimensions, Platform } from "react-native";
 import { ScrollView } from "react-native";
 import config from "../config";
 import axios from "axios";
-
+import * as SecureStore from "expo-secure-store";
 const { width, height } = Dimensions.get("window");
 
-const MyCartsScreen = ({ route }) => {
-  const { userMail } = route.params;
+const MyCartsScreen = () => {
+  const [userMail, setUserMail] = useState("");
   const navigation = useNavigation();
   const [carts, setCarts] = useState([]);
+  const [isMenuVisible, setIsMenuVisible] = useState(false);
 
-  useEffect(() => {
-    const fetchCartData = async () => {
-      try {
-        const apiUrl = `http://${config.apiServer}/api/userInCart/userInCart/mail/${userMail}`;
-        const response = await axios.get(apiUrl);
-        const carts = response.data;
-        setCarts(carts);
-      } catch (error) {
-        console.error("Error fetching cart data:", error.message);
+useEffect(() => {
+  const fetchData = async () => {
+    try {
+      const mail = await SecureStore.getItemAsync("userMail");
+      const resolvedMail = mail || "guest";
+      setUserMail(resolvedMail);
+      const nickname = await SecureStore.getItemAsync("nickname");
+
+      const apiUrl = `http://${config.apiServer}/api/userInCart/userInCart/mail/${resolvedMail}`;
+      const response = await axios.get(apiUrl);
+
+      if (response.data && response.data.message) {
+        setCarts([]);
+      } else {
+        setCarts(response.data);
       }
-    };
+    } catch (error) {
+      console.error("Error fetching data:", error.message);
+    }
+  };
 
-    fetchCartData();
-  }, [userMail]);
+  fetchData();
+}, []);
+
+
+  const handleMenuOption = (option) => {
+    setIsMenuVisible(false);
+    switch (option) {
+      case "create":
+        navigation.navigate("NewCart", { userMail });
+        break;
+      case "join":
+        console.log("JoinCart");
+        //navigation.navigate("JoinCart", { userMail });
+        break;
+      case "logout":
+        navigation.navigate("Login");
+        break;
+      default:
+        break;
+    }
+  };
+
+
+
   return (
     <View style={styles.backgroundColor}>
+      <Modal
+        visible={isMenuVisible}
+        transparent={true}
+        animationType="none"
+        onRequestClose={() => setIsMenuVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          onPress={() => setIsMenuVisible(false)}
+        >
+          <View style={styles.modalMenu}>
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => handleMenuOption("create")}
+            >
+              <Text style={styles.menuText}>צור עגלה</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => handleMenuOption("join")}
+            >
+              <Text style={styles.menuText}>הצטרף לעגלה</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => handleMenuOption("logout")}
+            >
+              <Text style={styles.menuText}>התנתקות</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
       <View style={styles.header}>
         <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={styles.backButton}
+          onPress={() => setIsMenuVisible(true)}
+          style={styles.menuButton}
         >
-          <Ionicons name="arrow-back" size={24} color="white" />
+          <Ionicons name="menu-outline" size={24} color="white" />
         </TouchableOpacity>
         <Image
           source={require("../assets/full-logo-white.png")}
@@ -45,27 +110,35 @@ const MyCartsScreen = ({ route }) => {
       </View>
 
       <ScrollView style={styles.scrollableContainer}>
-        {carts.map((cart, index) => (
-          <View key={index} style={styles.buttonWrapper}>
-            <Ionicons
-              name="information-circle-outline"
-              size={24}
-              color="black"
-              style={styles.info}
+        {carts.length === 0 ? (
+          <View style={styles.centerContent}>
+            <Image
+              source={require("../assets/logo.png")}
+              style={styles.logoNoCarts}
             />
-            <TouchableOpacity
-              style={styles.buttonCart}
-              onPress={() =>
-                navigation.navigate(
-                  "AddProducts",
-                  { userMail, cart },
-                )
-              }
-            >
-              <Text style={styles.buttonCartText}>{cart.name}</Text>
-            </TouchableOpacity>
+            <Text style={styles.description}>אין לך עגלות כרגע</Text>
+            <Text style={styles.createCart} onPress={() => {navigation.navigate("NewCart", { userMail })}}>לחץ כאן ליצירת עגלה</Text>
           </View>
-        ))}
+        ) : (
+          carts.map((cart, index) => (
+            <View key={index} style={styles.buttonWrapper}>
+              <Ionicons
+                name="information-circle-outline"
+                size={24}
+                color="black"
+                style={styles.info}
+              />
+              <TouchableOpacity
+                style={styles.buttonCart}
+                onPress={() =>
+                  navigation.navigate("AddProducts", { userMail, cart })
+                }
+              >
+                <Text style={styles.buttonCartText}>{cart.name}</Text>
+              </TouchableOpacity>
+            </View>
+          ))
+        )}
       </ScrollView>
     </View>
   );
@@ -87,10 +160,10 @@ const styles = StyleSheet.create({
     top: 0,
     paddingTop: height * 0.05,
   },
-  backButton: {
+  menuButton: {
     position: "absolute",
-    left: 20,
-    top: Platform.OS === "web" ? 30 : 45,
+    right: 20,
+    top: 45,
   },
   logo: {
     height: Platform.OS === "web" ? height * 0.22 : height * 0.2,
@@ -134,6 +207,53 @@ const styles = StyleSheet.create({
   },
   scrollableContainer: {
     flex: 1,
+  },
+  centerContent: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  logoNoCarts: {
+    alignSelf: "center",
+    width: 180,
+    height: 150,
+    marginTop: height * 0.13,
+    marginBottom: 7,
+  },
+  description: {
+    textAlign: "center",
+    fontSize: 16,
+    color: "#333333",
+    fontWeight: "bold",
+  },
+  createCart: {
+    textAlign: "center",
+    fontSize: 16,
+    color: "#FFFFFF",
+    backgroundColor: "#FF7E3E",
+    fontWeight: "bold",
+    borderRadius: 100,
+    marginTop: 120,
+    padding: 10,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
+  },
+  modalMenu: {
+    backgroundColor: "white",
+    padding: 20,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+  },
+  menuItem: {
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderColor: "#ddd",
+  },
+  menuText: {
+    fontSize: 18,
+    textAlign: "center",
   },
 });
 

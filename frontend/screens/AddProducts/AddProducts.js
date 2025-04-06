@@ -50,7 +50,7 @@ const AddProducts = ({ route }) => {
 
   const handleBottomRow = (button) => {
     if (button == "home") {
-      navigation.navigate("Home", { userMail });
+      navigation.navigate("MyCarts");
     } else if (button == "shoppingCart") {
       navigation.navigate("ShoppingCart", { userMail, cart });
     } else if (button == "supermarkets") {

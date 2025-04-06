@@ -1,93 +1,75 @@
-import React, { useState } from "react";
-import { View, Button, StyleSheet, Alert, Text } from "react-native";
+import "react-native-get-random-values";
+import * as SecureStore from "expo-secure-store";
+import React, { useEffect, useState } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import {
   createStackNavigator,
   CardStyleInterpolators,
 } from "@react-navigation/stack";
-import axios from "axios";
-import Home from "./screens/home";
 import addUser from "./screens/addUser";
 import MyCarts from "./screens/myCarts";
 import AddProducts from "./screens/addProducts/AddProducts";
 import ShoppingCart from "./screens/shoppingCart/ShoppingCart";
 import Supermarkets from "./screens/supermarkets/Supermarkets";
 import SupermarketBranch from "./screens/supermarkets/SupermarketBranch";
-import config from "./config";
+import Register from "./screens/applicationEntry/Register";
+import VerifyCode from "./screens/applicationEntry/VerifyCode";
+import Login from "./screens/applicationEntry/Login";
+import ForgotPassword from "./screens/applicationEntry/ForgotPassword";
+import ReplacePassword from "./screens/applicationEntry/ReplacePassword";
+import NewCart from "./screens/applicationEntry/NewCart";
 
 const Stack = createStackNavigator();
 
-const MainScreen = ({ navigation }) => {
-  const [userId, setUserId] = useState("");
-  const [userName, setUserName] = useState("");
-  const [userMail, setUserMail] = useState("");
-  const [userPassword, setUserPassword] = useState("");
-  const [isGoogle, setIsGoogle] = useState(false);
-
-  const fetchUserData = async () => {
-    try {
-      const email = "orismail@gmail.com";
-      const apiUrl = `http://${config.apiServer}/api/user/user/${email}`;
-      const response = await axios.get(apiUrl);
-      const data = response.data;
-      setUserId(data._id);
-      setUserName(data.name);
-      setUserMail(data.mail);
-      setUserPassword(data.password);
-      setIsGoogle(data.is_Google);
-
-      console.log("Fetched user data:", data);
-    } catch (error) {
-      Alert.alert("Error", "Failed to fetch user data. Please try again.");
-      console.error("Error fetching user data:", error.message);
-    }
-  };
-
-  return (
-    <View style={styles.container}>
-      <Button
-        title="Go to Home"
-        onPress={() => navigation.navigate("Home", { userMail })}
-        style={styles.button}
-      />
-      <View style={styles.spacing} />
-      <Button
-        title="Fake Add User (check connection)"
-        onPress={() => navigation.navigate("addUser")}
-        style={styles.button}
-      />
-      <View style={styles.spacing} />
-      <Button
-        title="Fetch User Data"
-        onPress={fetchUserData}
-        style={styles.button}
-      />
-      <View style={styles.spacing} />
-      <View style={styles.infoContainer}>
-        <Text style={styles.infoText}>User ID: {userId}</Text>
-        <Text style={styles.infoText}>Name: {userName}</Text>
-        <Text style={styles.infoText}>Email: {userMail}</Text>
-        <Text style={styles.infoText}>Password: {userPassword}</Text>
-        <Text style={styles.infoText}>
-          Is Google Account: {isGoogle ? "Yes" : "No"}
-        </Text>
-      </View>
-    </View>
-  );
-};
-
 export default function App() {
+  const [initialRoute, setInitialRoute] = useState(null);
+
+  useEffect(() => {
+    const checkLoginStatus = async () => {
+      const userMail = await SecureStore.getItemAsync("userMail");
+      if (userMail) {
+        setInitialRoute("MyCarts");
+      } else {
+        setInitialRoute("Login");
+      }
+    };
+
+    checkLoginStatus();
+  }, []);
+
+  if (!initialRoute) return null;
+
   return (
     <NavigationContainer>
-      <Stack.Navigator>
+      <Stack.Navigator initialRouteName={initialRoute}>
         <Stack.Screen
-          name="Main"
-          component={MainScreen}
+          name="Register"
+          component={Register}
           options={{ headerShown: false }}
         />
         <Stack.Screen
-          name="Home"
-          component={Home}
+          name="VerifyCode"
+          component={VerifyCode}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="Login"
+          component={Login}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="ForgotPassword"
+          component={ForgotPassword}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="ReplacePassword"
+          component={ReplacePassword}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="NewCart"
+          component={NewCart}
           options={{ headerShown: false }}
         />
         <Stack.Screen
@@ -144,31 +126,3 @@ export default function App() {
     </NavigationContainer>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#f5f5f5",
-  },
-  button: {
-    width: 200,
-    height: 50,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  spacing: {
-    height: 20,
-  },
-  infoContainer: {
-    marginTop: 20,
-    paddingHorizontal: 20,
-    alignItems: "center",
-  },
-  infoText: {
-    fontSize: 16,
-    color: "#333",
-    marginVertical: 5,
-  },
-});

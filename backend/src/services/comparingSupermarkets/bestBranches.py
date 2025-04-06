@@ -5,7 +5,6 @@ import base64
 import math
 import requests
 from importPrices import get_store_data
-from importlib.machinery import SourceFileLoader
 
 import requests
 import json

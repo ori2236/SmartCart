@@ -1,18 +1,34 @@
 import Cart from "../../models/Cart.js";
+import UserInCart from "../../models/UserInCart.js";
 
 export default {
   post: {
     validator: async (req, res, next) => {
+      const { name, address, mail } = req.body;
+
+      if (!name || !address || !mail) {
+        return res
+          .status(400)
+          .json({ error: "cart name, address, and mail are required." });
+      }
+
       next();
     },
     handler: async (req, res) => {
-      const { name, address } = req.body;
+      const { name, address, mail } = req.body;
 
       try {
         const newCart = await Cart.create({ name, address });
-        res.json({
+
+        const newUserInCart = await UserInCart.create({
+          cartKey: newCart._id,
+          mail,
+          role: "owner",
+        });
+
+        res.status(200).json({
           message: "inserted",
-          cart: newCart,
+          cart: newCart.name,
         });
       } catch (error) {
         res.status(500).json({
