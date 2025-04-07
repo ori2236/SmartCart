@@ -10,7 +10,6 @@ import {
   Dimensions,
   FlatList,
 } from "react-native";
-import Svg, { Polygon } from "react-native-svg";
 
 const { width, height } = Dimensions.get("window");
 
@@ -38,6 +37,7 @@ const ProductListShopList = ({
             source={imageSource}
             resizeMode="contain"
           />
+          <Text style={styles.updatedBy}>{item.updatedBy}</Text>
         </View>
         <View style={styles.productContainerBottom}>
           <View
@@ -139,6 +139,17 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     position: "absolute",
     right: -15,
+  },
+  updatedBy: {
+    position: "absolute",
+    bottom: 3,
+    left: 10,
+    fontSize: 14,
+    textAlign: "right",
+    flexShrink: 1,
+    flexWrap: "wrap",
+    color: "#FF7E3E",
+    fontWeight: "bold",
   },
   productContainerBottom: {
     flexDirection: "row",

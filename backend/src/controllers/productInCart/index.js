@@ -2,22 +2,24 @@ import { emitCartUpdate } from "../../socket.js";
 import ProductInCart from "../../models/ProductInCart.js";
 import Product from "../../models/Product.js";
 import Cart from "../../models/Cart.js";
-import Favorite from "../../models/Favorite.js";
+import User from "../../models/User.js";
 import ProductController from "../products/index.js";
 
 export default {
   post: {
     validator: async (req, res, next) => {
-      const { name, image, cartKey, quantity } = req.body;
-      if (!name || !image || !cartKey || quantity === undefined) {
+      const { name, image, cartKey, quantity, mail } = req.body;
+
+      if (!name || !image || !cartKey || quantity === undefined || !mail) {
         return res.status(400).json({
-          error: "name, image, cartKey and quantity are required.",
+          error: "name, image, cartKey, quantity, and mail are required.",
         });
       }
+
       next();
     },
     handler: async (req, res) => {
-      const { name, image, cartKey, quantity } = req.body;
+      const { name, image, cartKey, quantity, mail } = req.body;
       let productId = "";
       try {
         let product = await Product.findOne({ name, image });
@@ -55,11 +57,15 @@ export default {
             productId: existingProductInCart.productId,
           });
         }
+        const user = await User.findOne({ mail });
+        const updatedBy = user.nickname;
         const newProductInCart = await ProductInCart.create({
           cartKey,
           productId,
           quantity,
+          updatedBy,
         });
+
         emitCartUpdate(cartKey, {
           type: "add",
           product: {
@@ -85,19 +91,22 @@ export default {
   },
   get: {
     validator: async (req, res, next) => {
+      const { type, content } = req.params;
+      const { userMail } = req.query;
+      if (!type || !content || !userMail) {
+        return res.status(400).json({
+          error: "type, content and mail are required.",
+        });
+      }
       next();
     },
     handler: async (req, res) => {
       const { type, content } = req.params;
+      const { userMail } = req.query;
 
       try {
         if (type === "cartKey") {
           const productsInCart = await ProductInCart.find({ cartKey: content });
-          if (!productsInCart) {
-            return res
-              .status(404)
-              .json({ error: "No products found for the provided cartKey." });
-          }
           if (productsInCart.length === 0) {
             return res
               .status(200)
@@ -106,22 +115,28 @@ export default {
           const productDetails = await Product.find({
             _id: { $in: productsInCart.map((item) => item.productId) },
           });
+
+          const user = await User.findOne({ mail: userMail });
+
+          const nickname = user.nickname;
+
           const response = productsInCart.map((item) => {
             const product = productDetails.find(
               (prod) => prod._id.toString() === item.productId.toString()
             );
+
+            const updatedBy =
+              nickname && item.updatedBy === nickname ? "את/ה" : item.updatedBy;
             return {
               productId: item.productId,
               quantity: item.quantity,
+              updatedBy,
               ...(product && {
                 name: product.name,
                 image: product.image,
               }),
             };
           });
-
-          return res.status(200).json(response);
-
           return res.status(200).json(response);
         } else {
           return res
@@ -140,27 +155,29 @@ export default {
   put: {
     validator: async (req, res, next) => {
       const { cartKey, productId } = req.params;
-      const { quantity } = req.body;
+      const { quantity, mail } = req.body;
 
-      if (!cartKey || !productId || quantity === undefined) {
-        return res
-          .status(400)
-          .json({ error: "cartKey, productId, and quantity are required." });
+      if (!cartKey || !productId || quantity === undefined || !mail) {
+        return res.status(400).json({
+          error: "cartKey, productId, quantity, and mail are required.",
+        });
       }
 
       next();
     },
     handler: async (req, res) => {
       const { cartKey, productId } = req.params;
-      const { quantity } = req.body;
+      const { quantity, mail } = req.body;
 
       try {
+        const user = await User.findOne({ mail });
+        const updatedBy = user.nickname;
+
         const updatedProductInCart = await ProductInCart.findOneAndUpdate(
           { cartKey, productId },
-          { quantity },
+          { quantity, updatedBy },
           { new: true, runValidators: true }
         );
-
         if (!updatedProductInCart) {
           return res.status(404).json({ error: "Product not found in cart." });
         }

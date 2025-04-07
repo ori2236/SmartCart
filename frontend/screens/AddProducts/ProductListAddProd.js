@@ -23,6 +23,7 @@ const ProductListAddProd = ({
   onQuantityChange,
   onToggleStar,
   cart,
+  mail
 }) => {
   const [cartProducts, setCartProducts] = useState([]);
   const [buttonStates, setButtonStates] = useState([]);
@@ -49,31 +50,35 @@ const ProductListAddProd = ({
   }, [products, cartProducts]);
 
   useEffect(() => {
-    fetchCartProducts();
-  }, []);
+    if (!mail || !cart?.cartKey) return;
 
-  const fetchCartProducts = async () => {
-    try {
-      const apiUrl = `http://${config.apiServer}/api/productInCart/productInCart/cartKey/${cart.cartKey}`;
-      const response = await axios.get(apiUrl);
-      const data = response.data;
+    const fetchCartProducts = async () => {
+      try {
+        const apiUrl = `http://${config.apiServer}/api/productInCart/productInCart/cartKey/${cart.cartKey}?userMail=${mail}`;
+        const response = await axios.get(apiUrl);
+        const data = response.data;
 
-      if (data.message === "No products found for the provided cartKey.") {
+        if (data.message === "No products found for the provided cartKey.") {
+          setCartProducts([]);
+        } else {
+          const cartProductsData = data.map((product) => ({
+            productId: product.productId,
+            label: product.name,
+            image: product.image || null,
+            quantity: product.quantity,
+          }));
+          setCartProducts(cartProductsData);
+        }
+      } catch (error) {
+        console.error("Error fetching cart products:", error.message);
         setCartProducts([]);
-      } else {
-        const cartProductsData = data.map((product) => ({
-          productId: product.productId,
-          label: product.name,
-          image: product.image || null,
-          quantity: product.quantity,
-        }));
-        setCartProducts(cartProductsData);
       }
-    } catch (error) {
-      console.error("Error fetching cart products:", error.message);
-      setCartProducts([]);
-    }
-  };
+    };
+
+    fetchCartProducts();
+  }, [mail, cart?.cartKey]);
+
+
 
   const updateButtonState = (productId, state) => {
     setButtonStates((prevState) => ({
@@ -92,6 +97,7 @@ const ProductListAddProd = ({
       image,
       cartKey,
       quantity,
+      mail,
     };
 
     try {
@@ -110,17 +116,10 @@ const ProductListAddProd = ({
       if (error.response && error.response.status === 400) {
         // if the product already in the cart update it
         try {
-          const updatedProd = {
-            name: product.label,
-            image: product.image,
-            cartKey: cart.cartKey,
-            quantity: product.quantity,
-          };
 
           existingProductId = error.response.data.productId;
-          console.log(existingProductId);
           const updateUrl = `http://${config.apiServer}/api/productInCart/productInCart/${cartKey}/${existingProductId}`;
-          const updateRes = await axios.put(updateUrl, { quantity });
+          const updateRes = await axios.put(updateUrl, { quantity, mail });
 
           if (updateRes.status === 200) {
             product.productId = existingProductId;
@@ -144,7 +143,7 @@ const ProductListAddProd = ({
 
     try {
       const putUrl = `http://${config.apiServer}/api/productInCart/productInCart/${cart.cartKey}/${product.productId}`;
-      const putResponse = await axios.put(putUrl, { quantity });
+      const putResponse = await axios.put(putUrl, { quantity, mail });
 
       if (putResponse.status === 200) {
         Alert.alert("הצלחה", "הכמות עודכנה בהצלחה!");
@@ -163,6 +162,7 @@ const ProductListAddProd = ({
             image: product.image,
             cartKey: cart.cartKey,
             quantity: product.quantity,
+            mail,
           };
 
           const postUrl = `http://${config.apiServer}/api/productInCart/productInCart`;

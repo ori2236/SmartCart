@@ -17,6 +17,10 @@ const ProductInCartSchema = new mongoose.Schema(
       required: true,
       default: 1,
     },
+    updatedBy: {
+      type: String,
+      required: true,
+    },
   },
   { versionKey: false }
 );

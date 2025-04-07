@@ -42,7 +42,7 @@ const ProductSearch = ({ userMail, cart }) => {
     setError(null);
 
     try {
-      const apiUrl = `http://${config.apiServer}/api/productInCart/productInCart/cartKey/${cart.cartKey}`;
+      const apiUrl = `http://${config.apiServer}/api/productInCart/productInCart/cartKey/${cart.cartKey}?userMail=${userMail}`;
       const response = await axios.get(apiUrl);
       const data = response.data;
 
@@ -91,7 +91,7 @@ const ProductSearch = ({ userMail, cart }) => {
             return response.data || [];
           })(),
           (async () => {
-            const apiUrl = `http://${config.apiServer}/api/productInCart/productInCart/cartKey/${cart.cartKey}`;
+            const apiUrl = `http://${config.apiServer}/api/productInCart/productInCart/cartKey/${cart.cartKey}?userMail=${userMail}`;
             const response = await axios.get(apiUrl);
             if (
               response.data.message ===
@@ -271,6 +271,7 @@ const ProductSearch = ({ userMail, cart }) => {
           onQuantityChange={handleQuantityChange}
           onToggleStar={toggleStarColor}
           cart={cart}
+          mail={userMail}
         />
       )}
     </View>

@@ -75,10 +75,13 @@ const ShoppingCart = ({ route }) => {
       setError(null);
 
       try {
-        const apiUrl = `http://${config.apiServer}/api/productInCart/productInCart/cartKey/${cart.cartKey}`;
+        const apiUrl = `http://${
+          config.apiServer
+        }/api/productInCart/productInCart/cartKey/${
+          cart.cartKey
+        }?userMail=${userMail}`;
         const response = await axios.get(apiUrl);
         const data = response.data;
-  
         if (data.message === "No products found for the provided cartKey.") {
           setProducts([]);
           setFilteredProducts([]);
@@ -88,6 +91,7 @@ const ShoppingCart = ({ route }) => {
             label: product.name,
             image: product.image || null,
             quantity: product.quantity,
+            updatedBy: product.updatedBy || "",
           }));
           setFilteredProducts(cartProducts);
           setProducts(cartProducts);
@@ -137,7 +141,7 @@ const ShoppingCart = ({ route }) => {
 
     try {
       const apiUrl = `http://${config.apiServer}/api/productInCart/productInCart/${cart.cartKey}/${productId}`;
-      const response = await axios.put(apiUrl, { quantity });
+      const response = await axios.put(apiUrl, { quantity, mail: userMail });
       if (response.status !== 200) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
