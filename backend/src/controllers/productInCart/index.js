@@ -117,7 +117,6 @@ export default {
           });
 
           const user = await User.findOne({ mail: userMail });
-
           const nickname = user.nickname;
 
           const response = productsInCart.map((item) => {
@@ -125,19 +124,20 @@ export default {
               (prod) => prod._id.toString() === item.productId.toString()
             );
 
-            const updatedBy =
-              nickname && item.updatedBy === nickname ? "את/ה" : item.updatedBy;
             return {
               productId: item.productId,
               quantity: item.quantity,
-              updatedBy,
+              updatedBy: item.updatedBy,
               ...(product && {
                 name: product.name,
                 image: product.image,
               }),
             };
           });
-          return res.status(200).json(response);
+          return res.status(200).json({
+            userNickname: nickname,
+            products: response,
+          });
         } else {
           return res
             .status(400)
@@ -186,6 +186,7 @@ export default {
           type: "update",
           productId,
           quantity,
+          updatedBy,
         });
 
         res.status(200).json({

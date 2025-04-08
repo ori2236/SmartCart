@@ -17,7 +17,6 @@ export function initSocket(server) {
 
     socket.on("joinUserFavorites", (userMail) => {
       socket.join(`favorites-${userMail}`);
-      console.log(`הצטרף למועדפים של: ${userMail}`);
     });
 
     socket.on("disconnect", () => {

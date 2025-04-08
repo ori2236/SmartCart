@@ -2,7 +2,8 @@ import { spawn } from "child_process";
 import path from "path";
 import { fileURLToPath } from "url";
 import { Buffer } from "buffer";
-import ProductInCart from "../../controllers/productInCart/index.js"
+import ProductInCart from "../../models/ProductInCart.js";
+import Product from "../../models/Product.js";
 import SupermarketImage from "../../models/SupermarketImage.js"
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -53,26 +54,24 @@ const getBestSupermarkets = async (req, res) => {
       return res.status(400).json({ error: "Missing cartKey or address" });
     }
 
-    const type = "cartKey";
-    const content = cartKey;
-    const reqMock = {
-      params: {
-        type,
-        content,
-      },
-    };
-    const resMock = {
-        data: null,
-        json: function (response) {
-            this.data = response;
-            return response;
-        },
-        status: function (statusCode) {
-            return this;
-        },
-    };
-    await ProductInCart.get.handler(reqMock, resMock);
-    const products = resMock.data;
+    const productsInCart = await ProductInCart.find({ cartKey });
+    const productDetails = await Product.find({
+      _id: { $in: productsInCart.map((item) => item.productId) },
+    });
+    const products = productsInCart.map((item) => {
+      const product = productDetails.find(
+        (prod) => prod._id.toString() === item.productId.toString()
+      );
+
+      return {
+        productId: item.productId,
+        quantity: item.quantity,
+        ...(product && {
+          name: product.name,
+          image: product.image,
+        }),
+      };
+    });
 
     if (!Array.isArray(products)) {
       return res.status(200).json({

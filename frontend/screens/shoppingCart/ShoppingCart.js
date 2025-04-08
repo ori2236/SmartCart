@@ -48,12 +48,25 @@ const ShoppingCart = ({ route }) => {
       } else if (update.type === "update") {
         setProducts((prev) =>
           prev.map((p) =>
-            p.id === update.productId ? { ...p, quantity: update.quantity } : p
+            p.id === update.productId
+              ? {
+                  ...p,
+                  quantity: update.quantity,
+                  updatedBy: update.updatedBy || p.updatedBy,
+                }
+              : p
           )
         );
+        
         setFilteredProducts((prev) =>
           prev.map((p) =>
-            p.id === update.productId ? { ...p, quantity: update.quantity } : p
+            p.id === update.productId
+              ? {
+                  ...p,
+                  quantity: update.quantity,
+                  updatedBy: update.updatedBy || p.updatedBy,
+                }
+              : p
           )
         );
       } else if (update.type === "remove") {
@@ -81,7 +94,7 @@ const ShoppingCart = ({ route }) => {
           cart.cartKey
         }?userMail=${userMail}`;
         const response = await axios.get(apiUrl);
-        const data = response.data;
+        const { userNickname, products: data } = response.data;
         if (data.message === "No products found for the provided cartKey.") {
           setProducts([]);
           setFilteredProducts([]);
@@ -91,8 +104,10 @@ const ShoppingCart = ({ route }) => {
             label: product.name,
             image: product.image || null,
             quantity: product.quantity,
-            updatedBy: product.updatedBy || "",
+            updatedBy:
+              product.updatedBy === userNickname ? "את/ה" : product.updatedBy,
           }));
+
           setFilteredProducts(cartProducts);
           setProducts(cartProducts);
         }
@@ -145,6 +160,17 @@ const ShoppingCart = ({ route }) => {
       if (response.status !== 200) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
+      setProducts((prevProducts) =>
+        prevProducts.map((p) =>
+          p.id === productId ? { ...p, updatedBy: "את/ה" } : p
+        )
+      );
+
+      setFilteredProducts((prevFiltered) =>
+        prevFiltered.map((p) =>
+          p.id === productId ? { ...p, updatedBy: "את/ה" } : p
+        )
+      );
     } catch (error) {
       console.error("Error updating quantity:", error.message);
     }

@@ -5,7 +5,6 @@ import {
   TouchableOpacity,
   TextInput,
   StyleSheet,
-  Platform,
   Dimensions,
   Alert,
   Image,
@@ -13,6 +12,8 @@ import {
 import axios from "axios";
 import config from "../../config";
 import ProductListAddProd from "./ProductListAddProd";
+import { io } from "socket.io-client";
+
 
 const { width, height } = Dimensions.get("window");
 
@@ -44,7 +45,7 @@ const ProductSearch = ({ userMail, cart }) => {
     try {
       const apiUrl = `http://${config.apiServer}/api/productInCart/productInCart/cartKey/${cart.cartKey}?userMail=${userMail}`;
       const response = await axios.get(apiUrl);
-      const data = response.data;
+      const { userNickname, products: data } = response.data;
 
       if (data.message === "No products found for the provided cartKey.") {
         setCartProducts([]);
@@ -71,7 +72,7 @@ const ProductSearch = ({ userMail, cart }) => {
       fetchCartProducts();
     }
   }, [userMail]);
-
+  
   const fetchProducts = async () => {
     if (!searchTerm.trim()) {
       Alert.alert("שגיאה", "יש להזין מילה לחיפוש");
@@ -93,13 +94,14 @@ const ProductSearch = ({ userMail, cart }) => {
           (async () => {
             const apiUrl = `http://${config.apiServer}/api/productInCart/productInCart/cartKey/${cart.cartKey}?userMail=${userMail}`;
             const response = await axios.get(apiUrl);
+            const { userNickname, products: data } = response.data;
             if (
-              response.data.message ===
+              data.message ===
               "No products found for the provided cartKey."
             ) {
               return [];
             }
-            return response.data.map((product) => ({
+            return data.map((product) => ({
               productId: product.productId,
               label: product.name,
               image: product.image || null,

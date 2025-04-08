@@ -11,7 +11,6 @@ import {
 import axios from "axios";
 import config from "../../config";
 import ProductListAddProd from "./ProductListAddProd";
-import { io } from "socket.io-client";
 
 const { height } = Dimensions.get("window");
 
@@ -22,8 +21,6 @@ const ProductFavorites = ({ userMail, cart }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [debounceTimeouts, setDebounceTimeouts] = useState({});
   const [error, setError] = useState(null);
-
-  const socket = io(`http://${config.apiServer}`);
 
   useEffect(() => {
     const fetchFavorites = async () => {
@@ -181,7 +178,6 @@ const ProductFavorites = ({ userMail, cart }) => {
           onQuantityChange={handleQuantityChange}
           onToggleStar={toggleStarColor}
           cart={cart}
-          mail={userMail}
         />
       )}
     </View>

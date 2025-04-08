@@ -11,6 +11,7 @@ import {
 import axios from "axios";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
+import * as SecureStore from "expo-secure-store";
 import config from "../../config";
 
 const { width, height } = Dimensions.get("window");
@@ -51,7 +52,7 @@ export default function ReplacePassword({ route }) {
       const apiUrl = `http://${config.apiServer}/api/user/replacePassword`;
       const response = await axios.put(apiUrl, newPassword);
       if (response?.data?.message === "password replaced") {
-        const userMail = response.data.userMail;
+        await SecureStore.setItemAsync("userMail", mail);
         navigation.navigate("MyCarts");
       }
     } catch (error) {
@@ -66,8 +67,12 @@ export default function ReplacePassword({ route }) {
             newErrors.password =
               "הסיסמא חייבת להיות לפחות 8 תווים ולכלול אות גדולה, אות קטנה, מספר ותו מיוחד.";
           }
+        } else {
+          console.error(error);
         }
         setErrors(newErrors);
+      } else {
+        console.error(error);
       }
     }
   };

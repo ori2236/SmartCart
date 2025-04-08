@@ -9,7 +9,6 @@ import {
   Platform,
   Dimensions,
   FlatList,
-  Alert,
 } from "react-native";
 import Svg, { Polygon } from "react-native-svg";
 import axios from "axios";
@@ -56,7 +55,7 @@ const ProductListAddProd = ({
       try {
         const apiUrl = `http://${config.apiServer}/api/productInCart/productInCart/cartKey/${cart.cartKey}?userMail=${mail}`;
         const response = await axios.get(apiUrl);
-        const data = response.data;
+        const { userNickname, products: data } = response.data;
 
         if (data.message === "No products found for the provided cartKey.") {
           setCartProducts([]);
@@ -104,7 +103,6 @@ const ProductListAddProd = ({
       const apiUrl = `http://${config.apiServer}/api/productInCart/productInCart`;
       const response = await axios.post(apiUrl, newProd);
       if (response.status >= 200 && response.status < 300) {
-        Alert.alert("הצלחה", "המוצר נוסף לעגלה בהצלחה!");
         product.productId = response.data._id;
         updateButtonState(product.productId, {
           isAdded: true,
@@ -146,7 +144,6 @@ const ProductListAddProd = ({
       const putResponse = await axios.put(putUrl, { quantity, mail });
 
       if (putResponse.status === 200) {
-        Alert.alert("הצלחה", "הכמות עודכנה בהצלחה!");
         updateButtonState(product.productId, {
           isUpdated: false,
           originalQuantity: quantity,
@@ -348,7 +345,7 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     flexWrap: "wrap",
     color: "#000000",
-    marginRight: 70,
+    marginRight: 80,
     marginTop: 10,
     fontWeight: "bold",
   },

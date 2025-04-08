@@ -204,6 +204,7 @@ export default {
           mail,
           code: verificationCode,
           hashedPassword: "---",
+          nickname: "---"
         });
 
         res.json({
