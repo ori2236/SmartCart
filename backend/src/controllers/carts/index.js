@@ -26,7 +26,7 @@ export default {
           role: "owner",
         });
 
-        res.status(200).json({
+        res.status(201).json({
           message: "inserted",
           cart: newCart.name,
         });

@@ -47,8 +47,7 @@ useEffect(() => {
         navigation.navigate("NewCart", { userMail });
         break;
       case "join":
-        console.log("JoinCart");
-        //navigation.navigate("JoinCart", { userMail });
+        navigation.navigate("JoinCart", { userMail });
         break;
       case "logout":
         navigation.navigate("Login");

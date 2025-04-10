@@ -58,7 +58,7 @@ export default function NewCart({ route }) {
     try {
       const apiUrl = `http://${config.apiServer}/api/cart/cart`;
       const response = await axios.post(apiUrl, newCart);
-      if (response.status === 200) {
+      if (response.status === 201) {
         navigation.navigate("MyCarts");
       }
     } catch (error) {
