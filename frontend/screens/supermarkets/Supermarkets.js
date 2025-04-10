@@ -85,6 +85,15 @@ const Supermarkets = ({ route }) => {
       const response = await axios.post(apiUrl, info);
       const data = response.data;
       if (response.status == 200) {
+        const data = response.data;
+
+        if (!data.supermarkets || data.supermarkets.length === 0) {
+          setSupermarketBranches([]);
+          setRecommendedRemovals(data.recommendations || []);
+          setProduct_images(data.product_images || []);
+          return;
+        }
+
         const supermarkets = data.supermarkets.map((branch) => ({
           Store: branch.Store,
           Address: branch.Address,
@@ -94,6 +103,7 @@ const Supermarkets = ({ route }) => {
           product_prices: branch.product_prices,
           logo: branch.logo,
         }));
+        
         setRecommendedRemovals(data.recommendations);
         setSupermarketBranches(supermarkets);
         const product_images = data.product_images.map((prod) => ({

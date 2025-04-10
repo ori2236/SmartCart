@@ -12,7 +12,6 @@ import {
 import axios from "axios";
 import config from "../../config";
 import ProductListAddProd from "./ProductListAddProd";
-import { io } from "socket.io-client";
 
 
 const { width, height } = Dimensions.get("window");

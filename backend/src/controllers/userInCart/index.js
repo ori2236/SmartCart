@@ -1,21 +1,23 @@
 import UserInCart from "../../models/UserInCart.js";
 import Cart from "../../models/Cart.js";
+import User from "../../models/User.js";
+import WaitingList from "../../models/WaitingList.js";
 
 export default {
   post: {
     validator: async (req, res, next) => {
-      const { cartKey, mail, role } = req.body;
+      const { cartKey, mail } = req.body;
 
-      if (!cartKey || !mail || !role) {
+      if (!cartKey || !mail) {
         return res
           .status(400)
-          .json({ error: "cartKey, mail, and role are required." });
+          .json({ error: "cartKey and mail are required." });
       }
 
       next();
     },
     handler: async (req, res) => {
-      const { cartKey, mail, role } = req.body;
+      const { cartKey, mail } = req.body;
 
       try {
         const existingRelationship = await UserInCart.findOne({
@@ -28,7 +30,29 @@ export default {
             .json({ error: "Duplicate cartKey and mail combination." });
         }
 
-        const newUserInCart = await UserInCart.create({ cartKey, mail, role });
+        const inWaitingList = await WaitingList.findOne({
+          cartKey,
+          mail,
+        });
+        if (!inWaitingList) {
+          return res
+            .status(400)
+            .json({ error: "The user is not in the waiting list for this cart" });
+        }
+
+        const deletedWaitingList = await WaitingList.findOneAndDelete({
+          mail,
+          cartKey,
+        });
+
+        if (!deletedWaitingList) {
+          return res.status(404).json({
+            error:
+              "No user-cart relationship found for deleting for the provided mail and cartKey.",
+          });
+        }
+
+        const newUserInCart = await UserInCart.create({ cartKey, mail, role: "member" });
 
         res.status(201).json({
           message: "User-cart relationship inserted successfully",
@@ -81,36 +105,38 @@ export default {
           });
 
           return res.status(200).json(response);
-        } else if (type === "key") {
-          const userInCart = await UserInCart.findOne({ cartKey: content });
 
-          if (!userInCart) {
-            return res.status(404).json({
-              error:
-                "No user-cart relationship found for the provided cart key.",
+        } else if (type === "cartKey") {
+          const userInCart = await UserInCart.find({ cartKey: content });
+          if (userInCart.length === 0) {
+            return res.status(200).json({
+              message: "No users found for the provided cartKey.",
             });
           }
 
-          const cart = await Cart.findOne({ _id: userInCart.cartKey });
+          const userMails = userInCart.map((entry) => entry.mail);
 
-          if (!cart) {
-            return res.status(404).json({
-              error: "No cart found for the provided cart key.",
-            });
-          }
+          const users = await User.find(
+            { mail: { $in: userMails } },
+            { mail: 1, nickname: 1, _id: 0 }
+          );
 
-          const response = {
-            cartKey: userInCart.cartKey,
-            role: userInCart.role,
-            name: cart.name,
-            address: cart.address,
-          };
+          const mailToNickname = {};
+          users.forEach((user) => {
+            mailToNickname[user.mail] = user.nickname;
+          });
+
+          const response = userInCart.map((entry) => ({
+            mail: entry.mail,
+            role: entry.role,
+            nickname: mailToNickname[entry.mail]
+          }));
 
           return res.status(200).json(response);
         } else {
           return res
             .status(400)
-            .json({ error: "Invalid type. Use 'mail' or 'key'." });
+            .json({ error: "Invalid type. Use 'mail' or 'cartKey'" });
         }
       } catch (error) {
         console.error("Error in userInCart get handler:", error.message);
@@ -191,7 +217,6 @@ export default {
 
         res.status(200).json({
           message: "User-cart relationship deleted successfully.",
-          deletedUserInCart,
         });
       } catch (error) {
         console.error("Error in delete handler:", error.message);

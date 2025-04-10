@@ -116,17 +116,30 @@ useEffect(() => {
               style={styles.logoNoCarts}
             />
             <Text style={styles.description}>אין לך עגלות כרגע</Text>
-            <Text style={styles.createCart} onPress={() => {navigation.navigate("NewCart", { userMail })}}>לחץ כאן ליצירת עגלה</Text>
+            <Text
+              style={styles.createCart}
+              onPress={() => {
+                navigation.navigate("NewCart", { userMail });
+              }}
+            >
+              לחץ כאן ליצירת עגלה
+            </Text>
           </View>
         ) : (
           carts.map((cart, index) => (
             <View key={index} style={styles.buttonWrapper}>
-              <Ionicons
-                name="information-circle-outline"
-                size={24}
-                color="black"
-                style={styles.info}
-              />
+              <TouchableOpacity
+                onPress={() =>
+                  navigation.navigate("CartInfo", { userMail, cart })
+                }
+              >
+                <Ionicons
+                  name="information-circle-outline"
+                  size={24}
+                  color="black"
+                  style={styles.info}
+                />
+              </TouchableOpacity>
               <TouchableOpacity
                 style={styles.buttonCart}
                 onPress={() =>

@@ -18,6 +18,7 @@ import ForgotPassword from "./screens/applicationEntry/ForgotPassword";
 import ReplacePassword from "./screens/applicationEntry/ReplacePassword";
 import NewCart from "./screens/applicationEntry/NewCart";
 import JoinCart from "./screens/cartManagement/JoinCart";
+import CartInfo from "./screens/cartManagement/CartInfo";
 
 const Stack = createStackNavigator();
 
@@ -75,6 +76,11 @@ export default function App() {
         <Stack.Screen
           name="JoinCart"
           component={JoinCart}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="CartInfo"
+          component={CartInfo}
           options={{ headerShown: false }}
         />
         <Stack.Screen

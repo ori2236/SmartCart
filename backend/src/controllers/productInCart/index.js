@@ -108,10 +108,15 @@ export default {
         if (type === "cartKey") {
           const productsInCart = await ProductInCart.find({ cartKey: content });
           if (productsInCart.length === 0) {
-            return res
-              .status(200)
-              .json({ message: "No products found for the provided cartKey." });
+            const user = await User.findOne({ mail: userMail });
+            const nickname = user?.nickname || "";
+
+            return res.status(200).json({
+              userNickname: nickname,
+              products: [],
+            });
           }
+
           const productDetails = await Product.find({
             _id: { $in: productsInCart.map((item) => item.productId) },
           });

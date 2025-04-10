@@ -55,6 +55,13 @@ const getBestSupermarkets = async (req, res) => {
     }
 
     const productsInCart = await ProductInCart.find({ cartKey });
+
+    if (!productsInCart || productsInCart.length === 0) {
+      return res
+        .status(200)
+        .json({ message: "No products found in the cart." });
+    }
+    
     const productDetails = await Product.find({
       _id: { $in: productsInCart.map((item) => item.productId) },
     });

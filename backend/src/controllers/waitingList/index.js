@@ -32,10 +32,7 @@ export default {
           .status(500)
           .json({ error: "Server error while validating cart" });
       }
-
-
       
-
       next();
     },
     handler: async (req, res) => {
@@ -91,12 +88,8 @@ export default {
               message: "No users found for the provided cartKey.",
             });
           }
-          if (!waitingList) {
-            return res.status(404).json({
-              error:
-                "No user-cart relationships found for the provided mail.",
-            });
-          }
+
+          const userMails = waitingList.map((entry) => entry.mail);
 
           const response = await User.find(
             { mail: { $in: userMails } },
