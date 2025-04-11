@@ -7,6 +7,7 @@ import {
   FlatList,
   Dimensions,
   Alert,
+  Modal,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
@@ -39,6 +40,13 @@ const CartInfo = ({ route }) => {
   const navigation = useNavigation();
   const [members, setMembers] = useState([]);
   const [joinRequests, setJoinRequests] = useState([]);
+  const [isPopupVisible, setIsPopupVisible] = useState(false);
+  const [selectedMember, setSelectedMember] = useState(null);
+  const [confirmRemoveVisible, setConfirmRemoveVisible] = useState(false);
+  const [memberToRemoveName, setMemberToRemoveName] = useState("");
+  const [memberToRemoveEmail, setMemberToRemoveEmail] = useState("");
+
+  const [role, setRole] = useState(null);
 
   useEffect(() => {
     fetchUsers();
@@ -59,7 +67,7 @@ const CartInfo = ({ route }) => {
         waitingListRes.data?.message ===
         "No users found for the provided cartKey."
       ) {
-        setMembers([]);
+        setJoinRequests([]);
       } else {
         const waitingListData = waitingListRes.data;
         const formattedRequests = waitingListData.map((u) => ({
@@ -78,15 +86,25 @@ const CartInfo = ({ route }) => {
       ) {
         setMembers([]);
       } else {
-        const userInCartData = userInCartRes.data;
-        const formattedMembers = userInCartData.map((u) => ({
+        const userData = userInCartRes.data || [];
+        const formattedMembers = userData.map((u) => ({
           name: u.nickname,
           role: u.role,
           email: u.mail,
           type: "member",
         }));
-
-        setMembers(formattedMembers);
+        setRole(userData.find((u) => u.mail === userMail)?.role || "member");
+        // Sort to have current user first
+        const currentUser = formattedMembers.find((u) => u.email === userMail);
+        const otherMembers = formattedMembers.filter(
+          (u) => u.email !== userMail
+        );
+        if (currentUser) {
+          currentUser.name += " (את/ה)";
+          setMembers([currentUser, ...otherMembers]);
+        } else {
+          setMembers(formattedMembers);
+        }
       }
     } catch (error) {
       Alert.alert("שגיאה", "טעינת המשתמשים נכשלה");
@@ -94,7 +112,12 @@ const CartInfo = ({ route }) => {
     }
   };
 
+  const handleRoleChange = async () => {
+    
+  };
+
   const handleLeaveCart = async () => {
+    setIsPopupVisible(false);
     try {
       const apiUrl = `http://${config.apiServer}/api/userInCart/userInCart/${userMail}/${cart.cartKey}`;
       await axios.delete(apiUrl);
@@ -104,6 +127,18 @@ const CartInfo = ({ route }) => {
       console.error("Leave cart error:", error);
     }
   };
+
+ const handleRemoveFromCart = async () => {
+   setConfirmRemoveVisible(false);
+   try {
+     const apiUrl = `http://${config.apiServer}/api/userInCart/userInCart/${memberToRemoveEmail}/${cart.cartKey}`;
+     await axios.delete(apiUrl);
+     fetchUsers();
+   } catch (error) {
+     Alert.alert("שגיאה", "פעולת ההסרה נכשלה");
+   }
+ };
+
 
   const handleCopyCartKey = async () => {
     try {
@@ -132,7 +167,6 @@ const CartInfo = ({ route }) => {
       const response = await axios.post(apiUrl, newUserInCart);
 
       if (response.status === 201) {
-        Alert.alert("הצלחה", "המשתמש אושר והתווסף לעגלה");
         setJoinRequests((prev) => prev.filter((u) => u.email !== mail));
         fetchUsers();
       }
@@ -188,63 +222,179 @@ const CartInfo = ({ route }) => {
     (a, b) => roleOrder[a.role] - roleOrder[b.role]
   );
 
-  const combinedList = [
-    { type: "header", title: `${sortedMembers.length} משתתפים` },
-    ...sortedMembers.map((p) => ({ ...p, type: "member" })),
-    { type: "header", title: `${joinRequests.length} בקשות הצטרפות` },
-    ...joinRequests.map((r) => ({ ...r, isRequest: true, type: "request" })),
-  ];
+const combinedList = [
+  { type: "header", title: `${sortedMembers.length} משתתפים` },
+  ...sortedMembers.map((p) => ({ ...p, type: "member" })),
+  ...(role !== "member"
+    ? [
+        { type: "header", title: `${joinRequests.length} בקשות הצטרפות` },
+        ...joinRequests.map((r) => ({
+          ...r,
+          isRequest: true,
+          type: "request",
+        })),
+      ]
+    : []),
+];
+
 
   const renderItem = ({ item }) => {
     if (item.type === "header") {
+      if (item.title.includes("בקשות") && role === "member") return null;
       return <Text style={styles.memberCount}>{item.title}</Text>;
     }
 
+    const canEditMembers =
+      role === "owner" || (role === "admin" && item.role === "member");
+
     return (
-      <View style={styles.memberContainer}>
-        <View style={styles.memberRow}>
-          <View style={styles.avatarAndName}>
-            <View
-              style={[
-                styles.avatarCircle,
-                { backgroundColor: getColorForName(item.name) },
-              ]}
-            >
-              <Ionicons name="person-outline" size={18} color="#333" />
-            </View>
-            <Text style={styles.memberName}>{item.name}</Text>
-          </View>
-          {item.isRequest ? (
-            <View style={styles.requestActionsContainer}>
-              <TouchableOpacity
-                style={styles.approveButton}
-                onPress={() =>
-                  approveJoinRequest({
-                    mail: item.email,
-                  })
-                }
+      <TouchableOpacity
+        onPress={() => {
+          const isSelf = item.email === userMail;
+          const isRequest = item.isRequest;
+
+          if (isSelf || isRequest) return;
+
+          if (role === "owner") setSelectedMember(item);
+          else if (role === "admin" && item.role === "member")
+            setSelectedMember(item);
+        }}
+      >
+        <View style={styles.memberContainer}>
+          <View style={styles.memberRow}>
+            <View style={styles.avatarAndName}>
+              <View
+                style={[
+                  styles.avatarCircle,
+                  { backgroundColor: getColorForName(item.name) },
+                ]}
               >
-                <Text style={styles.requestButtonText}>צרף</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.rejectButton}>
-                <Text style={styles.requestButtonText}>סרב</Text>
-              </TouchableOpacity>
+                <Ionicons name="person-outline" size={18} color="#333" />
+              </View>
+              <Text style={styles.memberName}>{item.name}</Text>
             </View>
-          ) : (
-            <View style={styles.roleContainer}>
-              <Text style={styles.memberRole}>
-                {item.role?.charAt(0).toUpperCase() + item.role?.slice(1)}
-              </Text>
-            </View>
-          )}
+            {item.isRequest && (role === "owner" || role === "admin") ? (
+              <View style={styles.requestActionsContainer}>
+                <TouchableOpacity
+                  style={styles.approveButton}
+                  onPress={() =>
+                    approveJoinRequest({
+                      mail: item.email,
+                    })
+                  }
+                >
+                  <Text style={styles.requestButtonText}>צרף</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.rejectButton}>
+                  <Text style={styles.requestButtonText}>סרב</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={styles.roleContainer}>
+                <Text style={styles.memberRole}>
+                  {item.role?.charAt(0).toUpperCase() + item.role?.slice(1)}
+                </Text>
+              </View>
+            )}
+          </View>
+          <Text style={styles.memberEmail}>{item.email}</Text>
         </View>
-        <Text style={styles.memberEmail}>{item.email}</Text>
-      </View>
+      </TouchableOpacity>
     );
   };
 
   return (
     <View style={styles.backgroundColor}>
+      <Modal transparent visible={isPopupVisible} animationType="fade">
+        <View style={styles.modalContainer}>
+          <View style={styles.modalBox}>
+            <Text style={styles.modalText}>
+              האם אתה בטוח שברצונך לצאת מהעגלה?
+            </Text>
+            <View style={styles.modalButtonsRow}>
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={() => setIsPopupVisible(false)}
+              >
+                <Text style={styles.modalButtonText}>ביטול</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.confirmButton}
+                onPress={handleLeaveCart}
+              >
+                <Text style={styles.modalButtonText}>אישור</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        transparent
+        visible={!!selectedMember}
+        animationType="fade"
+        onRequestClose={() => setSelectedMember(null)}
+      >
+        <TouchableOpacity
+          activeOpacity={1}
+          style={styles.modalContainer}
+          onPressOut={() => setSelectedMember(null)}
+        >
+          <View style={styles.modalBox}>
+            <Text style={styles.modalText}>{selectedMember?.name}</Text>
+            {role === "owner" && (
+              <TouchableOpacity
+                onPress={handleRoleChange}
+                style={styles.modalAction}
+              >
+                <Text>
+                  {selectedMember?.role === "member"
+                    ? "הפוך ל Admin"
+                    : "הפוך ל Member"}
+                </Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
+              onPress={() => {
+                if (selectedMember) {
+                  setMemberToRemoveName(selectedMember.name);
+                  setMemberToRemoveEmail(selectedMember.email);
+                }
+                setConfirmRemoveVisible(true);
+                setSelectedMember(null);
+              }}
+              style={styles.modalAction}
+            >
+              <Text>הוצא מהעגלה</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      <Modal transparent visible={confirmRemoveVisible} animationType="fade">
+        <View style={styles.modalContainer}>
+          <View style={styles.modalBox}>
+            <Text style={styles.modalText}>
+              האם להוציא את {memberToRemoveName} מהעגלה?
+            </Text>
+            <View style={styles.modalButtonsRow}>
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={() => setConfirmRemoveVisible(false)}
+              >
+                <Text style={styles.modalButtonText}>ביטול</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.confirmButton}
+                onPress={handleRemoveFromCart}
+              >
+                <Text style={styles.modalButtonText}>אישור</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => navigation.navigate(originScreen, { userMail, cart })}
@@ -258,30 +408,40 @@ const CartInfo = ({ route }) => {
         </View>
       </View>
 
-      <View style={styles.buttonRow}>
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={handleCopyCartKey}
-        >
-          <Text style={styles.actionText}>שתף עגלה</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() =>
-            navigation.navigate("ChangeInfo", { userMail, cart, originScreen })
-          }
-        >
-          <Text style={styles.actionText}>עריכת עגלה</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={approveAllRequests}
-        >
-          <Text style={styles.actionText}>
-            אשר את כולם ({joinRequests.length})
-          </Text>
-        </TouchableOpacity>
-      </View>
+      {(role === "owner" || role === "admin") && (
+        <View style={styles.buttonRow}>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={handleCopyCartKey}
+          >
+            <Text style={styles.actionText}>שתף עגלה</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => {
+              if (role !== "owner") {
+                Alert.alert("הגבלה", "רק בעלים יכול לערוך את פרטי העגלה");
+                return;
+              }
+              navigation.navigate("ChangeInfo", {
+                userMail,
+                cart,
+                originScreen,
+              });
+            }}
+          >
+            <Text style={styles.actionText}>עריכת עגלה</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={approveAllRequests}
+          >
+            <Text style={styles.actionText}>
+              אשר את כולם ({joinRequests.length})
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       <FlatList
         data={combinedList}
@@ -290,7 +450,10 @@ const CartInfo = ({ route }) => {
         contentContainerStyle={styles.listContent}
       />
 
-      <TouchableOpacity style={styles.leaveButton} onPress={handleLeaveCart}>
+      <TouchableOpacity
+        style={styles.leaveButton}
+        onPress={() => setIsPopupVisible(true)}
+      >
         <Text style={styles.leaveButtonText}>יציאה מהעגלה</Text>
       </TouchableOpacity>
     </View>
@@ -301,6 +464,53 @@ const styles = StyleSheet.create({
   backgroundColor: {
     flex: 1,
     backgroundColor: "#FFFFFF",
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.4)",
+  },
+  modalBox: {
+    backgroundColor: "white",
+    padding: 20,
+    borderRadius: 10,
+    width: "80%",
+  },
+  modalText: {
+    fontSize: 16,
+    marginBottom: 20,
+    textAlign: "center",
+  },
+  modalButtonsRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  cancelButton: {
+    backgroundColor: "#FFA500",
+    padding: 10,
+    borderRadius: 5,
+    marginHorizontal: 5,
+    flex: 1,
+    alignItems: "center",
+  },
+  confirmButton: {
+    backgroundColor: "#0F872B",
+    padding: 10,
+    borderRadius: 5,
+    marginHorizontal: 5,
+    flex: 1,
+    alignItems: "center",
+  },
+  modalButtonText: {
+    color: "white",
+    fontWeight: "bold",
+  },
+  modalAction: {
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderColor: "#ccc",
+    alignItems: "flex-end",
   },
   header: {
     flexDirection: "column",
