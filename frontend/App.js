@@ -19,6 +19,7 @@ import ReplacePassword from "./screens/applicationEntry/ReplacePassword";
 import NewCart from "./screens/applicationEntry/NewCart";
 import JoinCart from "./screens/cartManagement/JoinCart";
 import CartInfo from "./screens/cartManagement/CartInfo";
+import ChangeInfo from "./screens/cartManagement/ChangeInfo";
 
 const Stack = createStackNavigator();
 
@@ -81,6 +82,11 @@ export default function App() {
         <Stack.Screen
           name="CartInfo"
           component={CartInfo}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="ChangeInfo"
+          component={ChangeInfo}
           options={{ headerShown: false }}
         />
         <Stack.Screen

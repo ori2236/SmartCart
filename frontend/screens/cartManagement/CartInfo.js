@@ -3,7 +3,6 @@ import {
   View,
   Text,
   TouchableOpacity,
-  TextInput,
   StyleSheet,
   FlatList,
   Dimensions,
@@ -36,64 +35,64 @@ const getColorForName = (name) => {
 };
 
 const CartInfo = ({ route }) => {
-  const { userMail, cart } = route.params;
+  const { userMail, cart, originScreen } = route.params;
   const navigation = useNavigation();
   const [members, setMembers] = useState([]);
   const [joinRequests, setJoinRequests] = useState([]);
 
   useEffect(() => {
     fetchUsers();
-  }, []);
+  }, [cart]);
 
-      const fetchUsers = async () => {
-        try {
-          const [userInCartRes, waitingListRes] = await Promise.all([
-            axios.get(
-              `http://${config.apiServer}/api/userInCart/userInCart/cartKey/${cart.cartKey}`
-            ),
-            axios.get(
-              `http://${config.apiServer}/api/waitingList/waitingList/cartKey/${cart.cartKey}`
-            ),
-          ]);
+  const fetchUsers = async () => {
+    try {
+      const [userInCartRes, waitingListRes] = await Promise.all([
+        axios.get(
+          `http://${config.apiServer}/api/userInCart/userInCart/cartKey/${cart.cartKey}`
+        ),
+        axios.get(
+          `http://${config.apiServer}/api/waitingList/waitingList/cartKey/${cart.cartKey}`
+        ),
+      ]);
 
-          if (
-            waitingListRes.data?.message ===
-            "No users found for the provided cartKey."
-          ) {
-            setMembers([]);
-          } else {
-            const waitingListData = waitingListRes.data;
-            const formattedRequests = waitingListData.map((u) => ({
-              name: u.nickname,
-              email: u.mail,
-              isRequest: true,
-              type: "request",
-            }));
+      if (
+        waitingListRes.data?.message ===
+        "No users found for the provided cartKey."
+      ) {
+        setMembers([]);
+      } else {
+        const waitingListData = waitingListRes.data;
+        const formattedRequests = waitingListData.map((u) => ({
+          name: u.nickname,
+          email: u.mail,
+          isRequest: true,
+          type: "request",
+        }));
 
-            setJoinRequests(formattedRequests);
-          }
+        setJoinRequests(formattedRequests);
+      }
 
-          if (
-            userInCartRes.data?.message ===
-            "No users found for the provided cartKey."
-          ) {
-            setMembers([]);
-          } else {
-            const userInCartData = userInCartRes.data;
-            const formattedMembers = userInCartData.map((u) => ({
-              name: u.nickname,
-              role: u.role,
-              email: u.mail,
-              type: "member",
-            }));
+      if (
+        userInCartRes.data?.message ===
+        "No users found for the provided cartKey."
+      ) {
+        setMembers([]);
+      } else {
+        const userInCartData = userInCartRes.data;
+        const formattedMembers = userInCartData.map((u) => ({
+          name: u.nickname,
+          role: u.role,
+          email: u.mail,
+          type: "member",
+        }));
 
-            setMembers(formattedMembers);
-          }
-        } catch (error) {
-          Alert.alert("שגיאה", "טעינת המשתמשים נכשלה");
-          console.error("fetchUsers error:", error);
-        }
-      };
+        setMembers(formattedMembers);
+      }
+    } catch (error) {
+      Alert.alert("שגיאה", "טעינת המשתמשים נכשלה");
+      console.error("fetchUsers error:", error);
+    }
+  };
 
   const handleLeaveCart = async () => {
     try {
@@ -125,12 +124,12 @@ const CartInfo = ({ route }) => {
   const approveJoinRequest = async ({ mail }) => {
     const cartKey = cart.cartKey;
     try {
-        const newUserInCart = {
-          cartKey,
-          mail,
-        };
-        const apiUrl = `http://${config.apiServer}/api/userInCart/userInCart`;
-        const response = await axios.post(apiUrl, newUserInCart);
+      const newUserInCart = {
+        cartKey,
+        mail,
+      };
+      const apiUrl = `http://${config.apiServer}/api/userInCart/userInCart`;
+      const response = await axios.post(apiUrl, newUserInCart);
 
       if (response.status === 201) {
         Alert.alert("הצלחה", "המשתמש אושר והתווסף לעגלה");
@@ -248,12 +247,15 @@ const CartInfo = ({ route }) => {
     <View style={styles.backgroundColor}>
       <View style={styles.header}>
         <TouchableOpacity
-          onPress={() => navigation.goBack()}
+          onPress={() => navigation.navigate(originScreen, { userMail, cart })}
           style={styles.backButton}
         >
           <Ionicons name="arrow-back" size={24} color="white" />
         </TouchableOpacity>
-        <Text style={styles.headerText}>{cart.name}</Text>
+        <View style={styles.headerCenterContainer}>
+          <Text style={styles.headerText}>{cart.name}</Text>
+          <Text style={styles.headerDescription}>{cart.address}</Text>
+        </View>
       </View>
 
       <View style={styles.buttonRow}>
@@ -263,8 +265,13 @@ const CartInfo = ({ route }) => {
         >
           <Text style={styles.actionText}>שתף עגלה</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.actionButton}>
-          <Text style={styles.actionText}>שנה כתובת</Text>
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={() =>
+            navigation.navigate("ChangeInfo", { userMail, cart, originScreen })
+          }
+        >
+          <Text style={styles.actionText}>עריכת עגלה</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.actionButton}
@@ -296,26 +303,36 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
   },
   header: {
-    flexDirection: "row",
+    flexDirection: "column",
     alignItems: "flex-end",
     backgroundColor: "#0F872B",
-    height: height * 0.18,
+    height: height * 0.24,
     justifyContent: "space-between",
     position: "relative",
     width: "100%",
     paddingHorizontal: 15,
-    paddingBottom: 5,
   },
   backButton: {
     position: "absolute",
     left: 20,
     top: 60,
   },
+  headerCenterContainer: {
+    position: "absolute",
+    bottom: 10,
+    left: 0,
+    right: 0,
+    alignItems: "center",
+  },
   headerText: {
     color: "#FFFFFF",
     fontSize: 25,
     fontWeight: "bold",
-    flex: 1,
+    textAlign: "center",
+  },
+  headerDescription: {
+    color: "#FFFFFF",
+    fontSize: 20,
     textAlign: "center",
   },
   buttonRow: {

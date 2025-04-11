@@ -130,7 +130,11 @@ useEffect(() => {
             <View key={index} style={styles.buttonWrapper}>
               <TouchableOpacity
                 onPress={() =>
-                  navigation.navigate("CartInfo", { userMail, cart })
+                  navigation.navigate("CartInfo", {
+                    userMail,
+                    cart,
+                    originScreen: "MyCarts",
+                  })
                 }
               >
                 <Ionicons

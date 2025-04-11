@@ -83,7 +83,7 @@ export default {
           });
         }
 
-        res.json({
+        res.status(200).json({
           message: "updated",
           cart: updatedCart,
         });
