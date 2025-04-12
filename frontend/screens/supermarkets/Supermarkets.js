@@ -103,7 +103,7 @@ const Supermarkets = ({ route }) => {
           product_prices: branch.product_prices,
           logo: branch.logo,
         }));
-        
+
         setRecommendedRemovals(data.recommendations);
         setSupermarketBranches(supermarkets);
         const product_images = data.product_images.map((prod) => ({
@@ -135,10 +135,21 @@ const Supermarkets = ({ route }) => {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerText}>סנן לפי מחיר ומרחק</Text>
-        <Image
-          source={require("../../assets/cart-profile.png")}
-          style={styles.headerIcon}
-        />
+        <TouchableOpacity
+          onPress={() =>
+            navigation.navigate("CartInfo", {
+              userMail,
+              cart,
+              originScreen: "Supermarkets",
+            })
+          }
+          style={styles.cartIconWrapper}
+        >
+          <Image
+            source={require("../../assets/cart-profile.png")}
+            style={styles.headerIcon}
+          />
+        </TouchableOpacity>
       </View>
 
       {/* Slider */}
@@ -278,10 +289,14 @@ const styles = StyleSheet.create({
   headerIcon: {
     width: 36,
     height: 36,
-    position: "absolute",
-    right: 20,
-    top: Platform.OS === "web" ? 30 : 55,
   },
+  cartIconWrapper: {
+    position: "absolute",
+    top: 55,
+    right: 20,
+    zIndex: 10,
+  },
+
   sliderRow: {
     flexDirection: "row",
     alignItems: "center",

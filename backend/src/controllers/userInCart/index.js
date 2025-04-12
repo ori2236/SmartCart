@@ -35,9 +35,9 @@ export default {
           mail,
         });
         if (!inWaitingList) {
-          return res
-            .status(400)
-            .json({ error: "The user is not in the waiting list for this cart" });
+          return res.status(400).json({
+            error: "The user is not in the waiting list for this cart",
+          });
         }
 
         const deletedWaitingList = await WaitingList.findOneAndDelete({
@@ -52,7 +52,11 @@ export default {
           });
         }
 
-        const newUserInCart = await UserInCart.create({ cartKey, mail, role: "member" });
+        const newUserInCart = await UserInCart.create({
+          cartKey,
+          mail,
+          role: "member",
+        });
 
         res.status(201).json({
           message: "User-cart relationship inserted successfully",
@@ -77,15 +81,15 @@ export default {
       try {
         if (type === "mail") {
           const userInCarts = await UserInCart.find({ mail: content });
-          if (userInCarts.length === 0){
+          if (userInCarts.length === 0) {
             return res.status(200).json({
-              message: "No user-cart relationships found for the provided mail.",
+              message:
+                "No user-cart relationships found for the provided mail.",
             });
           }
           if (!userInCarts) {
             return res.status(404).json({
-              error:
-                "No user-cart relationships found for the provided mail.",
+              error: "No user-cart relationships found for the provided mail.",
             });
           }
 
@@ -105,7 +109,6 @@ export default {
           });
 
           return res.status(200).json(response);
-
         } else if (type === "cartKey") {
           const userInCart = await UserInCart.find({ cartKey: content });
           if (userInCart.length === 0) {
@@ -129,7 +132,7 @@ export default {
           const response = userInCart.map((entry) => ({
             mail: entry.mail,
             role: entry.role,
-            nickname: mailToNickname[entry.mail]
+            nickname: mailToNickname[entry.mail],
           }));
 
           return res.status(200).json(response);
@@ -149,24 +152,30 @@ export default {
   put: {
     validator: async (req, res, next) => {
       const { mail, cartKey } = req.params;
-      const { role } = req.body;
 
-      if (!mail || !cartKey || !role) {
+      if (!mail || !cartKey) {
         return res
           .status(400)
-          .json({ error: "mail, cartKey, and role are required." });
+          .json({ error: "mail and cartKey are required." });
       }
 
       next();
     },
     handler: async (req, res) => {
       const { mail, cartKey } = req.params;
-      const { role } = req.body;
+
+      const existingRelationship = await UserInCart.findOne({
+        cartKey,
+        mail,
+      });
+
+      const newRole =
+        existingRelationship.role === "member" ? "admin" : "member";
 
       try {
         const updatedUserInCart = await UserInCart.findOneAndUpdate(
           { mail, cartKey },
-          { role },
+          { role: newRole },
           { new: true, runValidators: true }
         );
 
@@ -203,17 +212,44 @@ export default {
       const { mail, cartKey } = req.params;
 
       try {
-        const deletedUserInCart = await UserInCart.findOneAndDelete({
-          mail,
+        const existingRelationship = await UserInCart.findOne({
           cartKey,
+          mail,
         });
 
-        if (!deletedUserInCart) {
+        if (!existingRelationship) {
           return res.status(404).json({
             error:
               "No user-cart relationship found for the provided mail and cartKey.",
           });
         }
+
+        const allUsers = await UserInCart.find({ cartKey });
+
+        if (existingRelationship.role === "owner") {
+          const others = allUsers.filter((user) => user.mail !== mail);
+
+          if (others.length === 0) {
+            await Cart.findByIdAndDelete(cartKey);
+            await UserInCart.deleteMany({ cartKey });
+            return res.status(200).json({
+              message: "Owner was the only user in the cart. Cart deleted.",
+            });
+          }
+
+          const randomAdmin =
+            others.find((u) => u.role === "admin") ||
+            others.find((u) => u.role === "member");
+
+          if (randomAdmin) {
+            await UserInCart.updateOne(
+              { cartKey, mail: randomAdmin.mail },
+              { role: "owner" }
+            );
+          }
+        }
+
+        await UserInCart.findOneAndDelete({ mail, cartKey });
 
         res.status(200).json({
           message: "User-cart relationship deleted successfully.",
@@ -222,52 +258,6 @@ export default {
         console.error("Error in delete handler:", error.message);
         res.status(500).json({
           error: "An error occurred while deleting the user-cart relationship.",
-        });
-      }
-    },
-  },
-  deleteAll: {
-    validator: async (req, res, next) => {
-      next();
-    },
-    handler: async (req, res) => {
-      try {
-        const result = await UserInCart.deleteMany({});
-        return res.status(200).json({
-          message: `Deleted ${result.deletedCount} user-cart relationships.`,
-        });
-      } catch (error) {
-        console.error("Error in deleteAll handler:", error);
-        return res.status(500).json({
-          error:
-            "An error occurred while deleting all user-cart relationships.",
-        });
-      }
-    },
-  },
-  getAll: {
-    validator: async (req, res, next) => {
-      next();
-    },
-    handler: async (req, res) => {
-      try {
-        const userInCarts = await UserInCart.find({});
-
-        if (!userInCarts || userInCarts.length === 0) {
-          return res.status(404).json({
-            error: "No user-cart relationships found.",
-          });
-        }
-
-        res.status(200).json({
-          message: "Fetched all user-cart relationships successfully.",
-          userInCarts,
-        });
-      } catch (error) {
-        console.error("Error in getAll handler:", error.message);
-        res.status(500).json({
-          error:
-            "An error occurred while fetching all user-cart relationships.",
         });
       }
     },

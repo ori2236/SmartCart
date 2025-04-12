@@ -62,11 +62,22 @@ const AddProducts = ({ route }) => {
     <View style={styles.backgroundColor}>
       {/* Header */}
       <View style={styles.header}>
+        <TouchableOpacity
+          onPress={() =>
+            navigation.navigate("CartInfo", {
+              userMail,
+              cart,
+              originScreen: "AddProducts",
+            })
+          }
+        >
+          <Image
+            source={require("../../assets/cart-profile.png")}
+            style={styles.headerIcon}
+          />
+        </TouchableOpacity>
         <Text style={styles.headerText}>הוספת מוצר לעגלה</Text>
-        <Image
-          source={require("../../assets/cart-profile.png")}
-          style={styles.headerIcon}
-        />
+        <View style={{ width: 36, height: 36 }} />
       </View>
 
       {/* Tab Selector */}
@@ -152,30 +163,27 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
   },
   header: {
-    flexDirection: "row",
+    flexDirection: "row-reverse",
     alignItems: "flex-end",
     backgroundColor: "#0F872B",
-    height: height * 0.15,
-    justifyContent: "space-between",
-    position: "relative",
-    width: "100%",
+    height: 140,
     paddingHorizontal: 15,
     paddingBottom: 5,
+    justifyContent: "space-between",
   },
+
   headerText: {
     color: "#FFFFFF",
     fontSize: 18,
     fontWeight: "bold",
     textAlign: "center",
-    flex: 1,
   },
   headerIcon: {
     width: 36,
     height: 36,
-    position: "absolute",
-    right: 20,
-    top: Platform.OS === "web" ? 30 : 55,
+    marginBottom: 40,
   },
+
   tabContainer: {
     flexDirection: "row",
     marginTop: 25,

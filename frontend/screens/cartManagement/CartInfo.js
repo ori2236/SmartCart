@@ -43,7 +43,7 @@ const CartInfo = ({ route }) => {
   const [isPopupVisible, setIsPopupVisible] = useState(false);
   const [selectedMember, setSelectedMember] = useState(null);
   const [confirmRemoveVisible, setConfirmRemoveVisible] = useState(false);
-  const [memberToRemoveName, setMemberToRemoveName] = useState("");
+  const [memberToRemoveNickname, setMemberToRemoveNickname] = useState("");
   const [memberToRemoveEmail, setMemberToRemoveEmail] = useState("");
 
   const [role, setRole] = useState(null);
@@ -112,8 +112,18 @@ const CartInfo = ({ route }) => {
     }
   };
 
-  const handleRoleChange = async () => {
-    
+  const handleRoleChange = async (email) => {
+    try {
+      const apiUrl = `http://${
+        config.apiServer
+      }/api/userInCart/userInCart/${encodeURIComponent(email)}/${cart.cartKey}`;
+      await axios.put(apiUrl);
+      fetchUsers();
+      setSelectedMember(null);
+    } catch (error) {
+      Alert.alert("שגיאה", "פעולת עדכון נכשלה");
+      console.error("update role error:", error);
+    }
   };
 
   const handleLeaveCart = async () => {
@@ -128,17 +138,16 @@ const CartInfo = ({ route }) => {
     }
   };
 
- const handleRemoveFromCart = async () => {
-   setConfirmRemoveVisible(false);
-   try {
-     const apiUrl = `http://${config.apiServer}/api/userInCart/userInCart/${memberToRemoveEmail}/${cart.cartKey}`;
-     await axios.delete(apiUrl);
-     fetchUsers();
-   } catch (error) {
-     Alert.alert("שגיאה", "פעולת ההסרה נכשלה");
-   }
- };
-
+  const handleRemoveFromCart = async () => {
+    setConfirmRemoveVisible(false);
+    try {
+      const apiUrl = `http://${config.apiServer}/api/userInCart/userInCart/${memberToRemoveEmail}/${cart.cartKey}`;
+      await axios.delete(apiUrl);
+      fetchUsers();
+    } catch (error) {
+      Alert.alert("שגיאה", "פעולת ההסרה נכשלה");
+    }
+  };
 
   const handleCopyCartKey = async () => {
     try {
@@ -222,30 +231,26 @@ const CartInfo = ({ route }) => {
     (a, b) => roleOrder[a.role] - roleOrder[b.role]
   );
 
-const combinedList = [
-  { type: "header", title: `${sortedMembers.length} משתתפים` },
-  ...sortedMembers.map((p) => ({ ...p, type: "member" })),
-  ...(role !== "member"
-    ? [
-        { type: "header", title: `${joinRequests.length} בקשות הצטרפות` },
-        ...joinRequests.map((r) => ({
-          ...r,
-          isRequest: true,
-          type: "request",
-        })),
-      ]
-    : []),
-];
-
+  const combinedList = [
+    { type: "header", title: `${sortedMembers.length} משתתפים` },
+    ...sortedMembers.map((p) => ({ ...p, type: "member" })),
+    ...(role !== "member"
+      ? [
+          { type: "header", title: `${joinRequests.length} בקשות הצטרפות` },
+          ...joinRequests.map((r) => ({
+            ...r,
+            isRequest: true,
+            type: "request",
+          })),
+        ]
+      : []),
+  ];
 
   const renderItem = ({ item }) => {
     if (item.type === "header") {
       if (item.title.includes("בקשות") && role === "member") return null;
       return <Text style={styles.memberCount}>{item.title}</Text>;
     }
-
-    const canEditMembers =
-      role === "owner" || (role === "admin" && item.role === "member");
 
     return (
       <TouchableOpacity
@@ -305,6 +310,7 @@ const combinedList = [
 
   return (
     <View style={styles.backgroundColor}>
+      {/* leave cart */}
       <Modal transparent visible={isPopupVisible} animationType="fade">
         <View style={styles.modalContainer}>
           <View style={styles.modalBox}>
@@ -329,6 +335,7 @@ const combinedList = [
         </View>
       </Modal>
 
+      {/* press on user */}
       <Modal
         transparent
         visible={!!selectedMember}
@@ -344,7 +351,9 @@ const combinedList = [
             <Text style={styles.modalText}>{selectedMember?.name}</Text>
             {role === "owner" && (
               <TouchableOpacity
-                onPress={handleRoleChange}
+                onPress={() => {
+                  handleRoleChange(selectedMember.email);
+                }}
                 style={styles.modalAction}
               >
                 <Text>
@@ -357,7 +366,7 @@ const combinedList = [
             <TouchableOpacity
               onPress={() => {
                 if (selectedMember) {
-                  setMemberToRemoveName(selectedMember.name);
+                  setMemberToRemoveNickname(selectedMember.name);
                   setMemberToRemoveEmail(selectedMember.email);
                 }
                 setConfirmRemoveVisible(true);
@@ -371,11 +380,12 @@ const combinedList = [
         </TouchableOpacity>
       </Modal>
 
+      {/* remove from cart */}
       <Modal transparent visible={confirmRemoveVisible} animationType="fade">
         <View style={styles.modalContainer}>
           <View style={styles.modalBox}>
             <Text style={styles.modalText}>
-              האם להוציא את {memberToRemoveName} מהעגלה?
+              האם להוציא את {memberToRemoveNickname} מהעגלה?
             </Text>
             <View style={styles.modalButtonsRow}>
               <TouchableOpacity
@@ -487,7 +497,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   cancelButton: {
-    backgroundColor: "#FFA500",
+    backgroundColor: "#FF7E3E",
     padding: 10,
     borderRadius: 5,
     marginHorizontal: 5,
@@ -631,7 +641,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   rejectButton: {
-    backgroundColor: "#FFA500",
+    backgroundColor: "#FF7E3E",
     paddingHorizontal: 20,
     paddingVertical: 6,
     borderRadius: 10,
@@ -642,7 +652,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   leaveButton: {
-    backgroundColor: "#FF3B30",
+    backgroundColor: "#FF7E3E",
     position: "absolute",
     bottom: 20,
     left: 20,

@@ -14,9 +14,12 @@ const MyCartsScreen = () => {
   const navigation = useNavigation();
   const [carts, setCarts] = useState([]);
   const [isMenuVisible, setIsMenuVisible] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
 
 useEffect(() => {
   const fetchData = async () => {
+    setIsLoading(true);
     try {
       const mail = await SecureStore.getItemAsync("userMail");
       const resolvedMail = mail || "guest";
@@ -33,6 +36,8 @@ useEffect(() => {
       }
     } catch (error) {
       console.error("Error fetching data:", error.message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -99,17 +104,20 @@ useEffect(() => {
           onPress={() => setIsMenuVisible(true)}
           style={styles.menuButton}
         >
-          <Ionicons name="menu-outline" size={24} color="white" />
+          <Ionicons name="menu-outline" size={36} color="white" />
         </TouchableOpacity>
-        <Image
-          source={require("../assets/full-logo-white.png")}
-          style={styles.logo}
-        />
-        <Text style={styles.subtitle}>העגלות שלי</Text>
+
+        <View style={styles.headerContent}>
+          <Image
+            source={require("../assets/full-logo-white.png")}
+            style={styles.logo}
+          />
+          <Text style={styles.subtitle}>העגלות שלי</Text>
+        </View>
       </View>
 
       <ScrollView style={styles.scrollableContainer}>
-        {carts.length === 0 ? (
+        {!isLoading && carts.length === 0 ? (
           <View style={styles.centerContent}>
             <Image
               source={require("../assets/logo.png")}
@@ -167,33 +175,31 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: "column",
-    alignItems: "center",
     backgroundColor: "#0F872B",
     height: height * 0.3,
-    justifyContent: "flex-start",
+    justifyContent: "flex-end",
+    alignItems: "center",
+    paddingBottom: 20,
     position: "relative",
-    width: "100%",
-    top: 0,
-    paddingTop: height * 0.05,
+  },
+  headerContent: {
+    alignItems: "center",
+    justifyContent: "flex-end",
   },
   menuButton: {
     position: "absolute",
     right: 20,
-    top: 45,
+    top: 55,
   },
   logo: {
-    height: Platform.OS === "web" ? height * 0.22 : height * 0.2,
-    width: Platform.OS === "web" ? width * 0.4 : width * 0.6,
+    width: width * 0.6,
     resizeMode: "contain",
-    marginTop: Platform.OS === "web" ? -10 : 0,
   },
   subtitle: {
-    textAlign: "center",
-    fontSize: 25,
+    fontSize: 24,
     color: "#ffffff",
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: Platform.OS === "web" ? -10 : -15,
+    fontWeight: "bold",
+    textAlign: "center",
   },
   buttonCart: {
     alignItems: "center",

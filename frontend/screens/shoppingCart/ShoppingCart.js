@@ -57,7 +57,7 @@ const ShoppingCart = ({ route }) => {
               : p
           )
         );
-        
+
         setFilteredProducts((prev) =>
           prev.map((p) =>
             p.id === update.productId
@@ -88,11 +88,7 @@ const ShoppingCart = ({ route }) => {
       setError(null);
 
       try {
-        const apiUrl = `http://${
-          config.apiServer
-        }/api/productInCart/productInCart/cartKey/${
-          cart.cartKey
-        }?userMail=${userMail}`;
+        const apiUrl = `http://${config.apiServer}/api/productInCart/productInCart/cartKey/${cart.cartKey}?userMail=${userMail}`;
         const response = await axios.get(apiUrl);
         const { userNickname, products: data } = response.data;
         if (data.message === "No products found for the provided cartKey.") {
@@ -121,13 +117,12 @@ const ShoppingCart = ({ route }) => {
     fetchCartProducts();
   }, [userMail]);
 
-
   const handleQuantityChange = (id, change) => {
     const product = products.find((p) => p.id === id);
     if (!product) return;
 
     const newQuantity = Math.max(product.quantity + change, 0);
-    
+
     setProducts((prevProducts) =>
       prevProducts.map((product) =>
         product.id === id ? { ...product, quantity: newQuantity } : product
@@ -175,7 +170,7 @@ const ShoppingCart = ({ route }) => {
       console.error("Error updating quantity:", error.message);
     }
   };
-    
+
   const handleSearch = (text) => {
     setSearchTerm(text);
     if (text.trim() === "") {
@@ -186,7 +181,7 @@ const ShoppingCart = ({ route }) => {
       );
       setFilteredProducts(filtered);
     }
-  };  
+  };
 
   const handleRemoveProductFromCart = async (productId) => {
     try {
@@ -222,10 +217,22 @@ const ShoppingCart = ({ route }) => {
     <View style={styles.backgroundColor}>
       {/* Header */}
       <View style={styles.header}>
-        <Image
-          source={require("../../assets/cart-profile.png")}
-          style={styles.headerIcon}
-        />
+        <TouchableOpacity
+          onPress={() =>
+            navigation.navigate("CartInfo", {
+              userMail,
+              cart,
+              originScreen: "ShoppingCart",
+            })
+          }
+          style={styles.cartIconWrapper}
+        >
+          <Image
+            source={require("../../assets/cart-profile.png")}
+            style={styles.headerIcon}
+          />
+        </TouchableOpacity>
+
         <View style={styles.headerHead}>
           <Text style={styles.headerText}>עגלת קניות</Text>
           <View style={styles.searchContainer}>
@@ -238,7 +245,10 @@ const ShoppingCart = ({ route }) => {
             />
           </View>
         </View>
+
+        <View style={{ width: 36, height: 36 }} />
       </View>
+
       <Text style={styles.cartName}>{cart.name}</Text>
 
       {/* Render ProductList */}
@@ -321,9 +331,12 @@ const styles = StyleSheet.create({
   headerIcon: {
     width: 36,
     height: 36,
+  },
+  cartIconWrapper: {
     position: "absolute",
+    top: 55,
     right: 20,
-    top: Platform.OS === "web" ? 30 : 55,
+    zIndex: 10,
   },
   searchContainer: {
     flexDirection: "row",
@@ -348,7 +361,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     textAlign: "center",
     marginTop: 10,
-    marginBottom:25,
+    marginBottom: 25,
   },
   bottomNavigation: {
     flexDirection: "row",
