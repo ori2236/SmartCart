@@ -6,7 +6,6 @@ import {
   createStackNavigator,
   CardStyleInterpolators,
 } from "@react-navigation/stack";
-import addUser from "./screens/addUser";
 import MyCarts from "./screens/myCarts";
 import AddProducts from "./screens/addProducts/AddProducts";
 import ShoppingCart from "./screens/shoppingCart/ShoppingCart";
@@ -18,6 +17,9 @@ import Login from "./screens/applicationEntry/Login";
 import ForgotPassword from "./screens/applicationEntry/ForgotPassword";
 import ReplacePassword from "./screens/applicationEntry/ReplacePassword";
 import NewCart from "./screens/applicationEntry/NewCart";
+import JoinCart from "./screens/cartManagement/JoinCart";
+import CartInfo from "./screens/cartManagement/CartInfo";
+import ChangeInfo from "./screens/cartManagement/ChangeInfo";
 
 const Stack = createStackNavigator();
 
@@ -73,8 +75,18 @@ export default function App() {
           options={{ headerShown: false }}
         />
         <Stack.Screen
-          name="addUser"
-          component={addUser}
+          name="JoinCart"
+          component={JoinCart}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="CartInfo"
+          component={CartInfo}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="ChangeInfo"
+          component={ChangeInfo}
           options={{ headerShown: false }}
         />
         <Stack.Screen

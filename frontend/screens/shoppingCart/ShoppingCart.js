@@ -12,6 +12,7 @@ import {
 import axios from "axios";
 import { useNavigation } from "@react-navigation/native";
 import ProductListShopList from "./ProductListShopList";
+import { io } from "socket.io-client";
 import config from "../../config";
 
 const { width, height } = Dimensions.get("window");
@@ -26,16 +27,70 @@ const ShoppingCart = ({ route }) => {
   const [error, setError] = useState(null);
   const navigation = useNavigation();
 
+  const socket = io(`http://${config.apiServer}`);
+
+  useEffect(() => {
+    socket.emit("joinCart", cart.cartKey);
+
+    socket.on("cartUpdated", (update) => {
+      if (update.type === "add") {
+        const exists = products.find((p) => p.id === update.product.productId);
+        if (!exists) {
+          const newProduct = {
+            id: update.product.productId,
+            label: update.product.name,
+            image: update.product.image,
+            quantity: update.product.quantity,
+          };
+          setProducts((prev) => [...prev, newProduct]);
+          setFilteredProducts((prev) => [...prev, newProduct]);
+        }
+      } else if (update.type === "update") {
+        setProducts((prev) =>
+          prev.map((p) =>
+            p.id === update.productId
+              ? {
+                  ...p,
+                  quantity: update.quantity,
+                  updatedBy: update.updatedBy || p.updatedBy,
+                }
+              : p
+          )
+        );
+
+        setFilteredProducts((prev) =>
+          prev.map((p) =>
+            p.id === update.productId
+              ? {
+                  ...p,
+                  quantity: update.quantity,
+                  updatedBy: update.updatedBy || p.updatedBy,
+                }
+              : p
+          )
+        );
+      } else if (update.type === "remove") {
+        setProducts((prev) => prev.filter((p) => p.id !== update.productId));
+        setFilteredProducts((prev) =>
+          prev.filter((p) => p.id !== update.productId)
+        );
+      }
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [cart.cartKey]);
+
   useEffect(() => {
     const fetchCartProducts = async () => {
       setIsLoading(true);
       setError(null);
 
       try {
-        const apiUrl = `http://${config.apiServer}/api/productInCart/productInCart/cartKey/${cart.cartKey}`;
+        const apiUrl = `http://${config.apiServer}/api/productInCart/productInCart/cartKey/${cart.cartKey}?userMail=${userMail}`;
         const response = await axios.get(apiUrl);
-        const data = response.data;
-  
+        const { userNickname, products: data } = response.data;
         if (data.message === "No products found for the provided cartKey.") {
           setProducts([]);
           setFilteredProducts([]);
@@ -45,7 +100,10 @@ const ShoppingCart = ({ route }) => {
             label: product.name,
             image: product.image || null,
             quantity: product.quantity,
+            updatedBy:
+              product.updatedBy === userNickname ? "את/ה" : product.updatedBy,
           }));
+
           setFilteredProducts(cartProducts);
           setProducts(cartProducts);
         }
@@ -59,13 +117,12 @@ const ShoppingCart = ({ route }) => {
     fetchCartProducts();
   }, [userMail]);
 
-
   const handleQuantityChange = (id, change) => {
     const product = products.find((p) => p.id === id);
     if (!product) return;
 
     const newQuantity = Math.max(product.quantity + change, 0);
-    
+
     setProducts((prevProducts) =>
       prevProducts.map((product) =>
         product.id === id ? { ...product, quantity: newQuantity } : product
@@ -94,15 +151,26 @@ const ShoppingCart = ({ route }) => {
 
     try {
       const apiUrl = `http://${config.apiServer}/api/productInCart/productInCart/${cart.cartKey}/${productId}`;
-      const response = await axios.put(apiUrl, { quantity });
+      const response = await axios.put(apiUrl, { quantity, mail: userMail });
       if (response.status !== 200) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
+      setProducts((prevProducts) =>
+        prevProducts.map((p) =>
+          p.id === productId ? { ...p, updatedBy: "את/ה" } : p
+        )
+      );
+
+      setFilteredProducts((prevFiltered) =>
+        prevFiltered.map((p) =>
+          p.id === productId ? { ...p, updatedBy: "את/ה" } : p
+        )
+      );
     } catch (error) {
       console.error("Error updating quantity:", error.message);
     }
   };
-    
+
   const handleSearch = (text) => {
     setSearchTerm(text);
     if (text.trim() === "") {
@@ -113,7 +181,7 @@ const ShoppingCart = ({ route }) => {
       );
       setFilteredProducts(filtered);
     }
-  };  
+  };
 
   const handleRemoveProductFromCart = async (productId) => {
     try {
@@ -149,10 +217,22 @@ const ShoppingCart = ({ route }) => {
     <View style={styles.backgroundColor}>
       {/* Header */}
       <View style={styles.header}>
-        <Image
-          source={require("../../assets/cart-profile.png")}
-          style={styles.headerIcon}
-        />
+        <TouchableOpacity
+          onPress={() =>
+            navigation.navigate("CartInfo", {
+              userMail,
+              cart,
+              originScreen: "ShoppingCart",
+            })
+          }
+          style={styles.cartIconWrapper}
+        >
+          <Image
+            source={require("../../assets/cart-profile.png")}
+            style={styles.headerIcon}
+          />
+        </TouchableOpacity>
+
         <View style={styles.headerHead}>
           <Text style={styles.headerText}>עגלת קניות</Text>
           <View style={styles.searchContainer}>
@@ -165,7 +245,10 @@ const ShoppingCart = ({ route }) => {
             />
           </View>
         </View>
+
+        <View style={{ width: 36, height: 36 }} />
       </View>
+
       <Text style={styles.cartName}>{cart.name}</Text>
 
       {/* Render ProductList */}
@@ -248,9 +331,12 @@ const styles = StyleSheet.create({
   headerIcon: {
     width: 36,
     height: 36,
+  },
+  cartIconWrapper: {
     position: "absolute",
+    top: 55,
     right: 20,
-    top: Platform.OS === "web" ? 30 : 55,
+    zIndex: 10,
   },
   searchContainer: {
     flexDirection: "row",
@@ -275,7 +361,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     textAlign: "center",
     marginTop: 10,
-    marginBottom:25,
+    marginBottom: 25,
   },
   bottomNavigation: {
     flexDirection: "row",
@@ -310,10 +396,6 @@ const styles = StyleSheet.create({
     color: "#333333",
     fontWeight: "bold",
     marginBottom: 10,
-  },
-  loadingText: {
-    fontSize: 18,
-    color: "#FF7E3E",
   },
   centerContent: {
     justifyContent: "center",

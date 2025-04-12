@@ -40,7 +40,7 @@ export default function ForgotPassword() {
       } else if (error.status === 404) {
         setError("מייל זה אינו קיים במערכת");
       } else if (error.status === 500) {
-        console.error(error);
+        console.error(error.message);
       }
     }
   };

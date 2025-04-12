@@ -1,22 +1,25 @@
+import { emitCartUpdate } from "../../socket.js";
 import ProductInCart from "../../models/ProductInCart.js";
 import Product from "../../models/Product.js";
-import Cart from "../../models/Cart.js"
-import Favorite from "../../models/Favorite.js";
+import Cart from "../../models/Cart.js";
+import User from "../../models/User.js";
 import ProductController from "../products/index.js";
 
 export default {
   post: {
     validator: async (req, res, next) => {
-      const { name, image, cartKey, quantity } = req.body;
-      if (!name || !image || !cartKey || quantity === undefined) {
+      const { name, image, cartKey, quantity, mail } = req.body;
+
+      if (!name || !image || !cartKey || quantity === undefined || !mail) {
         return res.status(400).json({
-          error: "name, image, cartKey and quantity are required.",
+          error: "name, image, cartKey, quantity, and mail are required.",
         });
       }
+
       next();
     },
     handler: async (req, res) => {
-      const { name, image, cartKey, quantity } = req.body;
+      const { name, image, cartKey, quantity, mail } = req.body;
       let productId = "";
       try {
         let product = await Product.findOne({ name, image });
@@ -49,17 +52,30 @@ export default {
           productId,
         });
         if (existingProductInCart) {
-          return res
-            .status(200)
-            .json({
-              message: "This product is already in the cart.",
-            });
+          return res.status(400).json({
+            message: "This product is already in the cart.",
+            productId: existingProductInCart.productId,
+          });
         }
+        const user = await User.findOne({ mail });
+        const updatedBy = user.nickname;
         const newProductInCart = await ProductInCart.create({
           cartKey,
           productId,
           quantity,
+          updatedBy,
         });
+
+        emitCartUpdate(cartKey, {
+          type: "add",
+          product: {
+            productId: newProductInCart.productId,
+            quantity: newProductInCart.quantity,
+            name: product.name,
+            image: product.image,
+          },
+        });
+
         res.status(201).json({
           _id: productId,
           message: "Product added to cart successfully.",
@@ -75,45 +91,58 @@ export default {
   },
   get: {
     validator: async (req, res, next) => {
+      const { type, content } = req.params;
+      const { userMail } = req.query;
+      if (!type || !content || !userMail) {
+        return res.status(400).json({
+          error: "type, content and mail are required.",
+        });
+      }
       next();
     },
     handler: async (req, res) => {
       const { type, content } = req.params;
+      const { userMail } = req.query;
 
       try {
         if (type === "cartKey") {
           const productsInCart = await ProductInCart.find({ cartKey: content });
-          if (!productsInCart) {
-            return res
-              .status(404)
-              .json({ error: "No products found for the provided cartKey." });
-          }
           if (productsInCart.length === 0) {
-            return res
-              .status(200)
-              .json({ message: "No products found for the provided cartKey." });
+            const user = await User.findOne({ mail: userMail });
+            const nickname = user?.nickname || "";
+
+            return res.status(200).json({
+              userNickname: nickname,
+              products: [],
+            });
           }
+
           const productDetails = await Product.find({
             _id: { $in: productsInCart.map((item) => item.productId) },
           });
+
+          const user = await User.findOne({ mail: userMail });
+          const nickname = user.nickname;
+
           const response = productsInCart.map((item) => {
             const product = productDetails.find(
               (prod) => prod._id.toString() === item.productId.toString()
             );
+
             return {
               productId: item.productId,
               quantity: item.quantity,
+              updatedBy: item.updatedBy,
               ...(product && {
                 name: product.name,
                 image: product.image,
               }),
             };
           });
-
-          return res.status(200).json(response);
-
-
-          return res.status(200).json(response);
+          return res.status(200).json({
+            userNickname: nickname,
+            products: response,
+          });
         } else {
           return res
             .status(400)
@@ -131,30 +160,39 @@ export default {
   put: {
     validator: async (req, res, next) => {
       const { cartKey, productId } = req.params;
-      const { quantity } = req.body;
+      const { quantity, mail } = req.body;
 
-      if (!cartKey || !productId || quantity === undefined) {
-        return res
-          .status(400)
-          .json({ error: "cartKey, productId, and quantity are required." });
+      if (!cartKey || !productId || quantity === undefined || !mail) {
+        return res.status(400).json({
+          error: "cartKey, productId, quantity, and mail are required.",
+        });
       }
 
       next();
     },
     handler: async (req, res) => {
       const { cartKey, productId } = req.params;
-      const { quantity } = req.body;
+      const { quantity, mail } = req.body;
 
       try {
+        const user = await User.findOne({ mail });
+        const updatedBy = user.nickname;
+
         const updatedProductInCart = await ProductInCart.findOneAndUpdate(
           { cartKey, productId },
-          { quantity },
+          { quantity, updatedBy },
           { new: true, runValidators: true }
         );
-
         if (!updatedProductInCart) {
           return res.status(404).json({ error: "Product not found in cart." });
         }
+
+        emitCartUpdate(cartKey, {
+          type: "update",
+          productId,
+          quantity,
+          updatedBy,
+        });
 
         res.status(200).json({
           message: "Product updated in cart successfully.",
@@ -190,7 +228,7 @@ export default {
         if (!cartExists) {
           return res.status(404).json({
             error: "No cart found for the provided cartKey.",
-            cartKey: cartKey
+            cartKey: cartKey,
           });
         }
 
@@ -215,11 +253,10 @@ export default {
           return res.status(404).json({ error: "Product not found in cart." });
         }
 
-        const prodInFavs = await Favorite.findOne({ productId });
-        const prodInCarts = await ProductInCart.findOne({ productId });
-        if (!prodInFavs && !prodInCarts) {
-          await Product.findByIdAndDelete(productId);
-        }
+        emitCartUpdate(cartKey, {
+          type: "remove",
+          productId,
+        });
 
         res.status(200).json({
           message: "Product removed from cart successfully.",
@@ -260,7 +297,9 @@ export default {
         if (!productsInCart) {
           return res.status(404).json({ error: "No products in cart found." });
         } else if (productsInCart.length === 0) {
-          return res.status(200).json({ message: "No products in cart found." });
+          return res
+            .status(200)
+            .json({ message: "No products in cart found." });
         }
         res.status(200).json(productsInCart);
       } catch (error) {

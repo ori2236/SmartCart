@@ -20,11 +20,11 @@ import config from "../../config";
 
 const { width, height } = Dimensions.get("window");
 
-export default function NewCart({ route }) {
-  const { userMail } = route.params;
+export default function ChangeInfo({ route }) {
+  const { userMail, cart, originScreen } = route.params;
   const navigation = useNavigation();
-  const [cartName, setCartName] = useState("");
-  const [address, setAddress] = useState("");
+  const [cartName, setCartName] = useState(cart.name);
+  const [address, setAddress] = useState(cart.address);
   const [isAddressSelected, setIsAddressSelected] = useState(false);
   const [errors, setErrors] = useState({
     cartName: "",
@@ -40,7 +40,7 @@ export default function NewCart({ route }) {
     }
     if (!address.trim()) {
       newErrors.address = "שדה זה הינו חובה";
-    } else if (!isAddressSelected) {
+    } else if (!isAddressSelected && address !== cart.address) {
       newErrors.address = "יש לבחור כתובת מהרשימה";
     }
 
@@ -49,17 +49,24 @@ export default function NewCart({ route }) {
       return;
     }
 
-    const newCart = {
+    const changedCart = {
       name: cartName,
       address,
-      mail: userMail,
     };
 
     try {
-      const apiUrl = `http://${config.apiServer}/api/cart/cart`;
-      const response = await axios.post(apiUrl, newCart);
-      if (response.status === 201) {
-        navigation.navigate("MyCarts");
+      const apiUrl = `http://${config.apiServer}/api/cart/cart/${cart.cartKey}`;
+      const response = await axios.put(apiUrl, changedCart);
+      if (response.status === 200) {
+        const updatedCart = {
+          ...response.data.cart,
+          cartKey: cart.cartKey,
+        };
+        navigation.replace("CartInfo", {
+          userMail,
+          cart: updatedCart,
+          originScreen,
+        });
       }
     } catch (error) {
       let newErrors = { cartName: "", address: "" };
@@ -94,7 +101,7 @@ export default function NewCart({ route }) {
 
           <View style={styles.title}>
             <Ionicons name="cart-outline" style={styles.profileIcon} />
-            <Text style={styles.titleText}>יצירת עגלה</Text>
+            <Text style={styles.titleText}>עריכת עגלה</Text>
           </View>
           <View style={styles.container}>
             <View style={styles.inputContainerCartName}>
@@ -116,15 +123,16 @@ export default function NewCart({ route }) {
 
             <View style={styles.inputContainer}>
               <GooglePlacesAutocomplete
-                placeholder="הכנס כתובת..."
+                placeholder=""
                 onPress={(data, details = null) => {
                   const fullAddress = details?.formatted_address;
                   setAddress(fullAddress);
                   setErrors({ ...errors, address: "" });
-                  setIsAddressSelected(true);
+                  setTimeout(() => setIsAddressSelected(true), 0);
                 }}
                 fetchDetails={true}
                 textInputProps={{
+                  value: address,
                   onChangeText: (text) => {
                     if (text !== prevAddressRef.current) {
                       prevAddressRef.current = text;

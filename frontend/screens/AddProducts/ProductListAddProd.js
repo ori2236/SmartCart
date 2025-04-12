@@ -9,7 +9,6 @@ import {
   Platform,
   Dimensions,
   FlatList,
-  Alert,
 } from "react-native";
 import Svg, { Polygon } from "react-native-svg";
 import axios from "axios";
@@ -23,6 +22,7 @@ const ProductListAddProd = ({
   onQuantityChange,
   onToggleStar,
   cart,
+  mail
 }) => {
   const [cartProducts, setCartProducts] = useState([]);
   const [buttonStates, setButtonStates] = useState([]);
@@ -49,31 +49,35 @@ const ProductListAddProd = ({
   }, [products, cartProducts]);
 
   useEffect(() => {
-    fetchCartProducts();
-  }, []);
+    if (!mail || !cart?.cartKey) return;
 
-  const fetchCartProducts = async () => {
-    try {
-      const apiUrl = `http://${config.apiServer}/api/productInCart/productInCart/cartKey/${cart.cartKey}`;
-      const response = await axios.get(apiUrl);
-      const data = response.data;
+    const fetchCartProducts = async () => {
+      try {
+        const apiUrl = `http://${config.apiServer}/api/productInCart/productInCart/cartKey/${cart.cartKey}?userMail=${mail}`;
+        const response = await axios.get(apiUrl);
+        const { userNickname, products: data } = response.data;
 
-      if (data.message === "No products found for the provided cartKey.") {
+        if (data.message === "No products found for the provided cartKey.") {
+          setCartProducts([]);
+        } else {
+          const cartProductsData = data.map((product) => ({
+            productId: product.productId,
+            label: product.name,
+            image: product.image || null,
+            quantity: product.quantity,
+          }));
+          setCartProducts(cartProductsData);
+        }
+      } catch (error) {
+        console.error("Error fetching cart products:", error.message);
         setCartProducts([]);
-      } else {
-        const cartProductsData = data.map((product) => ({
-          productId: product.productId,
-          label: product.name,
-          image: product.image || null,
-          quantity: product.quantity,
-        }));
-        setCartProducts(cartProductsData);
       }
-    } catch (error) {
-      console.error("Error fetching cart products:", error.message);
-      setCartProducts([]);
-    }
-  };
+    };
+
+    fetchCartProducts();
+  }, [mail, cart?.cartKey]);
+
+
 
   const updateButtonState = (productId, state) => {
     setButtonStates((prevState) => ({
@@ -92,13 +96,13 @@ const ProductListAddProd = ({
       image,
       cartKey,
       quantity,
+      mail,
     };
 
     try {
       const apiUrl = `http://${config.apiServer}/api/productInCart/productInCart`;
       const response = await axios.post(apiUrl, newProd);
       if (response.status >= 200 && response.status < 300) {
-        Alert.alert("הצלחה", "המוצר נוסף לעגלה בהצלחה!");
         product.productId = response.data._id;
         updateButtonState(product.productId, {
           isAdded: true,
@@ -107,25 +111,74 @@ const ProductListAddProd = ({
         });
       }
     } catch (error) {
-      console.error("Error adding product to cart:", error.message);
+      if (error.response && error.response.status === 400) {
+        // if the product already in the cart update it
+        try {
+
+          existingProductId = error.response.data.productId;
+          const updateUrl = `http://${config.apiServer}/api/productInCart/productInCart/${cartKey}/${existingProductId}`;
+          const updateRes = await axios.put(updateUrl, { quantity, mail });
+
+          if (updateRes.status === 200) {
+            product.productId = existingProductId;
+            updateButtonState(product.productId, {
+              isAdded: true,
+              isUpdated: false,
+              originalQuantity: quantity,
+            });
+          }
+        } catch (updateError) {
+          console.error("Error updating product to cart:", updateError.message);
+        }
+      } else {
+        console.error("Error adding product to cart:", error.message);
+      }
     }
   };
 
   const handleUpdateProductInCart = async (product) => {
     const quantity = product.quantity;
-    if (!buttonStates[product.productId]?.isUpdated) return;
+
     try {
-      const apiUrl = `http://${config.apiServer}/api/productInCart/productInCart/${cart.cartKey}/${product.productId}`;
-      const response = await axios.put(apiUrl, { quantity });
-      if (response.status === 200) {
-        Alert.alert("הצלחה", "הכמות עודכנה בהצלחה!");
+      const putUrl = `http://${config.apiServer}/api/productInCart/productInCart/${cart.cartKey}/${product.productId}`;
+      const putResponse = await axios.put(putUrl, { quantity, mail });
+
+      if (putResponse.status === 200) {
         updateButtonState(product.productId, {
           isUpdated: false,
           originalQuantity: quantity,
         });
+        return;
       }
     } catch (error) {
-      console.error("Error updating product quantity:", error.message);
+      if (error.response && error.response.status === 404) {
+        // if the product not in the cart re-add it
+        try {
+          const newProd = {
+            name: product.label,
+            image: product.image,
+            cartKey: cart.cartKey,
+            quantity: product.quantity,
+            mail,
+          };
+
+          const postUrl = `http://${config.apiServer}/api/productInCart/productInCart`;
+          const postResponse = await axios.post(postUrl, newProd);
+
+          if (postResponse.status >= 200 && postResponse.status < 300) {
+            product.productId = postResponse.data._id;
+            updateButtonState(product.productId, {
+              isAdded: true,
+              isUpdated: false,
+              originalQuantity: quantity,
+            });
+          }
+        } catch (postError) {
+          console.error("Error re-adding product to cart:", postError.message);
+        }
+      } else {
+        console.error("Error updating product quantity:", error.message);
+      }
     }
   };
 
@@ -292,7 +345,7 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     flexWrap: "wrap",
     color: "#000000",
-    marginRight: 70,
+    marginRight: 80,
     marginTop: 10,
     fontWeight: "bold",
   },

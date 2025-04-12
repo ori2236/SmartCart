@@ -26,16 +26,4 @@ router.delete(
   userInCart.delete.handler
 );
 
-router.delete(
-  "/userInCarts",
-  userInCart.deleteAll.validator,
-  userInCart.deleteAll.handler
-);
-
-router.get(
-  "/userInCarts",
-  userInCart.getAll.validator,
-  userInCart.getAll.handler
-);
-
 export default router;
