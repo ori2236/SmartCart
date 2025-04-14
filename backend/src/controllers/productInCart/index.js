@@ -88,6 +88,63 @@ export default {
       }
     },
   },
+  rePost: {
+    validator: async (req, res, next) => {
+      const { productId, cartKey, quantity, mail } = req.body;
+      if (!productId || !cartKey || quantity === undefined || !mail) {
+        return res.status(400).json({
+          error: "productId, cartKey, quantity, and mail are required.",
+        });
+      }
+
+      next();
+    },
+    handler: async (req, res) => {
+      const { productId, cartKey, quantity, mail } = req.body;
+      try {
+        const existingProductInCart = await ProductInCart.findOne({
+          cartKey,
+          productId,
+        });
+        if (existingProductInCart) {
+          return res.status(400).json({
+            message: "This product is already in the cart.",
+            productId: existingProductInCart.productId,
+          });
+        }
+        const user = await User.findOne({ mail });
+        const updatedBy = user.nickname;
+        const newProductInCart = await ProductInCart.create({
+          cartKey,
+          productId,
+          quantity,
+          updatedBy,
+        });
+        const product = await Product.findById(productId);
+        emitCartUpdate(cartKey, {
+          type: "add",
+          product: {
+            productId: newProductInCart.productId,
+            quantity: newProductInCart.quantity,
+            name: product.name,
+            image: product.image,
+            updatedBy,
+          },
+        });
+
+        res.status(201).json({
+          _id: productId,
+          message: "Product readded to cart successfully.",
+          productInCart: newProductInCart,
+        });
+      } catch (error) {
+        res.status(500).json({
+          message: "Error adding product to cart.",
+          error: error.message,
+        });
+      }
+    },
+  },
   get: {
     validator: async (req, res, next) => {
       const { type, content } = req.params;

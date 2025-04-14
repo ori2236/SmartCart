@@ -5,4 +5,10 @@ const router = Router();
 
 router.post("/cartHistory", cartHistory.post.validator, cartHistory.post.handler);
 
+router.delete(
+  "/cartHistory",
+  cartHistory.delete.validator,
+  cartHistory.delete.handler
+);
+
 export default router;

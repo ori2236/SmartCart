@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -23,10 +23,12 @@ const ShoppingCart = ({ route }) => {
   const [products, setProducts] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredProducts, setFilteredProducts] = useState([]);
+  const [userNickname, setUserNickname] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [debounceTimeouts, setDebounceTimeouts] = useState({});
-  const [error, setError] = useState(null);
   const navigation = useNavigation();
+  const [actionHistory, setActionHistory] = useState([]);
+  const userNicknameRef = useRef(null);
 
   const socket = io(`http://${config.apiServer}`);
 
@@ -42,6 +44,9 @@ const ShoppingCart = ({ route }) => {
             label: update.product.name,
             image: update.product.image,
             quantity: update.product.quantity,
+            updatedBy:
+              update.product.updatedBy === userNicknameRef.current? "את/ה"
+                : update.product.updatedBy,
           };
           setProducts((prev) => [...prev, newProduct]);
           setFilteredProducts((prev) => [...prev, newProduct]);
@@ -86,23 +91,27 @@ const ShoppingCart = ({ route }) => {
   useEffect(() => {
     const fetchCartProducts = async () => {
       setIsLoading(true);
-      setError(null);
 
       try {
         const apiUrl = `http://${config.apiServer}/api/productInCart/productInCart/cartKey/${cart.cartKey}?userMail=${userMail}`;
         const response = await axios.get(apiUrl);
         const { userNickname, products: data } = response.data;
+
         if (data.message === "No products found for the provided cartKey.") {
           setProducts([]);
           setFilteredProducts([]);
         } else {
+          setUserNickname(userNickname);
+          userNicknameRef.current = userNickname;
           const cartProducts = data.map((product) => ({
             id: product.productId,
             label: product.name,
             image: product.image || null,
             quantity: product.quantity,
             updatedBy:
-              product.updatedBy === userNickname ? "את/ה" : product.updatedBy,
+              product.updatedBy === userNicknameRef.current
+                ? "את/ה"
+                : product.updatedBy,
           }));
 
           setFilteredProducts(cartProducts);
@@ -195,6 +204,15 @@ const ShoppingCart = ({ route }) => {
         setFilteredProducts((prevFiltered) =>
           prevFiltered.filter((p) => p.id !== productId)
         );
+        const deletedProduct = products.find((p) => p.id === productId);
+
+        setActionHistory((prev) => [
+          ...prev,
+          {
+            type: "remove",
+            product: deletedProduct,
+          },
+        ]);
       } else {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -206,7 +224,7 @@ const ShoppingCart = ({ route }) => {
 
   const handleBought = async (productId) => {
     try {
-      boughtProduct = {
+      const boughtProduct = {
         cartKey: cart.cartKey,
         productId,
       };
@@ -219,6 +237,16 @@ const ShoppingCart = ({ route }) => {
         setFilteredProducts((prevFiltered) =>
           prevFiltered.filter((p) => p.id !== productId)
         );
+
+        const bought = products.find((p) => p.id === productId);
+
+        setActionHistory((prev) => [
+          ...prev,
+          {
+            type: "bought",
+            product: bought,
+          },
+        ]);
       } else {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -227,6 +255,55 @@ const ShoppingCart = ({ route }) => {
       console.error("Error message:", error.message);
     }
   };
+
+  const replaceUpdatedByWithYou = (products, userNickname) => {
+    return products.map((product) => ({
+      ...product,
+      updatedBy:
+        product.updatedBy === userNickname ? "את/ה" : product.updatedBy,
+    }));
+  };
+
+  
+  const handleUndo = async () => {
+    const lastAction = actionHistory[actionHistory.length - 1];
+    if (!lastAction) return;
+
+    try {
+      if (lastAction.type === "bought") {
+        const undoData = {
+          cartKey: cart.cartKey,
+          productId: lastAction.product.id,
+          quantity: lastAction.product.quantity,
+          mail: userMail,
+        };
+        const apiUrl = `http://${config.apiServer}/api/cartHistory/cartHistory`;
+        const response = await axios.delete(apiUrl, { data: undoData });
+        if (response.status !== 200) {
+          console.error(response);
+        }
+      }
+
+      if (lastAction.type === "remove") {
+        const undoData = {
+          cartKey: cart.cartKey,
+          productId: lastAction.product.id,
+          quantity: lastAction.product.quantity,
+          mail: userMail,
+        };
+        const apiUrl = `http://${config.apiServer}/api/productInCart/existProductInCart`;
+        const response = await axios.post(apiUrl, undoData);
+        if (response.status !== 201) {
+          console.error(response)
+        }
+      }
+
+      setActionHistory((prev) => prev.slice(0, -1));
+    } catch (error) {
+      console.error("Undo failed:", error.message);
+    }
+  };
+
   const handleBottomRow = (button) => {
     if (button == "home") {
       navigation.navigate("MyCarts");
@@ -274,12 +351,15 @@ const ShoppingCart = ({ route }) => {
       </View>
 
       <View style={styles.cartNameRow}>
-        <MaterialCommunityIcons
-          name="arrow-u-left-top"
-          size={40}
-          color="#FF7E3E"
-          style={styles.undoIcon}
-        />
+        {(products.length > 0 || actionHistory.length > 0) && !isLoading && (
+          <TouchableOpacity onPress={handleUndo} style={styles.undoWrapper}>
+            <MaterialCommunityIcons
+              name="arrow-u-left-top"
+              size={40}
+              color="#FF7E3E"
+            />
+          </TouchableOpacity>
+        )}
         <Text style={styles.cartName}>{cart.name}</Text>
       </View>
 
@@ -389,23 +469,27 @@ const styles = StyleSheet.create({
     textAlignVertical: "center",
   },
   cartNameRow: {
-    justifyContent: "center",
-    alignItems: "center",
-    position: "relative",
-    marginBottom: 25,
-    paddingTop: 5,
-  },
-  cartName: {
-    color: "#000000",
-    fontSize: 20,
-    fontWeight: "bold",
-    textAlign: "center",
-  },
-  undoIcon: {
-    position: "absolute",
-    left: 25,
-    paddingTop: 35,
-  },
+  justifyContent: "center",
+  alignItems: "center",
+  position: "relative",
+  marginBottom: 25,
+  paddingTop: 5,
+},
+
+cartName: {
+  color: "#000000",
+  fontSize: 20,
+  fontWeight: "bold",
+  textAlign: "center",
+},
+
+undoWrapper: {
+  position: "absolute",
+  left: 20,
+  top: 10,
+}
+,
+
   bottomNavigation: {
     flexDirection: "row",
     justifyContent: "space-around",

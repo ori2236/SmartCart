@@ -9,6 +9,12 @@ router.post(
   ProductInCart.post.handler
 );
 
+router.post(
+  "/existProductInCart",
+  ProductInCart.rePost.validator,
+  ProductInCart.rePost.handler
+);
+
 router.get(
   "/productInCart/:type/:content",
   ProductInCart.get.validator,
