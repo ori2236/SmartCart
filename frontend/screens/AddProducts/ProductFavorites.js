@@ -177,6 +177,7 @@ const ProductFavorites = ({ userMail, cart }) => {
           onQuantityChange={handleQuantityChange}
           onToggleStar={toggleStarColor}
           cart={cart}
+          mail={userMail}
         />
       )}
     </View>

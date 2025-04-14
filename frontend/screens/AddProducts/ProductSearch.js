@@ -24,53 +24,6 @@ const ProductSearch = ({ userMail, cart }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const fetchFavorites = async () => {
-    try {
-      const apiUrl = `http://${config.apiServer}/api/favorite/favorite/mail/${userMail}`;
-      const response = await axios.get(apiUrl);
-
-      const data = response.data;
-      setFavorites(data);
-    } catch (error) {
-      console.error("Error fetching favorites:", error.message);
-      setFavorites([]);
-    }
-  };
-
-  const fetchCartProducts = async () => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const apiUrl = `http://${config.apiServer}/api/productInCart/productInCart/cartKey/${cart.cartKey}?userMail=${userMail}`;
-      const response = await axios.get(apiUrl);
-      const { userNickname, products: data } = response.data;
-
-      if (data.message === "No products found for the provided cartKey.") {
-        setCartProducts([]);
-      } else {
-        const cartProductsData = data.map((product) => ({
-          productId: product.productId,
-          label: product.name,
-          image: product.image || null,
-          quantity: product.quantity,
-        }));
-        setCartProducts(cartProductsData);
-      }
-    } catch (error) {
-      console.error("Error fetching cart products:", error.message);
-      setCartProducts([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (userMail) {
-      fetchFavorites();
-      fetchCartProducts();
-    }
-  }, [userMail]);
   
   const fetchProducts = async () => {
     if (!searchTerm.trim()) {

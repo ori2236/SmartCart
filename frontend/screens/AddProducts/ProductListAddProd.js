@@ -98,7 +98,6 @@ const ProductListAddProd = ({
       quantity,
       mail,
     };
-
     try {
       const apiUrl = `http://${config.apiServer}/api/productInCart/productInCart`;
       const response = await axios.post(apiUrl, newProd);

@@ -2,6 +2,7 @@ import util from "util";
 import { exec } from "child_process";
 import path from "path";
 import { fileURLToPath } from "url";
+import Product from "../../models/Product.js"
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -15,6 +16,14 @@ const runScript = async (scriptPath, args = []) => {
   const { stdout, stderr } = await execPromise(command);
   if (stderr) throw new Error(stderr.trim());
   return stdout.trim();
+};
+
+const isValidImage = (base64) => {
+  return (
+    typeof base64 === "string" &&
+    base64.startsWith("data:image/") &&
+    base64.length > 100
+  );
 };
 
 const getProducts = async (req, res) => {
@@ -31,21 +40,41 @@ const getProducts = async (req, res) => {
     ]);
     const products = JSON.parse(productsJson);
 
-    const updatedProducts = await Promise.all(
-      products.map(async (product) => {
-        try {
-          const productImageResultJson = await runScript(
-            productImageScriptPath,
-            [shopping_address, product.label]
-          );
-          const imageResult = JSON.parse(productImageResultJson);
+    const updatedProducts = (
+      await Promise.all(
+        products.map(async (product) => {
+          try {
+            const existingProduct = await Product.findOne({
+              name: product.label,
+            });
 
-          return { ...product, image: imageResult.image };
-        } catch (error) {
-          return { ...product, image: "error" };
-        }
-      })
-    );
+            if (existingProduct && isValidImage(existingProduct.image)) {
+              return { ...product, image: existingProduct.image };
+            }
+
+            const productImageResultJson = await runScript(
+              productImageScriptPath,
+              [shopping_address, product.label]
+            );
+            const imageResult = JSON.parse(productImageResultJson);
+
+            if (isValidImage(imageResult.image)) {
+              await Product.create({
+                name: product.label,
+                image: imageResult.image,
+              });
+
+              return { ...product, image: imageResult.image };
+            }
+
+            return null;
+          } catch (error) {
+            console.error("Error for product:", product.label, error.message);
+            return null;
+          }
+        })
+      )
+    ).filter(Boolean);
 
     res.status(200).json(updatedProducts);
   } catch (error) {

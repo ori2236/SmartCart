@@ -229,7 +229,15 @@ def find_best_combinations(store_data, stores_missing_products, product_list):
 
     return []
 
+def clean_address(address):
+    address = address.strip()
+    if address.endswith("ישראל"):
+        address = address[:-len("ישראל")].strip(", ").strip()
+    address = address.rstrip(", ").strip()
+    return address
+
 def get_store_data(shopping_address, cart_quantities):
+    shopping_address = clean_address(shopping_address)
     product_list = list(cart_quantities.keys())
     store_data, outdated_prices, outdated_stores = asyncio.run(get_store_data_from_db(shopping_address, product_list))
     
@@ -237,10 +245,11 @@ def get_store_data(shopping_address, cart_quantities):
         asyncio.run(fetch_and_update_store_list(outdated_stores, shopping_address, store_data))
     if outdated_prices:
         asyncio.run(fetch_and_update_db(outdated_prices, shopping_address, store_data))
-
     filtered_data, stores_missing_products = filter_stores(store_data, product_list)
     records = []
     for (store, address), data in filtered_data.items():
+        if address.startswith("http"):
+            continue
         row = {"Store": store, "Address": address}
         for product, price_info in data.items():
             if not isinstance(price_info, dict):  
@@ -257,7 +266,6 @@ def get_store_data(shopping_address, cart_quantities):
             row[f"{product} (Regular Price)"] = price_info["Regular Price"]
             row[f"{product} (Sale Price)"] = price_info["Sale Price"]
             row[f"{product} (Required Quantity)"] = required_quantity
-
         records.append(row)
 
 
@@ -272,11 +280,8 @@ if __name__ == "__main__":
     try:
         shopping_address = "יששכר 1, נתניה"
         cart_quantities = {"שוקולד חלב במילוי קרם ווניל ושבבי עוגיות אוראו, 100 גרם": 1,
-                           "טופי ממולא בטעמי פירות, 600 גרם": 2,
-                           "חלב תנובה טרי 3% בקרטון, 1 ליטר": 6,
-                           "טופי מקלוני טופי, 450 גרם": 1}
+                           "חלב תנובה טרי 3% בקרטון, 1 ליטר": 6,}
         df, recommended_removals = get_store_data(shopping_address, cart_quantities)
-        
         # Save to CSV file
         df.to_csv('store_comparison_data.csv', index=False, encoding='utf-8-sig')
         

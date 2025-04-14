@@ -9,6 +9,51 @@ from importPrices import get_store_data
 import requests
 import json
 
+from distance_calculator import calculate_distances
+from src.db.db import get_db
+from pymongo.errors import BulkWriteError
+
+db = get_db()
+distance_collection = db["distances"]
+
+def get_distances(cart_address, address_list):
+    existing_docs = distance_collection.find({
+        "from": cart_address,
+        "to": {"$in": address_list}
+    })
+
+    existing_map = {doc["to"]: doc["distance"] for doc in existing_docs}
+    missing_addresses = [addr for addr in address_list if addr not in existing_map]
+
+    result_distances = [
+        {"from": cart_address, "to": addr, "distance": existing_map[addr]}
+        for addr in existing_map
+    ]
+
+    if missing_addresses:
+        new_distances_raw = calculate_distances(cart_address, missing_addresses)
+
+        new_docs = []
+        for d in new_distances_raw:
+            if d["Distance (km)"] is not None:
+                doc = {
+                    "from": cart_address,
+                    "to": d["Address"],
+                    "distance": d["Distance (km)"]
+                }
+                result_distances.append(doc)
+                new_docs.append(doc)
+
+        if new_docs:
+            try:
+                distance_collection.insert_many(new_docs, ordered=False)
+            except BulkWriteError:
+                pass
+
+    return result_distances
+"""
+from distance_calculator import calculate_distances
+
 def get_distances(cart_address, address_list):
     url = "http://localhost:3000/api/distance/distances"
     payload = {
@@ -26,7 +71,7 @@ def get_distances(cart_address, address_list):
 
     except requests.RequestException as e:
         return []
-
+"""
 def price_score(price, max_price, min_price):
     if max_price == min_price:
         return 10 
@@ -79,6 +124,11 @@ def get_best_supermarkets(cart, address, alpha):
 
     df['distance'] = df['Address'].map(distance_map)
 
+    df = df[df['distance'] <= 10]
+
+    if df.empty:
+        return [], recommended_removals
+
     # scores
     max_price, min_price = df['price'].max(), df['price'].min()
     df['price_score'] = df['price'].apply(lambda x: price_score(x, max_price, min_price))
@@ -112,8 +162,10 @@ if __name__ == "__main__":
         """
         alpha = 0.5
         address = "יששכר 1, נתניה"
-        cart = {"חלב תנובה טרי 3% בקרטון, כשרות מהדרין, 1 ליטר": 1,
-                'שוקולד במילוי תות בד"צ, 100 גרם': 7}
+        cart = {
+            'חלב תנובה טרי 3% בקרטון, 1 ליטר': 7,
+            'נוטלה ממרח אגוז, 750 גרם': 1
+            }
         """
 
         supermarkets, recommendations = get_best_supermarkets(cart, address, alpha)

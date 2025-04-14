@@ -10,6 +10,7 @@ import {
   Platform,
 } from "react-native";
 import axios from "axios";
+import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import { useNavigation } from "@react-navigation/native";
 import ProductListShopList from "./ProductListShopList";
 import { io } from "socket.io-client";
@@ -198,11 +199,34 @@ const ShoppingCart = ({ route }) => {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
     } catch (error) {
-      Alert.alert("שגיאה", "נכשל להסיר מוצר מהמועדפים. נסה שוב.");
+      Alert.alert("שגיאה", "נכשל להסיר מוצר מהעגלה. נסה שוב.");
       console.error("Error message:", error.message);
     }
   };
 
+  const handleBought = async (productId) => {
+    try {
+      boughtProduct = {
+        cartKey: cart.cartKey,
+        productId,
+      };
+      const apiUrl = `http://${config.apiServer}/api/cartHistory/cartHistory`;
+      const response = await axios.post(apiUrl, boughtProduct);
+      if (response.status == 201) {
+        setProducts((prevProducts) =>
+          prevProducts.filter((p) => p.id !== productId)
+        );
+        setFilteredProducts((prevFiltered) =>
+          prevFiltered.filter((p) => p.id !== productId)
+        );
+      } else {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+    } catch (error) {
+      Alert.alert("שגיאה", "נכשל להסיר מוצר מהעגלה. נסה שוב.");
+      console.error("Error message:", error.message);
+    }
+  };
   const handleBottomRow = (button) => {
     if (button == "home") {
       navigation.navigate("MyCarts");
@@ -249,7 +273,15 @@ const ShoppingCart = ({ route }) => {
         <View style={{ width: 36, height: 36 }} />
       </View>
 
-      <Text style={styles.cartName}>{cart.name}</Text>
+      <View style={styles.cartNameRow}>
+        <MaterialCommunityIcons
+          name="arrow-u-left-top"
+          size={40}
+          color="#FF7E3E"
+          style={styles.undoIcon}
+        />
+        <Text style={styles.cartName}>{cart.name}</Text>
+      </View>
 
       {/* Render ProductList */}
       {!isLoading && products.length === 0 ? (
@@ -266,6 +298,7 @@ const ShoppingCart = ({ route }) => {
           isLoading={isLoading}
           onQuantityChange={handleQuantityChange}
           onRemoveProductFromCart={handleRemoveProductFromCart}
+          onBought={handleBought}
         />
       )}
 
@@ -355,13 +388,23 @@ const styles = StyleSheet.create({
     backgroundColor: "#F9F9F9",
     textAlignVertical: "center",
   },
+  cartNameRow: {
+    justifyContent: "center",
+    alignItems: "center",
+    position: "relative",
+    marginBottom: 25,
+    paddingTop: 5,
+  },
   cartName: {
     color: "#000000",
     fontSize: 20,
     fontWeight: "bold",
     textAlign: "center",
-    marginTop: 10,
-    marginBottom: 25,
+  },
+  undoIcon: {
+    position: "absolute",
+    left: 25,
+    paddingTop: 35,
   },
   bottomNavigation: {
     flexDirection: "row",

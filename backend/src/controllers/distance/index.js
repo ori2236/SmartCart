@@ -41,7 +41,7 @@ export default {
 
       if (missingDestinations.length > 0) {
         try {
-          const encodedDestinations = encodeBase64(destinations);
+          const encodedDestinations = encodeBase64(missingDestinations);
           const pythonOutput = await runScript("distance_calculator.py", [
             from,
             encodedDestinations,

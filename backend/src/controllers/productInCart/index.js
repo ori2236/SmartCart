@@ -9,7 +9,6 @@ export default {
   post: {
     validator: async (req, res, next) => {
       const { name, image, cartKey, quantity, mail } = req.body;
-
       if (!name || !image || !cartKey || quantity === undefined || !mail) {
         return res.status(400).json({
           error: "name, image, cartKey, quantity, and mail are required.",
