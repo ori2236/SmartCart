@@ -13,7 +13,6 @@ import axios from "axios";
 import config from "../../config";
 import ProductListAddProd from "./ProductListAddProd";
 
-
 const { width, height } = Dimensions.get("window");
 
 const ProductSearch = ({ userMail, cart }) => {
@@ -24,7 +23,6 @@ const ProductSearch = ({ userMail, cart }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  
   const fetchProducts = async () => {
     if (!searchTerm.trim()) {
       Alert.alert("שגיאה", "יש להזין מילה לחיפוש");
@@ -33,7 +31,7 @@ const ProductSearch = ({ userMail, cart }) => {
 
     setIsLoading(true);
     setError(null);
-    
+
     try {
       const [favoritesData, cartProductsData, searchResponse] =
         // same time
@@ -48,8 +46,7 @@ const ProductSearch = ({ userMail, cart }) => {
             const response = await axios.get(apiUrl);
             const { userNickname, products: data } = response.data;
             if (
-              data.message ===
-              "No products found for the provided cartKey."
+              data.message === "No products found for the provided cartKey."
             ) {
               return [];
             }

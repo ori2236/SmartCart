@@ -1,5 +1,4 @@
 import CartHistory from "../../../models/CartHistory.js";
-import Product from "../../../models/Product.js";
 import ProductRecommendation from "../../../models/ProductRecommendation.js";
 
 //returns up to 3 purchase dates from the given referenceDate onward
@@ -30,10 +29,6 @@ export async function getScoresForProducts(productId) {
   }
 
   const occurrences = await CartHistory.find({ productId });
-
-  console.log(
-    `for productId: ${productId} found ${occurrences.length} occurrences`
-  );
 
   const scoreMap = new Map();
 
@@ -124,23 +119,6 @@ export async function basedEveryProduct(cartProductIds, K) {
     const scores = [...totalScores.entries()]
       .sort((a, b) => b[1] - a[1])
       .slice(0, K);
-
-    const productIds = scores.map(([productId]) => productId);
-    const productDetails = await Product.find({ _id: { $in: productIds } });
-    const detailMap = new Map(
-      productDetails.map((p) => [p._id.toString(), { name: p.name }])
-    );
-    const response = scores.map(([productId, score]) => ({
-      productId,
-      score: Math.round(score * 100) / 100,
-      name: detailMap.get(productId)?.name || "Unknown",
-    }));
-    console.log("\nTop recommended products:");
-    response.forEach((r, i) => {
-      console.log(
-        `  ${i + 1}. ${r.name} (id: ${r.productId}) - score: ${r.score}`
-      );
-    });
 
     return scores.map(([productId, score]) => ({ productId, score }));
   } catch (err) {
