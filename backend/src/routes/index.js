@@ -9,6 +9,7 @@ import Supermarkets from "./Supermarkets/index.js";
 import Distance from "./Distance/index.js";
 import WaitingList from "./WaitingList/index.js"
 import CartHistory from "./CartHistory/index.js";
+import Suggestions from "./Suggestions/index.js";
 const router = Router();
 
 router
@@ -21,6 +22,7 @@ router
   .use("/supermarkets", Supermarkets)
   .use("/distance", Distance)
   .use("/waitingList", WaitingList)
-  .use("/cartHistory", CartHistory);
+  .use("/cartHistory", CartHistory)
+  .use("/suggestions", Suggestions);
 
 export default router;
