@@ -1,6 +1,7 @@
 import basedEveryProduct from "./algorithms/basedEveryProduct.js";
 import ProductInCart from "../../models/ProductInCart.js";
 import trendingProducts from "./algorithms/trendingProducts.js";
+import intervals from "./algorithms/intervals.js";
 
 export async function suggestions(req, res) {
   const { cartKey } = req.params;
@@ -8,7 +9,11 @@ export async function suggestions(req, res) {
     const cartProducts = await ProductInCart.find({ cartKey });
     const cartProductIds = cartProducts.map((p) => p.productId);
 
-    const [basedEveryProductResponse, trendingProductsResponse] =
+    const [
+      basedEveryProductResponse,
+      trendingProductsResponse,
+      intervalsResponse,
+    ] =
       // same time
       await Promise.all([
         (async () => {
@@ -17,14 +22,16 @@ export async function suggestions(req, res) {
         (async () => {
           return trendingProducts(5);
         })(),
+        (async () => {
+          return intervals(cartProductIds, cartKey, 5);
+        })(),
       ]);
 
     const response = [
       ...basedEveryProductResponse,
       ...trendingProductsResponse,
+      ...intervalsResponse,
     ];
-
-    
 
 
     return res.status(200).json(response);

@@ -1,5 +1,4 @@
 import CartHistory from "../../../models/CartHistory.js";
-import Product from "../../../models/Product.js";
 import HotProduct from "../../../models/HotProduct.js";
 
 export async function trendingProducts(k) {
@@ -42,8 +41,8 @@ export async function trendingProducts(k) {
       },
     },
     {
-      $project: {
-        productId: 1, //the field will be in the output
+      $project: {//the fields that will be in the output
+        productId: 1, 
         weight: {
           $switch: {
             branches: [
@@ -84,8 +83,6 @@ export async function trendingProducts(k) {
   ]);
 
   const productIds = trending.map((item) => item._id);
-  const products = await Product.find({ _id: { $in: productIds } });
-
 
   const finalResults = trending.map(({ _id, score }) => {
     const id = _id.toString();

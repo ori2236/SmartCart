@@ -33,30 +33,47 @@ const uploadAll = async () => {
         )
         .on("data", (row) => {
           if (!row.date || !row.cartKey || !row.productId) {
-            console.warn(`Skipping invalid row in ${file}:`, row);
+            console.log(`invalid row in ${file}:`, row);
             return;
           }
+
+          let parsedDate = new Date(row.date);
+
+          //DD/MM/YYYY => DD-MM-YYYY
+          if (isNaN(parsedDate.getTime()) && row.date.includes("/")) {
+            const [day, month, year] = row.date.split("/");
+            if (day && month && year) {
+              parsedDate = new Date(`${year}-${month}-${day}`);
+            }
+          }
+
+          if (isNaN(parsedDate.getTime())) {
+            console.warn(`invalid date in ${file}:`, row);
+            return;
+          }
+
           rows.push({
             cartKey: row.cartKey,
             productId: row.productId,
-            quantity: parseInt(row.quantity),
-            date: new Date(row.date),
+            quantity: parseInt(row.quantity) || 1,
+            date: parsedDate,
           });
         })
+
         .on("end", async () => {
           try {
             await CartHistory.insertMany(rows);
-            console.log(`Imported ${rows.length} records from ${file}`);
+            console.log(`imported ${rows.length} records from ${file}`);
             resolve();
           } catch (err) {
-            console.error(`Error importing ${file}:`, err);
+            console.error(`error importing ${file}:`, err);
             reject(err);
           }
         });
     });
   }
 
-  console.log("🚀 All carts uploaded successfully!");
+  console.log("🚀 all the carts uploaded");
   process.exit();
 };
 
