@@ -1,7 +1,7 @@
 import CartHistory from "../../../models/CartHistory.js";
 import HotProduct from "../../../models/HotProduct.js";
 
-export async function trendingProducts(k) {
+export async function trendingProducts(cartProductIds, k) {
   const hotProducts = await HotProduct.find();
 
   //if exist in database
@@ -84,7 +84,7 @@ export async function trendingProducts(k) {
 
   const productIds = trending.map((item) => item._id);
 
-  const finalResults = trending.map(({ _id, score }) => {
+  const toInsert = trending.map(({ _id, score }) => {
     const id = _id.toString();
     return {
       productId: id,
@@ -93,10 +93,14 @@ export async function trendingProducts(k) {
   });
 
   await HotProduct.insertMany(
-    finalResults.map((r) => ({
+    toInsert.map((r) => ({
       ...r,
       createdAt: new Date(),
     }))
+  );
+
+  const finalResults = toInsert.filter(
+    ({ productId }) => !cartProductIds.includes(productId)
   );
 
   return finalResults;

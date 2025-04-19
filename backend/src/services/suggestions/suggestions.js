@@ -2,6 +2,7 @@ import basedEveryProduct from "./algorithms/basedEveryProduct.js";
 import ProductInCart from "../../models/ProductInCart.js";
 import trendingProducts from "./algorithms/trendingProducts.js";
 import intervals from "./algorithms/intervals.js";
+import mostPurchased from "./algorithms/mostPurchased.js";
 
 export async function suggestions(req, res) {
   const { cartKey } = req.params;
@@ -13,6 +14,7 @@ export async function suggestions(req, res) {
       basedEveryProductResponse,
       trendingProductsResponse,
       intervalsResponse,
+      mostPurchasedResponse,
     ] =
       // same time
       await Promise.all([
@@ -20,10 +22,13 @@ export async function suggestions(req, res) {
           return basedEveryProduct(cartProductIds, 5);
         })(),
         (async () => {
-          return trendingProducts(5);
+          return trendingProducts(cartProductIds, 5);
         })(),
         (async () => {
           return intervals(cartProductIds, cartKey, 5);
+        })(),
+        (async () => {
+          return mostPurchased(cartProductIds, cartKey, 5);
         })(),
       ]);
 
@@ -31,8 +36,8 @@ export async function suggestions(req, res) {
       ...basedEveryProductResponse,
       ...trendingProductsResponse,
       ...intervalsResponse,
+      ...mostPurchasedResponse,
     ];
-
 
     return res.status(200).json(response);
   } catch (err) {
