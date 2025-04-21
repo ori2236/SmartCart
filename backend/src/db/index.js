@@ -1,5 +1,6 @@
 import { MongoClient, MongoGCPError } from "mongodb";
 import mongoose from "mongoose"
+import FindStores from "../models/FindStores.js";
 
 let client;
 
@@ -11,6 +12,12 @@ const connectDB = async () => {
     );
     console.log(`Database Connected: ${conn.connection.host}`);
     client = conn.connection.getClient();
+
+    await FindStores.collection.createIndex(
+      { last_updated: 1 },
+      { expireAfterSeconds: 60 * 60 * 24 * 20 }
+    );
+
   } catch (error) {
     console.error(error);
     process.exit(1);
