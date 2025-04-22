@@ -133,7 +133,7 @@ const ProductSuggestions = ({ cart, userMail }) => {
           <Text style={styles.description}>אין עוד המלצות זמינות</Text>
           <View style={{ alignItems: "center" }}>
             <TouchableOpacity style={styles.history} onPress={() => {}}>
-              <Text style={styles.buttonText}>היסטוריית המלצות</Text>
+              <Text style={styles.buttonText}>הצג כרשימה</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -202,7 +202,7 @@ const ProductSuggestions = ({ cart, userMail }) => {
           </View>
           <View style={{ alignItems: "center" }}>
             <TouchableOpacity style={styles.history} onPress={() => {}}>
-              <Text style={styles.buttonText}>היסטוריית המלצות</Text>
+              <Text style={styles.buttonText}>הצג כרשימה</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -223,6 +223,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: "#000000",
     fontWeight: "bold",
+    marginHorizontal: 30,
   },
   actionButton: {
     paddingTop: 50,

@@ -4,9 +4,20 @@ import trendingProducts from "./algorithms/trendingProducts.js";
 import intervals from "./algorithms/intervals.js";
 import mostPurchased from "./algorithms/mostPurchased.js";
 import Product from "../../models/Product.js";
+import Cart from "../../models/Cart.js";
+import { filterAvailableProducts } from "./availableProducts.js";
+
+function cleanAddress(address) {
+  address = address.trim();
+  if (address.endsWith("ישראל")) {
+    address = address.slice(0, -"ישראל".length).trim();
+  }
+  return address.replace(/,+$/, "").trim();
+}
 
 export async function suggestions(req, res) {
   const { cartKey } = req.params;
+  const k = 10;
   try {
     const cartProducts = await ProductInCart.find({ cartKey });
     const cartProductIds = cartProducts.map((p) => p.productId);
@@ -20,16 +31,16 @@ export async function suggestions(req, res) {
       // same time
       await Promise.all([
         (async () => {
-          return basedEveryProduct(cartProductIds, 5);
+          return basedEveryProduct(cartProductIds, k);
         })(),
         (async () => {
-          return trendingProducts(cartProductIds, 5);
+          return trendingProducts(cartProductIds, k);
         })(),
         (async () => {
-          return intervals(cartProductIds, cartKey, 5);
+          return intervals(cartProductIds, cartKey, k);
         })(),
         (async () => {
-          return mostPurchased(cartProductIds, cartKey, 5);
+          return mostPurchased(cartProductIds, cartKey, k);
         })(),
       ]);
 
@@ -46,7 +57,22 @@ export async function suggestions(req, res) {
     const uniqueIds = Array.from(new Set(allProductIds));
     const products = await Product.find({ _id: { $in: uniqueIds } });
 
-    const response = products.map((p) => ({
+    const cart = await Cart.findById(cartKey);
+    if (!cart) {
+      return res.status(404).json({ message: "Cart not found" });
+    }
+
+    const cartAddress = cleanAddress(cart.address);
+
+    const finalAvailableProductIds = await filterAvailableProducts(
+      products,
+      cartAddress
+    );
+
+    const finalProducts = products.filter((p) =>
+      finalAvailableProductIds.includes(p._id.toString())
+    );
+    const response = finalProducts.map((p) => ({
       productId: p._id.toString(),
       name: p.name,
       image: p.image,
