@@ -3,6 +3,6 @@ import { Router } from "express";
 
 const router = Router();
 
-router.get("/suggestions/:cartKey", suggestions);
+router.get("/suggestions/:cartKey/:mail", suggestions);
 
 export default router;

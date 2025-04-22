@@ -10,6 +10,7 @@ import Distance from "./Distance/index.js";
 import WaitingList from "./WaitingList/index.js"
 import CartHistory from "./CartHistory/index.js";
 import Suggestions from "./Suggestions/index.js";
+import RejectedProducts from "./RejectedProducts/index.js"
 const router = Router();
 
 router
@@ -23,6 +24,7 @@ router
   .use("/distance", Distance)
   .use("/waitingList", WaitingList)
   .use("/cartHistory", CartHistory)
-  .use("/suggestions", Suggestions);
+  .use("/suggestions", Suggestions)
+  .use("/rejectedProducts", RejectedProducts);
 
 export default router;

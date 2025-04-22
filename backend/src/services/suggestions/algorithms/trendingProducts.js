@@ -15,13 +15,16 @@ export async function trendingProducts(cartProductIds, k) {
 
     //check if the dates are the same
     if (createdDate.getTime() === today.getTime()) {
-      return hotProducts.map(({ productId, score }) => ({
-        productId,
-        score,
-      }));
-    } else {
-      await HotProduct.deleteMany({});
+      if (hotProducts.length >= k) {
+        const sorted = hotProducts
+          .sort((a, b) => b.score - a.score)
+          .slice(0, k)
+          .map(({ productId, score }) => ({ productId, score }));
+
+        return sorted
+      }
     }
+    await HotProduct.deleteMany({});
   }
 
   const now = new Date();
@@ -41,8 +44,9 @@ export async function trendingProducts(cartProductIds, k) {
       },
     },
     {
-      $project: {//the fields that will be in the output
-        productId: 1, 
+      $project: {
+        //the fields that will be in the output
+        productId: 1,
         weight: {
           $switch: {
             branches: [

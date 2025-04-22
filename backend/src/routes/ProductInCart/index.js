@@ -11,8 +11,8 @@ router.post(
 
 router.post(
   "/existProductInCart",
-  ProductInCart.rePost.validator,
-  ProductInCart.rePost.handler
+  ProductInCart.postWithProductId.validator,
+  ProductInCart.postWithProductId.handler
 );
 
 router.get(

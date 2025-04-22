@@ -10,7 +10,6 @@ import {
 } from "react-native";
 import axios from "axios";
 import { Ionicons } from "@expo/vector-icons";
-import SimpleLineIcons from "react-native-vector-icons/SimpleLineIcons";
 import config from "../../config";
 
 const { height } = Dimensions.get("window");
@@ -26,7 +25,7 @@ const ProductSuggestions = ({ cart, userMail }) => {
     const fetchSuggestions = async () => {
       setIsLoading(true);
       try {
-        const apiUrl = `http://${config.apiServer}/api/suggestions/suggestions/${cart.cartKey}`;
+        const apiUrl = `http://${config.apiServer}/api/suggestions/suggestions/${cart.cartKey}/${userMail}`;
         const response = await axios.get(apiUrl);
 
         if (response.status === 200) {
@@ -48,7 +47,7 @@ const ProductSuggestions = ({ cart, userMail }) => {
       }
     };
     fetchSuggestions();
-  }, []);
+  }, [cart]);
 
   const handleQuantityChange = (change) => {
     const newQuantity = Math.max(currentProduct.quantity + change, 0);
@@ -57,45 +56,28 @@ const ProductSuggestions = ({ cart, userMail }) => {
 
   const handleAddProductToCart = async () => {
     const product = currentProduct;
-    const name = product.name;
-    const image = product.image;
+    const productId = product.productId;
     const cartKey = cart.cartKey;
     const quantity = product.quantity;
-    const mail= userMail;
+    const mail = userMail;
     const newProd = {
-      name,
-      image,
+      productId,
       cartKey,
       quantity,
       mail,
     };
     try {
-      const apiUrl = `http://${config.apiServer}/api/productInCart/productInCart`;
+      const apiUrl = `http://${config.apiServer}/api/productInCart/existProductInCart`;
       const response = await axios.post(apiUrl, newProd);
-      if (response.status >= 200 && response.status < 300) {
-        handleNextProduct()
+      if (response.status === 201) {
+        handleNextProduct();
       }
     } catch (error) {
-      if (error.response && error.response.status === 400) {
-        // if the product already in the cart update it
-        try {
-          existingProductId = error.response.data.productId;
-          const updateUrl = `http://${config.apiServer}/api/productInCart/productInCart/${cartKey}/${existingProductId}`;
-          const updateRes = await axios.put(updateUrl, { quantity, mail });
-
-          if (updateRes.status === 200) {
-            product.productId = existingProductId;
-          }
-        } catch (updateError) {
-          console.error("Error updating product to cart:", updateError.message);
-        }
-      } else {
-        console.error("Error adding product to cart:", error.message);
-      }
+      console.error(error.message);
     }
   };
 
-  const handleNextProduct = () => {
+  const handleNextProduct = async () => {
     if (products.length <= 1) {
       setProducts([]);
       setCurrentProduct({});
@@ -109,13 +91,26 @@ const ProductSuggestions = ({ cart, userMail }) => {
   };
 
   //add to rejected products
-  const handleDontAddProductToCart = async (product) => {
+  const handleDontAddProductToCart = async () => {
+    const cartKey = cart.cartKey;
+    const productId = currentProduct.productId;
+    const mail = userMail;
+    const newRejectedProd = {
+      cartKey,
+      productId,
+      mail,
+    };
     handleNextProduct();
+    try {
+      const apiUrl = `http://${config.apiServer}/api/rejectedProducts/rejectedProducts`;
+      const response = await axios.post(apiUrl, newRejectedProd);
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   return (
     <View>
-      {/* Render ProductList */}
       {isLoading ? (
         <View style={styles.centerContent}>
           <Image

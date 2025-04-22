@@ -88,7 +88,7 @@ export default {
       }
     },
   },
-  rePost: {
+  postWithProductId: {
     validator: async (req, res, next) => {
       const { productId, cartKey, quantity, mail } = req.body;
       if (!productId || !cartKey || quantity === undefined || !mail) {
