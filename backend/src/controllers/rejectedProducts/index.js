@@ -82,44 +82,22 @@ export default {
         });
       }
 
-      try {
-        const productExists = await Product.findById(productId);
-        if (!productExists) {
-          return res.status(404).json({ error: "Product not found." });
-        }
-
-        const cartExists = await Cart.findById(cartKey);
-        if (!cartExists) {
-          return res.status(404).json({ error: "Cart not found." });
-        }
-
-        const user = await User.findOne({ mail });
-        if (!user) {
-          return res.status(404).json({ error: "User not found." });
-        }
-
-        next();
-      } catch (error) {
-        res.status(500).json({
-          error: "An error occurred during validation.",
-          details: error.message,
-        });
-      }
+      next();
     },
 
     handler: async (req, res) => {
       const { cartKey, productId, mail } = req.params;
 
       try {
-        const rejectedProd = await RejectedProducts.findOne({
+        const rejectedProd = await RejectedProducts.findOneAndDelete({
           cartKey,
           productId,
           rejectedBy: mail,
         });
 
-        if (rejectedProd) {
+        if (!rejectedProd) {
           return res.status(409).json({
-            error: "This product is already marked as rejected by this user.",
+            error: "This product is not marked as rejected by this user.",
           });
         }
 

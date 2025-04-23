@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import axios from "axios";
 import { Ionicons } from "@expo/vector-icons";
+import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import config from "../../config";
 
 const { height } = Dimensions.get("window");
@@ -20,6 +21,7 @@ const ProductSuggestions = ({ cart, userMail }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [currentProduct, setCurrentProduct] = useState({});
   const [isDone, setIsDone] = useState(false);
+  const [actionHistory, setActionHistory] = useState([]);
 
   useEffect(() => {
     const fetchSuggestions = async () => {
@@ -70,6 +72,10 @@ const ProductSuggestions = ({ cart, userMail }) => {
       const apiUrl = `http://${config.apiServer}/api/productInCart/existProductInCart`;
       const response = await axios.post(apiUrl, newProd);
       if (response.status === 201) {
+        setActionHistory((prev) => [
+          ...prev,
+          { type: "add", product: currentProduct },
+        ]);
         handleNextProduct();
       }
     } catch (error) {
@@ -100,17 +106,59 @@ const ProductSuggestions = ({ cart, userMail }) => {
       productId,
       mail,
     };
-    handleNextProduct();
     try {
       const apiUrl = `http://${config.apiServer}/api/rejectedProducts/rejectedProducts`;
       const response = await axios.post(apiUrl, newRejectedProd);
+      if (response.status === 201) {
+        setActionHistory((prev) => [
+          ...prev,
+          { type: "reject", product: currentProduct },
+        ]);
+        handleNextProduct();
+      }
     } catch (error) {
       console.error(error);
     }
   };
 
+  const handleUndo = async () => {
+    const lastAction = actionHistory[actionHistory.length - 1];
+    if (!lastAction) return;
+
+    try {
+      const { product } = lastAction;
+      const cartKey = cart.cartKey;
+      const productId = product.productId;
+
+      if (lastAction.type === "add") {
+        const apiUrl = `http://${config.apiServer}/api/productInCart/productInCart/${cartKey}/${productId}`;
+        await axios.delete(apiUrl);
+      } else if (lastAction.type === "reject") {
+        const mail = userMail;
+        const apiUrl = `http://${config.apiServer}/api/rejectedProducts/rejectedProducts/${cartKey}/${productId}/${mail}`;
+        await axios.delete(apiUrl);
+      }
+
+      setProducts((prev) => [product, ...prev]);
+      setCurrentProduct(product);
+      setIsDone(false);
+      setActionHistory((prev) => prev.slice(0, -1));
+    } catch (error) {
+      console.error("Undo failed:", error.message);
+    }
+  };
+
   return (
     <View>
+      {(products.length > 0 || actionHistory.length > 0) && !isLoading && (
+        <TouchableOpacity onPress={handleUndo} style={styles.undoWrapper}>
+          <MaterialCommunityIcons
+            name="arrow-u-left-top"
+            size={35}
+            color="#FF7E3E"
+          />
+        </TouchableOpacity>
+      )}
       {isLoading ? (
         <View style={styles.centerContent}>
           <Image
@@ -210,6 +258,11 @@ const styles = StyleSheet.create({
   centerContent: {
     justifyContent: "center",
     alignItems: "center",
+  },
+  undoWrapper: {
+    position: "absolute",
+    left: 20,
+    top: 20,
   },
   prodTitle: {
     paddingTop: 110,

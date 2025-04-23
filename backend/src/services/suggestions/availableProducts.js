@@ -1,6 +1,6 @@
 import fetch from "node-fetch";
 import * as cheerio from "cheerio";
-import find_stores from "../../models/FindStores.js"
+import find_stores from "../../models/FindStores.js";
 
 async function fetchCHPStores(productName, shoppingAddress) {
   try {
@@ -40,42 +40,55 @@ async function fetchCHPStores(productName, shoppingAddress) {
 }
 
 export async function filterAvailableProducts(products, cartAddress) {
-  const availableProductIds = await Promise.all(
+  const productNames = products.map((p) => p.name);
+  const storeEntries = await find_stores.find({
+    cart_address: cartAddress,
+    product_name: { $in: productNames },
+  });
+
+  const storeMap = new Map();
+  storeEntries.forEach((entry) => {
+    storeMap.set(entry.product_name, entry);
+  });
+
+  const missingEntries = [];
+  const availableProductIds = [];
+
+  await Promise.all(
     products.map(async (p) => {
       const productId = p._id.toString();
       const productName = p.name;
 
-      let storeEntry = await find_stores.findOne({
-        cart_address: cartAddress,
-        product_name: productName,
-      });
-
-      if (!storeEntry || !storeEntry.stores || storeEntry.stores.length === 0) {
-        const scrapedStores = await fetchCHPStores(productName, cartAddress);
-
-        if (scrapedStores.length > 0) {
-          await find_stores.updateOne(
-            { cart_address: cartAddress, product_name: productName },
-            {
-              $set: {
-                stores: scrapedStores,
-                last_updated: new Date(),
-              },
-            },
-            { upsert: true }
-          );
-
-          storeEntry = { stores: scrapedStores };
-        }
-      }
+      const storeEntry = storeMap.get(productName);
 
       if (storeEntry && storeEntry.stores && storeEntry.stores.length > 0) {
-        return productId;
+        availableProductIds.push(productId);
+        return;
       }
 
-      return null;
+      const sellingStores = await fetchCHPStores(productName, cartAddress);
+
+      if (sellingStores.length > 0) {
+        availableProductIds.push(productId);
+        missingEntries.push({
+          cart_address: cartAddress,
+          product_name: productName,
+          stores: sellingStores,
+          last_updated: new Date(),
+        });
+      } else {
+        console.log(`No stores found for ${productName} at ${cartAddress}`);
+      }
     })
   );
 
-  return availableProductIds.filter(Boolean);
+  if (missingEntries.length > 0) {
+    try {
+      await find_stores.insertMany(missingEntries, { ordered: false });
+    } catch (error) {
+      console.warn("insertMany error:", error.message);
+    }
+  }
+
+  return availableProductIds;
 }

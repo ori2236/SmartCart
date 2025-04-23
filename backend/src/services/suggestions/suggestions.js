@@ -17,8 +17,8 @@ function cleanAddress(address) {
 }
 
 async function getProducts(
-  cartProductIds,
-  rejectedProductsIds,
+  cartProductIdsSet,
+  rejectedProductsIdsSet,
   cartKey,
   times
 ) {
@@ -27,35 +27,28 @@ async function getProducts(
     trendingProductsResponse,
     intervalsResponse,
     mostPurchasedResponse,
-  ] =
-    // same time
-    await Promise.all([
-      (async () => {
-        return basedEveryProduct(cartProductIds, times);
-      })(),
-      (async () => {
-        return trendingProducts(cartProductIds, times);
-      })(),
-      (async () => {
-        return intervals(cartProductIds, cartKey, times);
-      })(),
-      (async () => {
-        return mostPurchased(cartProductIds, cartKey, times);
-      })(),
-    ]);
+  ] = await Promise.all([
+    basedEveryProduct([...cartProductIdsSet], times),
+    trendingProducts([...cartProductIdsSet], times),
+    intervals([...cartProductIdsSet], cartKey, times),
+    mostPurchased([...cartProductIdsSet], cartKey, times),
+  ]);
 
-    return [
-      ...basedEveryProductResponse,
-      ...trendingProductsResponse,
-      ...intervalsResponse,
-      ...mostPurchasedResponse,
-    ]
-      .map((p) => p?.productId?.toString())
-      .filter(Boolean) //not null
-      .filter(
-        (id) =>
-          !cartProductIds.includes(id) && !rejectedProductsIds.includes(id)
-      );
+  return Array.from(
+    new Set(
+      [
+        ...basedEveryProductResponse,
+        ...trendingProductsResponse,
+        ...intervalsResponse,
+        ...mostPurchasedResponse,
+      ]
+        .map((p) => p?.productId?.toString())
+        .filter(Boolean)
+        .filter(
+          (id) => !cartProductIdsSet.has(id) && !rejectedProductsIdsSet.has(id)
+        )
+    )
+  );
 }
 
 export async function suggestions(req, res) {
@@ -63,44 +56,42 @@ export async function suggestions(req, res) {
   const rejectedBy = mail;
   const k = 10;
   try {
-    const [cartProductIds, rejectedProductsIds] =
-      // same time
-      await Promise.all([
-        (async () => {
-          const cartProducts = await ProductInCart.find({ cartKey });
-          return cartProducts.map((p) => p.productId.toString());
-        })(),
-        (async () => {
-          const rejectedProducts = await RejectedProducts.find({
-            cartKey,
-            rejectedBy,
-          });
-          return rejectedProducts.map((p) => p.productId.toString());
-        })(),
-      ]);
+    const [cartProductIdsArr, rejectedProductsIdsArr] = await Promise.all([
+      ProductInCart.find({ cartKey }).then((docs) =>
+        docs.map((p) => p.productId.toString())
+      ),
+      RejectedProducts.find({ cartKey, rejectedBy: mail }).then((docs) =>
+        docs.map((p) => p.productId.toString())
+      ),
+    ]);
+
+    const cartProductIdsSet = new Set(cartProductIdsArr);
+    const rejectedProductsIdsSet = new Set(rejectedProductsIdsArr);
 
     let allProductIds = await getProducts(
-      cartProductIds,
-      rejectedProductsIds,
+      cartProductIdsSet,
+      rejectedProductsIdsSet,
       cartKey,
       k
     );
-    let uniqueIds = Array.from(new Set(allProductIds));
 
-    if (uniqueIds.length < k) {
+    if (allProductIds.length < k) {
       const moreProductIds = await getProducts(
-        cartProductIds,
-        rejectedProductsIds,
+        new Set([...cartProductIdsSet, ...allProductIds]),
+        rejectedProductsIdsSet,
         cartKey,
         2 * k
       );
-      uniqueIds = Array.from(new Set([...uniqueIds, ...moreProductIds]));
+      allProductIds = [...allProductIds, ...moreProductIds];
     }
 
-    if (uniqueIds.length === 0) return res.status(200).json([]);
-    const products = await Product.find({ _id: { $in: uniqueIds } });
+    if (allProductIds.length === 0) return res.status(200).json([]);
+    
+    const [products, cart] = await Promise.all([
+      Product.find({ _id: { $in: allProductIds } }),
+      Cart.findById(cartKey),
+    ]);
 
-    const cart = await Cart.findById(cartKey);
     if (!cart) {
       return res.status(404).json({ message: "Cart not found" });
     }
@@ -112,19 +103,15 @@ export async function suggestions(req, res) {
       cartAddress
     );
 
+    const availableSet = new Set(finalAvailableProductIds);
     const finalProducts = products.filter((p) =>
-      finalAvailableProductIds.includes(p._id.toString())
+      availableSet.has(p._id.toString())
     );
+
     const response = finalProducts.map((p) => ({
       productId: p._id.toString(),
       name: p.name,
       image: p.image,
-    }));
-
-
-    const log = finalProducts.map((p) => ({
-      productId: p._id.toString(),
-      name: p.name,
     }));
 
     return res.status(200).json(response);

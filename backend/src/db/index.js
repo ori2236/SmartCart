@@ -15,7 +15,7 @@ const connectDB = async () => {
 
     await FindStores.collection.createIndex(
       { last_updated: 1 },
-      { expireAfterSeconds: 60 * 60 * 24 * 20 }
+      { expireAfterSeconds: 60 * 60 * 24 * 20 } //20 days
     );
 
   } catch (error) {
