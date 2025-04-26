@@ -87,10 +87,38 @@ const ProductListAddProd = ({
   };
 
   const handleAddProductToCart = async (product) => {
+    const quantity = product.quantity;
+    const cartKey = cart.cartKey;
+    const productId = product.productId;
+
+    //the product is in the database
+    if (productId) {
+      const newProd = {
+        productId,
+        cartKey,
+        quantity,
+        mail,
+      };
+
+      try {
+        const apiUrl = `http://${config.apiServer}/api/productInCart/existngProduct`;
+        const response = await axios.post(apiUrl, newProd);
+        if (response.status === 201) {
+          updateButtonState(product.productId, {
+            isAdded: true,
+            isUpdated: false,
+            originalQuantity: quantity,
+          });
+        }
+      } catch (error) {
+        console.error("Error adding suggested product:", error.message);
+      }
+      return;
+    }
+
     const name = product.label;
     const image = product.image;
-    const cartKey = cart.cartKey;
-    const quantity = product.quantity;
+
     const newProd = {
       name,
       image,
@@ -424,7 +452,7 @@ const styles = StyleSheet.create({
   },
   flatListContent: {
     alignItems: "center",
-    paddingBottom: 400,
+    paddingBottom: 410,
   },
   centerContent: {
     justifyContent: "center",

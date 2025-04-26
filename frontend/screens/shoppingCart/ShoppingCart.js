@@ -291,7 +291,7 @@ const ShoppingCart = ({ route }) => {
           quantity: lastAction.product.quantity,
           mail: userMail,
         };
-        const apiUrl = `http://${config.apiServer}/api/productInCart/existProductInCart`;
+        const apiUrl = `http://${config.apiServer}/api/productInCart/existngProduct`;
         const response = await axios.post(apiUrl, undoData);
         if (response.status !== 201) {
           console.error(response)

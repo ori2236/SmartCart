@@ -9,6 +9,7 @@ import {
   Image,
 } from "react-native";
 import axios from "axios";
+import ProductListAddProd from "../addProducts/ProductListAddProd";
 import { Ionicons } from "@expo/vector-icons";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import config from "../../config";
@@ -17,43 +18,64 @@ const { height } = Dimensions.get("window");
 
 const ProductSuggestions = ({ cart, userMail }) => {
   const [products, setProducts] = useState([]);
-  const [rejectedProducts, setRejectedProducts] = useState([]);
+  const [favorites, setFavorites] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [currentProduct, setCurrentProduct] = useState({});
   const [isDone, setIsDone] = useState(false);
+  const [isList, setIsList] = useState(false);
   const [actionHistory, setActionHistory] = useState([]);
 
   useEffect(() => {
-    const fetchSuggestions = async () => {
-      setIsLoading(true);
+    const fetchAll = async () => {
       try {
-        const apiUrl = `http://${config.apiServer}/api/suggestions/suggestions/${cart.cartKey}/${userMail}`;
-        const response = await axios.get(apiUrl);
+        const favUrl = `http://${config.apiServer}/api/favorite/favorite/mail/${userMail}`;
+        const favRes = await axios.get(favUrl);
+        const favoritesData = favRes.data || [];
+        setFavorites(favoritesData);
 
-        if (response.status === 200) {
-          if (response.data.length !== 0) {
-            const putQuantity = response.data.map((product) => ({
+        const suggUrl = `http://${config.apiServer}/api/suggestions/suggestions/${cart.cartKey}/${userMail}`;
+        const suggRes = await axios.get(suggUrl);
+
+        if (suggRes.status === 200 && suggRes.data.length > 0) {
+          const putQuantity = suggRes.data.map((product) => {
+            const isFavorite = favoritesData.some(
+              (fav) => fav._id === product.productId
+            );
+            return {
               productId: product.productId,
-              name: product.name,
+              label: product.name,
               image: product.image || null,
               quantity: 1,
-            }));
-            setProducts(putQuantity);
-            setCurrentProduct(putQuantity[0]);
-          }
+              starColor: isFavorite ? "#FFD700" : "#D9D9D9",
+            };
+          });
+
+          setProducts(putQuantity);
+          setCurrentProduct(putQuantity[0]);
         }
-      } catch (error) {
-        console.error(error.message || "שגיאה בטעינת המוצרים המוצעים");
+      } catch (err) {
+        console.error("שגיאה בטעינה:", err.message);
       } finally {
         setIsLoading(false);
       }
     };
-    fetchSuggestions();
+
+    fetchAll();
   }, [cart]);
 
   const handleQuantityChange = (change) => {
     const newQuantity = Math.max(currentProduct.quantity + change, 0);
     setCurrentProduct((product) => ({ ...product, quantity: newQuantity }));
+  };
+
+  const handleQuantityChangeList = (productId, change) => {
+    setProducts((prevProducts) =>
+      prevProducts.map((product) =>
+        product.productId === productId
+          ? { ...product, quantity: Math.max(product.quantity + change, 0) }
+          : product
+      )
+    );
   };
 
   const handleAddProductToCart = async () => {
@@ -69,7 +91,7 @@ const ProductSuggestions = ({ cart, userMail }) => {
       mail,
     };
     try {
-      const apiUrl = `http://${config.apiServer}/api/productInCart/existProductInCart`;
+      const apiUrl = `http://${config.apiServer}/api/productInCart/existngProduct`;
       const response = await axios.post(apiUrl, newProd);
       if (response.status === 201) {
         setActionHistory((prev) => [
@@ -148,17 +170,50 @@ const ProductSuggestions = ({ cart, userMail }) => {
     }
   };
 
+  const toggleStarColor = async (productId) => {
+    const product = products.find((p) => p.productId === productId);
+    if (!product) return;
+
+    const isFav = product.starColor === "#FFD700";
+    const updatedColor = isFav ? "#D9D9D9" : "#FFD700";
+
+    setProducts((prev) =>
+      prev.map((p) =>
+        p.productId === productId ? { ...p, starColor: updatedColor } : p
+      )
+    );
+
+    try {
+      const url = isFav
+        ? `http://${config.apiServer}/api/favorite/favorite/byDetails/`
+        : `http://${config.apiServer}/api/favorite/favorite/`;
+
+      const method = isFav ? "delete" : "post";
+      const data = {
+        name: product.label,
+        image: product.image,
+        mail: userMail,
+      };
+
+      await axios({ method, url, data });
+    } catch (err) {
+      console.error("Error toggling favorite:", err.message);
+    }
+  };
+
   return (
     <View>
-      {(products.length > 0 || actionHistory.length > 0) && !isLoading && (
-        <TouchableOpacity onPress={handleUndo} style={styles.undoWrapper}>
-          <MaterialCommunityIcons
-            name="arrow-u-left-top"
-            size={35}
-            color="#FF7E3E"
-          />
-        </TouchableOpacity>
-      )}
+      {(products.length > 0 || actionHistory.length > 0) &&
+        !isLoading &&
+        !isList && (
+          <TouchableOpacity onPress={handleUndo} style={styles.undoWrapper}>
+            <MaterialCommunityIcons
+              name="arrow-u-left-top"
+              size={35}
+              color="#FF7E3E"
+            />
+          </TouchableOpacity>
+        )}
       {isLoading ? (
         <View style={styles.centerContent}>
           <Image
@@ -174,11 +229,26 @@ const ProductSuggestions = ({ cart, userMail }) => {
             style={styles.logo}
           />
           <Text style={styles.description}>אין עוד המלצות זמינות</Text>
-          <View style={{ alignItems: "center" }}>
-            <TouchableOpacity style={styles.history} onPress={() => {}}>
-              <Text style={styles.buttonText}>הצג כרשימה</Text>
+        </View>
+      ) : isList ? (
+        <View>
+          <View>
+            <TouchableOpacity
+              style={styles.backToProductView}
+              onPress={() => setIsList(false)}
+            >
+              <Text style={styles.backText}>חזרה להצגה בודדת</Text>
             </TouchableOpacity>
           </View>
+
+          <ProductListAddProd
+            products={products}
+            isLoading={isLoading}
+            onQuantityChange={handleQuantityChangeList}
+            onToggleStar={toggleStarColor}
+            cart={cart}
+            mail={userMail}
+          />
         </View>
       ) : products.length === 0 ? (
         <View style={styles.centerContent}>
@@ -190,14 +260,14 @@ const ProductSuggestions = ({ cart, userMail }) => {
         </View>
       ) : (
         <View style={styles.centerContent}>
-          <Text style={styles.prodTitle}>{currentProduct.name}</Text>
+          <Text style={styles.prodTitle}>{currentProduct.label}</Text>
           <View style={styles.product}>
             <TouchableOpacity
               style={styles.actionButton}
               onPress={() => handleDontAddProductToCart()}
             >
               <Ionicons name="chevron-back" size={80} color="#FF7E3E" />
-              <Text style={styles.nextProd}>לחץ למוצר הבא</Text>
+              <Text>לחץ למוצר הבא</Text>
             </TouchableOpacity>
             <Image
               source={
@@ -217,7 +287,7 @@ const ProductSuggestions = ({ cart, userMail }) => {
               onPress={() => handleAddProductToCart()}
             >
               <Ionicons name="chevron-forward" size={80} color="#0F872B" />
-              <Text style={styles.addToCart}>לחץ להוספה</Text>
+              <Text>לחץ להוספה</Text>
             </TouchableOpacity>
           </View>
           <View style={styles.quantityRow}>
@@ -244,7 +314,12 @@ const ProductSuggestions = ({ cart, userMail }) => {
             </TouchableOpacity>
           </View>
           <View style={{ alignItems: "center" }}>
-            <TouchableOpacity style={styles.history} onPress={() => {}}>
+            <TouchableOpacity
+              style={styles.list}
+              onPress={() => {
+                setIsList(true);
+              }}
+            >
               <Text style={styles.buttonText}>הצג כרשימה</Text>
             </TouchableOpacity>
           </View>
@@ -273,13 +348,26 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginHorizontal: 30,
   },
+  backToProductView: {
+    flexDirection: "row",
+    backgroundColor: "#F0F0F3",
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 30,
+    alignSelf: "center",
+    marginVertical: 15,
+    elevation: 7,
+  },
+  backText: {
+    fontSize: 15,
+    color: "#333",
+    fontWeight: "bold",
+  },
   actionButton: {
     paddingTop: 50,
     flexDirection: "column",
     alignItems: "center",
   },
-  nextProd: { paddingTop: 0 },
-  addToCart: { paddingTop: 0 },
   product: {
     justifyContent: "center",
     alignItems: "center",
@@ -289,6 +377,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     width: 180,
     height: 150,
+    maxWidth: 180,
+    maxHeight: 150,
   },
   quantityRow: {
     flexDirection: "row",
@@ -341,7 +431,7 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     width: 180,
     height: 150,
-    marginTop: height * 0.13,
+    marginTop: height * 0.15,
     marginBottom: 7,
   },
   description: {
@@ -355,7 +445,7 @@ const styles = StyleSheet.create({
     color: "#000",
     fontSize: 18,
   },
-  history: {
+  list: {
     flexDirection: "row",
     width: "75%",
     backgroundColor: "#fff",

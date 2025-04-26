@@ -20,7 +20,7 @@ const RejectedProductsSchema = new mongoose.Schema(
     createdAt: {
       type: Date,
       default: Date.now,
-      expires: 60*60*24 //1 day,
+      expires: 60*60*24*7 //7 day,
     },
   },
   { versionKey: false }

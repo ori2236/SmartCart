@@ -10,7 +10,7 @@ router.post(
 );
 
 router.post(
-  "/existProductInCart",
+  "/existngProduct",
   ProductInCart.postWithProductId.validator,
   ProductInCart.postWithProductId.handler
 );
