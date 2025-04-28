@@ -1,6 +1,45 @@
 import Distance from "../../models/Distance.js";
-import { runScript } from "../../services/comparingSupermarkets/getBestSupermarkets.js";
 import { Buffer } from "buffer";
+
+import { spawn } from "child_process";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+//run python script
+const runScript = (scriptName, args = []) => {
+  return new Promise((resolve, reject) => {
+    const scriptPath = path.resolve(__dirname, scriptName);
+    const process = spawn("python", [scriptPath, ...args]);
+
+    let stdout = "";
+    let stderr = "";
+
+    process.stdout.on("data", (data) => {
+      stdout += data.toString();
+    });
+
+    process.stderr.on("data", (data) => {
+      stderr += data.toString();
+    });
+
+    process.on("close", (code) => {
+      if (code !== 0) {
+        console.error("Python stderr:", stderr);
+        return reject(
+          new Error(stderr.trim() || `Process exited with code ${code}`)
+        );
+      }
+      try {
+        resolve(stdout.trim());
+      } catch (error) {
+        reject(error);
+      }
+    });
+  });
+};
 
 const encodeBase64 = (jsonObj) => {
   return Buffer.from(JSON.stringify(jsonObj), "utf-8").toString("base64");
@@ -9,6 +48,7 @@ const encodeBase64 = (jsonObj) => {
 export default {
   post: {
     validator: async (req, res, next) => {
+      console.log("using")
       const { from, destinations } = req.body;
       if (!from || !Array.isArray(destinations) || destinations.length === 0) {
         return res

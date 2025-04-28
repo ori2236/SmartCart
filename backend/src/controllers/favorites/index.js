@@ -84,57 +84,47 @@ export default {
       next();
     },
     handler: async (req, res) => {
-      const { type, content } = req.params;
+      const { mail, cartKey } = req.params;
 
       try {
-        if (type === "mail") {
-          const favorites = await Favorite.find({ mail: content });
+        const [favorites, cartProducts] = await Promise.all([
+          Favorite.find({ mail }),
+          ProductInCart.find({ cartKey }),
+        ]);
 
-          if (!favorites) {
-            return res.status(404).json({
-              error: "No favorites found for the provided mail.",
-            });
-          }
-          if (favorites.length === 0) {
-            const products = [];
-            return res.status(200).json(products);
-          }
-
-          const productIds = favorites.map((fav) => fav.productId);
-          const products = await Product.find({ _id: { $in: productIds } });
-
-          const response = favorites.map((fav) => {
-            const product = products.find(
-              (prod) => prod._id.toString() === fav.productId
-            );
-            return {
-              _id: fav.productId,
-              name: product?.name || "Unknown",
-              image: product?.image || null,
-              quantity: fav.quantity,
-            };
-          });
-
-          return res.status(200).json(response);
-        } else if (type === "productId") {
-          const favorites = await Favorite.find({ productId: content });
-
-          if (!favorites) {
-            return res.status(404).json({
-              error: "No favorites found for the provided productId.",
-            });
-          }
-          if (favorites.length === 0) {
-            const products = [];
-            return res.status(200).json(products);
-          }
-
-          return res.status(200).json(favorites);
-        } else {
-          return res
-            .status(400)
-            .json({ error: "Invalid type. Use 'mail' or 'productId'." });
+        if (favorites.length === 0) {
+          return res.status(200).json([]);
         }
+
+        const productIds = favorites.map((fav) =>
+          (fav.productId._id || fav.productId).toString()
+        );
+        
+        const products = await Product.find({
+          _id: { $in: productIds },
+        }).select("name image");
+
+        const productMap = new Map(
+          products.map((prod) => [prod._id.toString(), prod])
+        );
+        const cartProductMap = new Map(
+          cartProducts.map((p) => [p.productId.toString(), p])
+        );
+
+        const response = favorites.map((fav) => {
+          const product = productMap.get(fav.productId.toString());
+          return {
+            productId: fav.productId.toString(),
+            name: product?.name || "Unknown",
+            image: product?.image || null,
+            quantityInFavorites: fav.quantity,
+            isInCart: cartProductMap.has(fav.productId.toString()),
+            quantityInCart:
+              cartProductMap.get(fav.productId.toString())?.quantity || 0,
+          };
+        });
+
+        return res.status(200).json(response);
       } catch (error) {
         res.status(500).json({
           error: "An error occurred while processing your request.",
@@ -243,7 +233,6 @@ export default {
           type: "remove",
           productId,
         });
-
 
         res.status(200).json({
           message: "Favorite deleted successfully.",

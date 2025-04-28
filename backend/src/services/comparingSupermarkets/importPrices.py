@@ -10,6 +10,22 @@ from datetime import datetime, timezone, timedelta
 import sys
 import os
 
+"""
+import time
+from functools import wraps
+
+def measure_time(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        start_time = time.time()
+        result = func(*args, **kwargs)
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        print(f"✅ {func.__name__} took {elapsed_time:.4f} seconds")
+        return result
+    return wrapper
+"""
+
 SEMAPHORE = asyncio.Semaphore(30)
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
@@ -236,15 +252,16 @@ def clean_address(address):
     address = address.rstrip(", ").strip()
     return address
 
-def get_store_data(shopping_address, cart_quantities):
+async def get_store_data(shopping_address, cart_quantities):
     shopping_address = clean_address(shopping_address)
     product_list = list(cart_quantities.keys())
-    store_data, outdated_prices, outdated_stores = asyncio.run(get_store_data_from_db(shopping_address, product_list))
-    
+    store_data, outdated_prices, outdated_stores = await get_store_data_from_db(shopping_address, product_list)
+
     if outdated_stores:
-        asyncio.run(fetch_and_update_store_list(outdated_stores, shopping_address, store_data))
+        await fetch_and_update_store_list(outdated_stores, shopping_address, store_data)
     if outdated_prices:
-        asyncio.run(fetch_and_update_db(outdated_prices, shopping_address, store_data))
+        await fetch_and_update_db(outdated_prices, shopping_address, store_data)
+
     filtered_data, stores_missing_products = filter_stores(store_data, product_list)
     records = []
     for (store, address), data in filtered_data.items():

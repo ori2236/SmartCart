@@ -1,49 +1,10 @@
-import { spawn } from "child_process";
-import path from "path";
-import { fileURLToPath } from "url";
-import { Buffer } from "buffer";
 import ProductInCart from "../../models/ProductInCart.js";
 import Product from "../../models/Product.js";
-import SupermarketImage from "../../models/SupermarketImage.js"
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import SupermarketImage from "../../models/SupermarketImage.js";
 
-// encode JSON to Base64
-const encodeBase64 = (jsonObj) => {
-  return Buffer.from(JSON.stringify(jsonObj), "utf-8").toString("base64");
-};
+import { startPythonServer, sendToPython } from "./pythonManager.js";
 
-export const runScript = async (scriptName, args = []) => {
-  return new Promise((resolve, reject) => {
-    const scriptPath = path.resolve(__dirname, scriptName);
-    const process = spawn("python", [scriptPath, ...args]);
-
-    let stdout = "";
-    let stderr = "";
-
-    process.stdout.on("data", (data) => {
-      stdout += data.toString();
-    });
-
-    process.stderr.on("data", (data) => {
-      stderr += data.toString();
-    });
-
-    process.on("close", (code) => {
-      if (code !== 0) {
-        console.error("Python stderr:", stderr);
-        return reject(
-          new Error(stderr.trim() || `Process exited with code ${code}`)
-        );
-      }
-      try {
-        resolve(stdout.trim());
-      } catch (error) {
-        reject(error);
-      }
-    });
-  });
-};
+startPythonServer();
 
 const getBestSupermarkets = async (req, res) => {
   try {
@@ -61,7 +22,7 @@ const getBestSupermarkets = async (req, res) => {
         .status(200)
         .json({ message: "No products found in the cart." });
     }
-    
+
     const productDetails = await Product.find({
       _id: { $in: productsInCart.map((item) => item.productId) },
     });
@@ -87,7 +48,7 @@ const getBestSupermarkets = async (req, res) => {
         product_images: [],
       });
     }
-    
+
     if (!products) {
       return res.status(404).json({ error: "the cart not found" });
     } else if (products.length === 0) {
@@ -95,18 +56,19 @@ const getBestSupermarkets = async (req, res) => {
         .status(200)
         .json({ message: "No products found in the cart." });
     }
-    
+
     const product_images_list = products.map((item) => ({
       name: item.name,
       image: item.image,
     }));
-    
+
     //convert to dictionary
     const cart = {};
     for (const item of products) {
       cart[item.name] = item.quantity;
     }
-    const encodedCart = encodeBase64(cart);
+
+    /*
     const pythonOutput = await runScript("bestBranches.py", [
       encodedCart,
       address,
@@ -115,7 +77,14 @@ const getBestSupermarkets = async (req, res) => {
 
     // parse JSON response
     const { supermarkets, recommendations } = JSON.parse(pythonOutput);
+    */
+    const pythonOutput = await sendToPython({
+      cart: cart,
+      address: address,
+      alpha: alpha,
+    });
 
+    const { supermarkets, recommendations } = pythonOutput;
     if (!supermarkets) {
       return res
         .status(400)
@@ -142,15 +111,14 @@ const getBestSupermarkets = async (req, res) => {
       ...s,
       logo: logoMap[s.Store] || null,
     }));
-    
+
     res.status(200).json({
       supermarkets: supermarketsWithLogos,
       recommendations,
       product_images: product_images_list,
     });
-
   } catch (error) {
-    console.log(error)
+    console.log(error);
     res.status(500).json({ error: error.message });
   }
 };

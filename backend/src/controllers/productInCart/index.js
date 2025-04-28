@@ -162,29 +162,31 @@ export default {
 
       try {
         if (type === "cartKey") {
-          const productsInCart = await ProductInCart.find({ cartKey: content });
-          if (productsInCart.length === 0) {
-            const user = await User.findOne({ mail: userMail });
-            const nickname = user?.nickname || "";
+          const [productsInCart, user] = await Promise.all([
+            ProductInCart.find({ cartKey: content }),
+            User.findOne({ mail: userMail }).select("nickname"),
+          ]);
 
+          const nickname = user?.nickname || "";
+
+          if (productsInCart.length === 0) {
             return res.status(200).json({
               userNickname: nickname,
               products: [],
             });
           }
 
+          const productIds = productsInCart.map((item) => item.productId);
           const productDetails = await Product.find({
-            _id: { $in: productsInCart.map((item) => item.productId) },
-          });
+            _id: { $in: productIds },
+          }).select("name image");
 
-          const user = await User.findOne({ mail: userMail });
-          const nickname = user.nickname;
+          const productMap = new Map(
+            productDetails.map((p) => [p._id.toString(), p])
+          );
 
           const response = productsInCart.map((item) => {
-            const product = productDetails.find(
-              (prod) => prod._id.toString() === item.productId.toString()
-            );
-
+            const product = productMap.get(item.productId.toString());
             return {
               productId: item.productId,
               quantity: item.quantity,
@@ -195,6 +197,7 @@ export default {
               }),
             };
           });
+
           return res.status(200).json({
             userNickname: nickname,
             products: response,

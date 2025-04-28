@@ -6,7 +6,7 @@ const router = Router();
 router.post("/favorite", favorites.post.validator, favorites.post.handler);
 
 router.get(
-  "/favorite/:type/:content",
+  "/favorite/:mail/:cartKey",
   favorites.get.validator,
   favorites.get.handler
 );

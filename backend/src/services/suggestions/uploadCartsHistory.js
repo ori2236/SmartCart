@@ -8,9 +8,14 @@ const uploadAll = async () => {
   await connectDB();
 
   const folderPath = path.resolve("./cart_histories"); 
-  const files = fs
-    .readdirSync(folderPath)
-    .filter((file) => file.endsWith(".csv"));
+  const files = fs.readdirSync(folderPath).filter((file) => {
+    if (!file.endsWith(".csv")) return false;
+    const match = file.match(/cart_history_cart(\d+)\.csv/);
+    if (!match) return false;
+    const cartNumber = parseInt(match[1]);
+    return cartNumber >= 22 && cartNumber <= 50;
+  });
+
 
   for (const file of files) {
     const filePath = path.join(folderPath, file);

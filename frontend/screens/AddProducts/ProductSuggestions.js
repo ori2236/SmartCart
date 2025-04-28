@@ -9,7 +9,7 @@ import {
   Image,
 } from "react-native";
 import axios from "axios";
-import ProductListAddProd from "../addProducts/ProductListAddProd";
+import ProductListAddProd from "./ProductListAddProd";
 import { Ionicons } from "@expo/vector-icons";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import config from "../../config";
@@ -18,7 +18,6 @@ const { height } = Dimensions.get("window");
 
 const ProductSuggestions = ({ cart, userMail }) => {
   const [products, setProducts] = useState([]);
-  const [favorites, setFavorites] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [currentProduct, setCurrentProduct] = useState({});
   const [isDone, setIsDone] = useState(false);
@@ -28,25 +27,18 @@ const ProductSuggestions = ({ cart, userMail }) => {
   useEffect(() => {
     const fetchAll = async () => {
       try {
-        const favUrl = `http://${config.apiServer}/api/favorite/favorite/mail/${userMail}`;
-        const favRes = await axios.get(favUrl);
-        const favoritesData = favRes.data || [];
-        setFavorites(favoritesData);
+        const apiUrl = `http://${config.apiServer}/api/suggestions/suggestions/${cart.cartKey}/${userMail}`;
+        const response = await axios.get(apiUrl);
 
-        const suggUrl = `http://${config.apiServer}/api/suggestions/suggestions/${cart.cartKey}/${userMail}`;
-        const suggRes = await axios.get(suggUrl);
-
-        if (suggRes.status === 200 && suggRes.data.length > 0) {
-          const putQuantity = suggRes.data.map((product) => {
-            const isFavorite = favoritesData.some(
-              (fav) => fav._id === product.productId
-            );
+        if (response.status === 200 && response.data.length > 0) {
+          const putQuantity = response.data.map((product) => {
             return {
               productId: product.productId,
               label: product.name,
               image: product.image || null,
               quantity: 1,
-              starColor: isFavorite ? "#FFD700" : "#D9D9D9",
+              isInCart: false,
+              starColor: product.isFavorite ? "#FFD700" : "#D9D9D9",
             };
           });
 
@@ -201,6 +193,12 @@ const ProductSuggestions = ({ cart, userMail }) => {
     }
   };
 
+  const handleRemoveProduct = (productId) => {
+    setProducts((prevProducts) =>
+      prevProducts.filter((p) => p.productId !== productId)
+    );
+  };
+
   return (
     <View>
       {(products.length > 0 || actionHistory.length > 0) &&
@@ -248,6 +246,7 @@ const ProductSuggestions = ({ cart, userMail }) => {
             onToggleStar={toggleStarColor}
             cart={cart}
             mail={userMail}
+            onRemoveProduct={handleRemoveProduct}
           />
         </View>
       ) : products.length === 0 ? (

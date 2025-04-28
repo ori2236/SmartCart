@@ -22,9 +22,9 @@ const ProductListAddProd = ({
   onQuantityChange,
   onToggleStar,
   cart,
-  mail
+  mail,
+  onRemoveProduct,
 }) => {
-  const [cartProducts, setCartProducts] = useState([]);
   const [buttonStates, setButtonStates] = useState([]);
 
   useEffect(() => {
@@ -33,51 +33,17 @@ const ProductListAddProd = ({
 
       products.forEach((product) => {
         if (!updatedStates[product.productId]) {
-          const inCart = cartProducts.find(
-            (cartProd) => cartProd.productId === product.productId
-          );
           updatedStates[product.productId] = {
-            isAdded: !!inCart,
+            isAdded: product.isInCart || false,
             isUpdated: false,
-            originalQuantity: inCart ? inCart.quantity : 0,
+            originalQuantity: product.quantity || 0,
           };
         }
       });
 
       return updatedStates;
     });
-  }, [products, cartProducts]);
-
-  useEffect(() => {
-    if (!mail || !cart?.cartKey) return;
-
-    const fetchCartProducts = async () => {
-      try {
-        const apiUrl = `http://${config.apiServer}/api/productInCart/productInCart/cartKey/${cart.cartKey}?userMail=${mail}`;
-        const response = await axios.get(apiUrl);
-        const { userNickname, products: data } = response.data;
-
-        if (data.message === "No products found for the provided cartKey.") {
-          setCartProducts([]);
-        } else {
-          const cartProductsData = data.map((product) => ({
-            productId: product.productId,
-            label: product.name,
-            image: product.image || null,
-            quantity: product.quantity,
-          }));
-          setCartProducts(cartProductsData);
-        }
-      } catch (error) {
-        console.error("Error fetching cart products:", error.message);
-        setCartProducts([]);
-      }
-    };
-
-    fetchCartProducts();
-  }, [mail, cart?.cartKey]);
-
-
+  }, [products]);
 
   const updateButtonState = (productId, state) => {
     setButtonStates((prevState) => ({
@@ -109,12 +75,17 @@ const ProductListAddProd = ({
             isUpdated: false,
             originalQuantity: quantity,
           });
+
+          onRemoveProduct?.(product.productId);
         }
       } catch (error) {
         console.error("Error adding suggested product:", error.message);
       }
+      console.log("here2");
       return;
     }
+
+    console.log("here")
 
     const name = product.label;
     const image = product.image;

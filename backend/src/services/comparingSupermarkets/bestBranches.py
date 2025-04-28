@@ -3,7 +3,6 @@ import json
 import sys
 import base64
 import math
-import requests
 from importPrices import get_store_data
 
 import requests
@@ -13,16 +12,37 @@ from distance_calculator import calculate_distances
 from src.db.db import get_db
 from pymongo.errors import BulkWriteError
 
+import asyncio
+
+import time
+from functools import wraps
+"""
+def measure_time(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        start_time = time.time()
+        result = func(*args, **kwargs)
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        print(f"✅ {func.__name__} took {elapsed_time:.4f} seconds")
+        return result
+    return wrapper
+
+    @measure_time
+"""
 db = get_db()
 distance_collection = db["distances"]
+distance_collection.create_index([("from", 1), ("to", 1)], unique=True)
 
-def get_distances(cart_address, address_list):
-    existing_docs = distance_collection.find({
-        "from": cart_address,
-        "to": {"$in": address_list}
-    })
 
+async def get_distances(cart_address, address_list):
+    existing_docs = distance_collection.aggregate([
+        {"$match": {"from": cart_address, "to": {"$in": address_list}}},
+        {"$project": {"to": 1, "distance": 1, "_id": 0}}
+    ])
     existing_map = {doc["to"]: doc["distance"] for doc in existing_docs}
+
+
     missing_addresses = [addr for addr in address_list if addr not in existing_map]
 
     result_distances = [
@@ -31,8 +51,7 @@ def get_distances(cart_address, address_list):
     ]
 
     if missing_addresses:
-        new_distances_raw = calculate_distances(cart_address, missing_addresses)
-
+        new_distances_raw = await calculate_distances(cart_address, missing_addresses)
         new_docs = []
         for d in new_distances_raw:
             if d["Distance (km)"] is not None:
@@ -43,48 +62,13 @@ def get_distances(cart_address, address_list):
                 }
                 result_distances.append(doc)
                 new_docs.append(doc)
-
+                
         if new_docs:
             try:
                 distance_collection.insert_many(new_docs, ordered=False)
             except BulkWriteError:
                 pass
-
     return result_distances
-"""
-from distance_calculator import calculate_distances
-
-def get_distances(cart_address, address_list):
-    url = "http://localhost:3000/api/distance/distances"
-    payload = {
-        "from": cart_address,
-        "destinations": address_list
-    }
-
-    try:
-        response = requests.post(url, json=payload)
-        if response.status_code != 200:
-            return []
-
-        distances = response.json()
-        return distances
-
-    except requests.RequestException as e:
-        return []
-"""
-def price_score(price, max_price, min_price):
-    if max_price == min_price:
-        return 10 
-    return 10 - 9 * (price - min_price) / (max_price - min_price)
-
-def distance_score(distance):
-    too_far = 5  # maximum relevant distance in km
-    if distance >= too_far:
-        return 1  # too far
-    elif distance <= 0:
-        return 10  # very close
-    else:
-        return 10 - (distance / too_far) * 9  # scale score between 1 and 10
 
 
 def calculate_total_price(unit_price, quantity, sale_price, required_quantity):
@@ -96,8 +80,8 @@ def calculate_total_price(unit_price, quantity, sale_price, required_quantity):
     total_price = (num_of_discount_groups * sale_price * required_quantity) + (remaining_units * unit_price)
     return total_price
 
-def get_best_supermarkets(cart, address, alpha):
-    df, recommended_removals = get_store_data(address, cart) #send the products
+async def get_best_supermarkets(cart, address, alpha):
+    df, recommended_removals = await get_store_data(address, cart) #send the products
     if df.empty:
         return [], recommended_removals
     # price columns (second and above)
@@ -115,8 +99,8 @@ def get_best_supermarkets(cart, address, alpha):
             )
     df['price'] = df[[col for col in df.columns if "(Total Price)" in col]].sum(axis=1, min_count=1)
     store_addresses = df['Address'].tolist()
-    distance_results = get_distances(address, store_addresses)
-    
+    distance_results = await get_distances(address, store_addresses)
+
     if not distance_results:
         return [], recommended_removals
     
@@ -131,12 +115,18 @@ def get_best_supermarkets(cart, address, alpha):
 
     # scores
     max_price, min_price = df['price'].max(), df['price'].min()
-    df['price_score'] = df['price'].apply(lambda x: price_score(x, max_price, min_price))
-    df['distance_score'] = df['distance'].apply(distance_score)
+    if max_price == min_price:
+        df['price_score'] = 10
+    else:
+        df['price_score'] = 10 - 9 * (df['price'] - min_price) / (max_price - min_price)
+
+    too_far = 5  #maximum relevant distance in km
+    df['distance_score'] = 10 - 9 * (df['distance'] / too_far)
+    df['distance_score'] = df['distance_score'].clip(lower=1, upper=10) #scale score between 1 and 10
 
     # final score
     df['final_score'] = (alpha * df['price_score'] + (1 - alpha) * df['distance_score'])
-    df['final_score'] = df['final_score'].apply(lambda x: min(5, math.ceil(x / 2))) #final_score to 1-5: dividing by 2 and rounding up, 5 max
+    df['final_score'] = (df['final_score'] / 2).clip(upper=5).apply(math.ceil) #final_score to 1-5: dividing by 2 and rounding up, 5 max
 
 
     # add the price per product
@@ -152,26 +142,35 @@ def decode_base64(encoded_str):
     decoded_bytes = base64.b64decode(encoded_str)
     return json.loads(decoded_bytes.decode('utf-8'))
 
-if __name__ == "__main__":
+async def main():
     try:
-        
-        cart = decode_base64(sys.argv[1])
-        address = sys.argv[2]
-        alpha = float(sys.argv[3])
+        raw_input = sys.stdin.read()
+        data = json.loads(raw_input)
+
+        cart = data["cart"]
+        address = data["address"]
+        alpha = float(data["alpha"])
 
         """
         alpha = 0.5
-        address = "יששכר 1, נתניה"
-        cart = {
-            'חלב תנובה טרי 3% בקרטון, 1 ליטר': 7,
-            'נוטלה ממרח אגוז, 750 גרם': 1
-            }
+        address = "יוסף 5, נתניה"
+        cart ={
+            'חלב תנובה טרי 3% בקרטון, 1 ליטר': 5,
+            'נוטלה ממרח אגוז, 750 גרם': 5,
+            'קפה נמס רד מאג, 200 גרם': 1,
+            'שוקולית אבקה להכנת משקה בטעם שוקו, 500 גרם': 1,
+            'יין כרמל סלקטד מרלו, 750 מ"ל': 1
+        }
+        
         """
 
-        supermarkets, recommendations = get_best_supermarkets(cart, address, alpha)
+        supermarkets, recommendations = await get_best_supermarkets(cart, address, alpha)
         output = {"supermarkets": supermarkets, "recommendations": recommendations}
 
         print(json.dumps(output), flush=True)
 
     except Exception as e:
         print(json.dumps({"error": str(e)}), flush=True)
+
+if __name__ == "__main__":
+    asyncio.run(main())

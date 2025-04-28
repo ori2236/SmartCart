@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -7,11 +7,10 @@ import {
   StyleSheet,
   Dimensions,
   Platform,
-  PanResponder,
 } from "react-native";
 import ProductSearch from "./ProductSearch";
 import ProductFavorites from "./ProductFavorites";
-import ProductSuggestions from "../suggestions/ProductSuggestions.js";
+import ProductSuggestions from "./ProductSuggestions.js";
 import { useNavigation } from "@react-navigation/native";
 
 const { width, height } = Dimensions.get("window");

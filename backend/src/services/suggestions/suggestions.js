@@ -6,6 +6,7 @@ import mostPurchased from "./algorithms/mostPurchased.js";
 import Product from "../../models/Product.js";
 import Cart from "../../models/Cart.js";
 import RejectedProducts from "../../models/RejectedProducts.js";
+import Favorite from "../../models/Favorite.js";
 import { filterAvailableProducts } from "./availableProducts.js";
 
 function cleanAddress(address) {
@@ -108,10 +109,16 @@ export async function suggestions(req, res) {
       availableSet.has(p._id.toString())
     );
 
+    const favorites = await Favorite.find({ mail }).lean();
+    const favoriteIds = new Set(
+      favorites.map((fav) => fav.productId.toString())
+    );
+
     const response = finalProducts.map((p) => ({
       productId: p._id.toString(),
       name: p.name,
       image: p.image,
+      isFavorite: favoriteIds.has(p._id.toString()),
     }));
 
     return res.status(200).json(response);
