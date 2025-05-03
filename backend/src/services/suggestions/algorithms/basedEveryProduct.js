@@ -115,12 +115,16 @@ export async function basedEveryProduct(cartProductIds, K) {
       }
     }
 
-    //sort and return top 5 products with the highest scores
+    //sort and return top k products with the highest scores
     const scores = [...totalScores.entries()]
       .sort((a, b) => b[1] - a[1])
       .slice(0, K);
 
-    return scores.map(([productId, score]) => ({ productId, score }));
+    return scores.map(([productId, score]) => ({
+      productId,
+      score,
+      algorithm: 0,
+    }));
   } catch (err) {
     console.error("Recommendation error:", err.message);
     return [];

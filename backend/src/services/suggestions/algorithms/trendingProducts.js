@@ -19,7 +19,7 @@ export async function trendingProducts(cartProductIds, k) {
         const sorted = hotProducts
           .sort((a, b) => b.score - a.score)
           .slice(0, k)
-          .map(({ productId, score }) => ({ productId, score }));
+          .map(({ productId, score }) => ({ productId, score, algorithm: 1 }));
 
         return sorted
       }
@@ -86,15 +86,15 @@ export async function trendingProducts(cartProductIds, k) {
     },
   ]);
 
-  const productIds = trending.map((item) => item._id);
-
   const toInsert = trending.map(({ _id, score }) => {
     const id = _id.toString();
     return {
       productId: id,
       score,
+      algorithm: 1,
     };
   });
+
 
   await HotProduct.insertMany(
     toInsert.map((r) => ({

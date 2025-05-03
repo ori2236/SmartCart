@@ -224,7 +224,7 @@ const styles = StyleSheet.create({
   },
   flatListContent: {
     alignItems: "center",
-    paddingBottom: 60,
+    paddingBottom: 100,
   },
   centerContent: {
     justifyContent: "center",

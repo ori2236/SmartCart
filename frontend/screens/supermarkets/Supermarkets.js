@@ -400,6 +400,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     width: "100%",
     backgroundColor: "#FFFFFF",
+    paddingBottom: 50,
   },
   bottomIcon: {
     width: 30,

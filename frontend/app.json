@@ -3,6 +3,7 @@
     "name": "SmartCart",
     "slug": "SmartCart",
     "version": "1.0.0",
+    "scheme": "smartcart",
     "orientation": "portrait",
     "icon": "./assets/logo.png",
     "userInterfaceStyle": "light",
@@ -19,13 +20,12 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/logo.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.orilevi.SmartCart"
     },
     "web": {
       "favicon": "./assets/logo.png"
     },
-    "plugins": [
-      "expo-secure-store"
-    ]
+    "plugins": ["expo-secure-store"]
   }
 }

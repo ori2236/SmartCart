@@ -230,6 +230,7 @@ const styles = StyleSheet.create({
   },
   scrollableContainer: {
     flex: 1,
+    marginBottom: 50
   },
   centerContent: {
     justifyContent: "center",

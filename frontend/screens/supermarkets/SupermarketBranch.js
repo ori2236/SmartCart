@@ -73,7 +73,7 @@ const SupermarketBranch = ({ route }) => {
       <FlatList
         data={product_images}
         keyExtractor={(item, index) => index.toString()}
-        contentContainerStyle={{ paddingBottom: 60 }}
+        contentContainerStyle={{ paddingBottom: 95 }}
         ListHeaderComponent={
           <View>
             <View style={styles.contentContainer}>
@@ -237,6 +237,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     width: "100%",
     backgroundColor: "#FFFFFF",
+    paddingBottom: 50,
   },
   bottomIcon: {
     width: 30,

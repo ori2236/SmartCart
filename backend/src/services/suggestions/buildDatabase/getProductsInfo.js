@@ -1,5 +1,5 @@
-import { connectDB } from "../../db/index.js";
-import Product from "../../models/Product.js";
+import { connectDB } from "../../../db/index.js";
+import Product from "../../../models/Product.js";
 
 import fs from "fs";
 

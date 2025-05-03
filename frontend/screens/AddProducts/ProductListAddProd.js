@@ -81,11 +81,10 @@ const ProductListAddProd = ({
       } catch (error) {
         console.error("Error adding suggested product:", error.message);
       }
-      console.log("here2");
       return;
     }
-
-    console.log("here")
+    /*
+    console.log("by name")
 
     const name = product.label;
     const image = product.image;
@@ -131,7 +130,7 @@ const ProductListAddProd = ({
       } else {
         console.error("Error adding product to cart:", error.message);
       }
-    }
+    }*/
   };
 
   const handleUpdateProductInCart = async (product) => {
@@ -423,7 +422,7 @@ const styles = StyleSheet.create({
   },
   flatListContent: {
     alignItems: "center",
-    paddingBottom: 410,
+    paddingBottom: 450,
   },
   centerContent: {
     justifyContent: "center",

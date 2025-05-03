@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -11,14 +11,14 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
   Platform,
+  FlatList,
 } from "react-native";
 import axios from "axios";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
-import { GooglePlacesAutocomplete } from "react-native-google-places-autocomplete";
 import config from "../../config";
 
-const { width, height } = Dimensions.get("window");
+const { height } = Dimensions.get("window");
 
 export default function NewCart({ route }) {
   const { userMail } = route.params;
@@ -26,52 +26,64 @@ export default function NewCart({ route }) {
   const [cartName, setCartName] = useState("");
   const [address, setAddress] = useState("");
   const [isAddressSelected, setIsAddressSelected] = useState(false);
-  const [errors, setErrors] = useState({
-    cartName: "",
-    address: "",
-  });
-  const prevAddressRef = useRef("");
+  const [suggestions, setSuggestions] = useState([]);
+  const [errors, setErrors] = useState({ cartName: "", address: "" });
 
   const handleCreateCart = async () => {
     let newErrors = { cartName: "", address: "" };
-
-    if (!cartName.trim()) {
-      newErrors.cartName = "שדה זה הינו חובה";
-    }
-    if (!address.trim()) {
-      newErrors.address = "שדה זה הינו חובה";
-    } else if (!isAddressSelected) {
-      newErrors.address = "יש לבחור כתובת מהרשימה";
-    }
+    if (!cartName.trim()) newErrors.cartName = "שדה זה הינו חובה";
+    if (!address.trim()) newErrors.address = "שדה זה הינו חובה";
+    else if (!isAddressSelected) newErrors.address = "יש לבחור כתובת מהרשימה";
 
     setErrors(newErrors);
-    if (Object.values(newErrors).some((error) => error !== "")) {
-      return;
-    }
-
-    const newCart = {
-      name: cartName,
-      address,
-      mail: userMail,
-    };
+    if (Object.values(newErrors).some((e) => e)) return;
 
     try {
       const apiUrl = `http://${config.apiServer}/api/cart/cart`;
-      const response = await axios.post(apiUrl, newCart);
+      const response = await axios.post(apiUrl, {
+        name: cartName,
+        address,
+        mail: userMail,
+      });
       if (response.status === 201) {
         navigation.navigate("MyCarts");
       }
     } catch (error) {
-      let newErrors = { cartName: "", address: "" };
-
-      if (error.status === 400) {
-        newErrors.cartName = "שדה זה הינו חובה";
-        newErrors.address = "שדה זה הינו חובה";
-      } else if (error.status === 500) {
-        console.error(error);
-      }
-      setErrors(newErrors);
+      console.error(error);
+      setErrors({
+        cartName: "שדה זה הינו חובה",
+        address: "שדה זה הינו חובה",
+      });
     }
+  };
+
+  const handleAddressChange = async (text) => {
+    setAddress(text);
+    setIsAddressSelected(false);
+    setErrors((prev) => ({ ...prev, address: "" }));
+
+    if (text.length < 3) {
+      setSuggestions([]);
+      return;
+    }
+
+    try {
+      const apiUrl = `http://${config.apiServer}/api/address/completeAddress`;
+      const response = await axios.get(apiUrl, {
+        params: { input: text },
+      });
+      
+      setSuggestions(response.data.predictions || []);
+
+    } catch (err) {
+      console.error("Autocomplete error:", err);
+    }
+  };
+
+  const handleSuggestionSelect = (description) => {
+    setAddress(description);
+    setSuggestions([]);
+    setIsAddressSelected(true);
   };
 
   return (
@@ -96,6 +108,7 @@ export default function NewCart({ route }) {
             <Ionicons name="cart-outline" style={styles.profileIcon} />
             <Text style={styles.titleText}>יצירת עגלה</Text>
           </View>
+
           <View style={styles.container}>
             <View style={styles.inputContainerCartName}>
               <TextInput
@@ -104,9 +117,8 @@ export default function NewCart({ route }) {
                 value={cartName}
                 onChangeText={(text) => {
                   setCartName(text);
-                  setErrors({ ...errors, cartName: "" });
+                  setErrors((prev) => ({ ...prev, cartName: "" }));
                 }}
-                keyboardType="text"
                 textAlign="right"
               />
               {errors.cartName ? (
@@ -115,63 +127,31 @@ export default function NewCart({ route }) {
             </View>
 
             <View style={styles.inputContainer}>
-              <GooglePlacesAutocomplete
-                placeholder="הכנס כתובת..."
-                onPress={(data, details = null) => {
-                  const fullAddress = details?.formatted_address;
-                  setAddress(fullAddress);
-                  setErrors({ ...errors, address: "" });
-                  setIsAddressSelected(true);
-                }}
-                fetchDetails={true}
-                textInputProps={{
-                  onChangeText: (text) => {
-                    if (text !== prevAddressRef.current) {
-                      prevAddressRef.current = text;
-                      setAddress(text);
-                      if (errors.address === "שדה זה הינו חובה") {
-                        setErrors((prev) => ({ ...prev, address: "" }));
-                      }
-                      setIsAddressSelected(false);
-                    }
-                  },
-                }}
-                query={{
-                  key: config.GOOGLE_MAPS_API_KEY,
-                  language: "iw",
-                  components: "country:il",
-                }}
-                debounce={300}
-                minLength={2}
-                enablePoweredByContainer={false}
-                styles={{
-                  textInput: {
-                    height: 40,
-                    borderBottomWidth: 1,
-                    borderBottomColor: "#000",
-                    marginBottom: 10,
-                    backgroundColor: "#fff",
-                    fontSize: 16,
-                    textAlign: "right",
-                    direction: "rtl",
-                  },
-                  row: {
-                    flexDirection: "row-reverse",
-                  },
-                  description: {
-                    textAlign: "right",
-                    direction: "rtl",
-                  },
-                  listView: {
-                    backgroundColor: "#fff",
-                    position: "absolute",
-                    top: 50,
-                    zIndex: 200,
-                  },
-                }}
+              <TextInput
+                style={styles.input}
+                placeholder="כתובת"
+                value={address}
+                onChangeText={handleAddressChange}
+                textAlign="right"
               />
+              {suggestions.length > 0 && (
+                <FlatList
+                  data={suggestions}
+                  keyExtractor={(item) => item.place_id}
+                  renderItem={({ item }) => (
+                    <TouchableOpacity
+                      onPress={() => handleSuggestionSelect(item.description)}
+                    >
+                      <Text style={styles.suggestionItem}>
+                        {item.description}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                  style={styles.suggestionList}
+                />
+              )}
               {errors.address ? (
-                <Text style={styles.errorTextAddress}>{errors.address}</Text>
+                <Text style={styles.errorText}>{errors.address}</Text>
               ) : null}
             </View>
 
@@ -223,8 +203,6 @@ const styles = StyleSheet.create({
   },
   container: {
     paddingTop: 65,
-    flexDirection: "column",
-    justifyContent: "center",
     alignItems: "center",
     padding: 20,
   },
@@ -233,7 +211,8 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     width: "95%",
-    height: 80,
+    position: "relative",
+    zIndex: 100,
   },
   input: {
     height: 40,
@@ -249,16 +228,6 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     textAlign: "right",
   },
-  errorTextAddress: {
-    color: "red",
-    fontSize: 14,
-    marginBottom: 10,
-    textAlign: "right",
-  },
-  forgotPasswordText: {
-    fontSize: 15,
-    textAlign: "right",
-  },
   getInButton: {
     width: "75%",
     backgroundColor: "#0F872B",
@@ -270,5 +239,17 @@ const styles = StyleSheet.create({
   buttonText: {
     color: "#fff",
     fontSize: 18,
+  },
+  suggestionList: {
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#ccc",
+    maxHeight: 150,
+  },
+  suggestionItem: {
+    padding: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
+    textAlign: "right",
   },
 });

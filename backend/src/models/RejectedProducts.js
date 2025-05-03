@@ -18,16 +18,16 @@ const RejectedProductsSchema = new mongoose.Schema(
       required: true,
     },
     createdAt: {
+      /////////////////////////////////////key
       type: Date,
       default: Date.now,
-      expires: 60*60*24*7 //7 day,
     },
   },
   { versionKey: false }
 );
 
 RejectedProductsSchema.index(
-  { cartKey: 1, productId: 1, rejectedBy: 1 },
+  { cartKey: 1, productId: 1, rejectedBy: 1, createdAt: 1 },
   { unique: true }
 );
 

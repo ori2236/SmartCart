@@ -52,7 +52,9 @@ export async function intervals(cartProductIds, cartKey, k = 5) {
       return {
         productId,
         score: dates.length,
+        algorithm: 2,
       };
+
     }
 
     return null;

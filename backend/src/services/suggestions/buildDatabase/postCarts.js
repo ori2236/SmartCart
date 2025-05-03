@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
-import { connectDB } from "../../db/index.js";
-import Cart from "../../models/Cart.js";
+import { connectDB } from "../../../db/index.js";
+import Cart from "../../../models/Cart.js";
 
 const addresses = [
   "הנביאים 12, ירושלים",

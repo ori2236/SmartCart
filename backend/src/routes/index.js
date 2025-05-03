@@ -10,7 +10,8 @@ import Distance from "./Distance/index.js";
 import WaitingList from "./WaitingList/index.js"
 import CartHistory from "./CartHistory/index.js";
 import Suggestions from "./Suggestions/index.js";
-import RejectedProducts from "./RejectedProducts/index.js"
+import RejectedProducts from "./RejectedProducts/index.js";
+import Address from "./Address/index.js";
 const router = Router();
 
 router
@@ -25,6 +26,7 @@ router
   .use("/waitingList", WaitingList)
   .use("/cartHistory", CartHistory)
   .use("/suggestions", Suggestions)
-  .use("/rejectedProducts", RejectedProducts);
+  .use("/rejectedProducts", RejectedProducts)
+  .use("/address", Address);
 
 export default router;

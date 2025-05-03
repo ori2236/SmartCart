@@ -1,8 +1,8 @@
 import fs from "fs";
 import path from "path";
 import csvParser from "csv-parser";
-import { connectDB } from "../../db/index.js";
-import CartHistory from "../../models/CartHistory.js";
+import { connectDB } from "../../../db/index.js";
+import CartHistory from "../../../models/CartHistory.js";
 
 const uploadAll = async () => {
   await connectDB();

@@ -27,6 +27,7 @@ async function mostPurchasedByTimes(cartProductIds, cartKey, k) {
     return {
       productId: id,
       score,
+      algorithm: 3,
     };
   });
 
@@ -60,7 +61,9 @@ async function mostPurchasedByQuantity(cartProductIds, cartKey, k) {
     return {
       productId: id,
       score,
+      algorithm: 4,
     };
+
   });
 
   return finalResults;
@@ -85,7 +88,7 @@ export async function mostPurchased(cartProductIds, cartKey, K) {
     ...mostPurchasedByQuantityResponse,
   ]) {
     if (!map.has(item.productId)) {
-      map.set(item.productId, { productId: item.productId });
+      map.set(item.productId, item);
     }
   }
 

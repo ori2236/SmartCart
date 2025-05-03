@@ -45,7 +45,8 @@ const ShoppingCart = ({ route }) => {
             image: update.product.image,
             quantity: update.product.quantity,
             updatedBy:
-              update.product.updatedBy === userNicknameRef.current? "את/ה"
+              update.product.updatedBy === userNicknameRef.current
+                ? "את/ה"
                 : update.product.updatedBy,
           };
           setProducts((prev) => [...prev, newProduct]);
@@ -264,7 +265,6 @@ const ShoppingCart = ({ route }) => {
     }));
   };
 
-  
   const handleUndo = async () => {
     const lastAction = actionHistory[actionHistory.length - 1];
     if (!lastAction) return;
@@ -294,7 +294,7 @@ const ShoppingCart = ({ route }) => {
         const apiUrl = `http://${config.apiServer}/api/productInCart/existngProduct`;
         const response = await axios.post(apiUrl, undoData);
         if (response.status !== 201) {
-          console.error(response)
+          console.error(response);
         }
       }
 
@@ -469,27 +469,25 @@ const styles = StyleSheet.create({
     textAlignVertical: "center",
   },
   cartNameRow: {
-  justifyContent: "center",
-  alignItems: "center",
-  position: "relative",
-  marginBottom: 25,
-  paddingTop: 5,
-},
+    justifyContent: "center",
+    alignItems: "center",
+    position: "relative",
+    marginBottom: 25,
+    paddingTop: 5,
+  },
 
-cartName: {
-  color: "#000000",
-  fontSize: 20,
-  fontWeight: "bold",
-  textAlign: "center",
-},
+  cartName: {
+    color: "#000000",
+    fontSize: 20,
+    fontWeight: "bold",
+    textAlign: "center",
+  },
 
-undoWrapper: {
-  position: "absolute",
-  left: 20,
-  top: 10,
-}
-,
-
+  undoWrapper: {
+    position: "absolute",
+    left: 20,
+    top: 10,
+  },
   bottomNavigation: {
     flexDirection: "row",
     justifyContent: "space-around",
@@ -500,6 +498,7 @@ undoWrapper: {
     bottom: 0,
     width: "100%",
     backgroundColor: "#FFFFFF",
+    paddingBottom: 50,
   },
   bottomIcon: {
     width: 30,

@@ -61,7 +61,7 @@ export async function filterAvailableProducts(products, cartAddress) {
   const notFoundSet = new Set(notFoundEntries.map((e) => e.product_name));
 
   const missingEntries = [];
-  const availableProductIds = [];
+  const availableProducts = [];
   const notFoundToInsert = [];
 
   //same time
@@ -74,7 +74,7 @@ export async function filterAvailableProducts(products, cartAddress) {
 
       //if there is stores in the cart address area that sell the product
       if (storeEntry && storeEntry.stores && storeEntry.stores.length > 0) {
-        availableProductIds.push(productId);
+        availableProducts.push([productId, storeEntry.stores.length]);
         return;
       }
 
@@ -86,7 +86,7 @@ export async function filterAvailableProducts(products, cartAddress) {
 
       //the product is sells in the cart address (there is stores)
       if (sellingStores.length > 0) {
-        availableProductIds.push(productId);
+        availableProducts.push([productId, sellingStores.length]);
         //update FindStores later with the info
         missingEntries.push({
           cart_address: cartAddress,
@@ -121,5 +121,5 @@ export async function filterAvailableProducts(products, cartAddress) {
     }
   }
 
-  return availableProductIds;
+  return availableProducts;
 }
