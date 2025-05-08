@@ -78,7 +78,7 @@ const uploadAll = async () => {
     });
   }
 
-  console.log("🚀 all the carts uploaded");
+  console.log("all the carts uploaded");
   process.exit();
 };
 

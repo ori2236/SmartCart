@@ -21,7 +21,7 @@ def measure_time(func):
         result = func(*args, **kwargs)
         end_time = time.time()
         elapsed_time = end_time - start_time
-        print(f"✅ {func.__name__} took {elapsed_time:.4f} seconds")
+        print(f"{func.__name__} took {elapsed_time:.4f} seconds")
         return result
     return wrapper
 """
@@ -32,8 +32,8 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../.
 from src.db.db import get_db
 
 db = get_db()
-find_stores = db["FindStores"]
-find_prices = db["FindPrices"]
+find_stores = db["findStores"]
+find_prices = db["findPrices"]
 find_stores.create_index([("cart_address", 1), ("product_name", 1)])
 find_prices.create_index([("product_name", 1), ("store_name", 1), ("store_address", 1)])
 

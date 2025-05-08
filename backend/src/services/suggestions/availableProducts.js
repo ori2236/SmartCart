@@ -1,7 +1,7 @@
 import fetch from "node-fetch";
 import * as cheerio from "cheerio";
 import find_stores from "../../models/FindStores.js";
-import notFoundStores from "../../models/NotFoundStores.js";
+import NotFoundStores from "../../models/NotFoundStores.js";
 
 async function fetchCHPStores(productName, shoppingAddress) {
   try {
@@ -43,22 +43,22 @@ async function fetchCHPStores(productName, shoppingAddress) {
 
 export async function filterAvailableProducts(products, cartAddress) {
   const productNames = products.map((p) => p.name);
-  const storeEntries = await find_stores.find({
-    cart_address: cartAddress,
-    product_name: { $in: productNames },
-  });
+  const productIds = products.map((p) => p._id.toString());
+
+  const [storeEntries, notFoundEntries] = await Promise.all([
+    find_stores.find({
+      cart_address: cartAddress,
+      product_name: { $in: productNames },
+    }),
+    NotFoundStores.find({
+      cart_address: cartAddress,
+      productId: { $in: productIds },
+    }),
+  ]);
 
   //convert store results to a map
-  const storeMap = new Map();
-  storeEntries.forEach((entry) => {
-    storeMap.set(entry.product_name, entry);
-  });
-
-  const notFoundEntries = await notFoundStores.find({
-    cart_address: cartAddress,
-    product_name: { $in: productNames },
-  });
-  const notFoundSet = new Set(notFoundEntries.map((e) => e.product_name));
+  const storeMap = new Map(storeEntries.map((e) => [e.product_name, e]));
+  const notFoundSet = new Set(notFoundEntries.map((e) => e.productId));
 
   const missingEntries = [];
   const availableProducts = [];
@@ -67,30 +67,28 @@ export async function filterAvailableProducts(products, cartAddress) {
   //same time
   await Promise.all(
     products.map(async (p) => {
-      const productId = p._id.toString();
-      const productName = p.name;
-
-      const storeEntry = storeMap.get(productName);
+      const name = p.name;
+      const entry = storeMap.get(name);
 
       //if there is stores in the cart address area that sell the product
-      if (storeEntry && storeEntry.stores && storeEntry.stores.length > 0) {
-        availableProducts.push([productId, storeEntry.stores.length]);
+      if (entry?.stores?.length) {
+        availableProducts.push([p._id.toString(), entry.stores.length]);
         return;
       }
 
       //if we know that the product is not sells in the cart address
-      if (notFoundSet.has(productName)) return;
+      if (notFoundSet.has(p._id.toString())) return;
 
       //fetch from CHP
-      const sellingStores = await fetchCHPStores(productName, cartAddress);
+      const sellingStores = await fetchCHPStores(name, cartAddress);
 
       //the product is sells in the cart address (there is stores)
       if (sellingStores.length > 0) {
-        availableProducts.push([productId, sellingStores.length]);
+        availableProducts.push([p._id.toString(), sellingStores.length]);
         //update FindStores later with the info
         missingEntries.push({
           cart_address: cartAddress,
-          product_name: productName,
+          product_name: name,
           stores: sellingStores,
           last_updated: new Date(),
         });
@@ -98,26 +96,27 @@ export async function filterAvailableProducts(products, cartAddress) {
         //update NotFoundStores later with the info
         notFoundToInsert.push({
           cart_address: cartAddress,
-          product_name: productName,
+          product_name: name,
+          productId: p._id.toString(),
           last_updated: new Date(),
         });
       }
     })
   );
 
-  if (missingEntries.length > 0) {
+  if (missingEntries.length) {
     try {
       await find_stores.insertMany(missingEntries, { ordered: false });
-    } catch (error) {
-      console.warn("insertMany error:", error.message);
+    } catch (err) {
+      console.warn("insertMany find_stores:", err.message);
     }
   }
 
-  if (notFoundToInsert.length > 0) {
+  if (notFoundToInsert.length) {
     try {
-      await notFoundStores.insertMany(notFoundToInsert, { ordered: false });
-    } catch (e) {
-      console.warn("insertMany error:", e.message);
+      await NotFoundStores.insertMany(notFoundToInsert, { ordered: false });
+    } catch (err) {
+      console.warn("insertMany notFoundStores:", err.message);
     }
   }
 

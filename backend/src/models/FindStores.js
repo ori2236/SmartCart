@@ -14,5 +14,5 @@ const FindStoresSchema = new mongoose.Schema(
   { versionKey: false }
 );
 
-const FindStores = mongoose.model("FindStores", FindStoresSchema, "FindStores");
+const FindStores = mongoose.model("FindStores", FindStoresSchema, "findStores");
 export default FindStores;

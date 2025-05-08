@@ -10,8 +10,6 @@ import RejectedProducts from "../../models/RejectedProducts.js";
 | purchasedBefore           | 0/1    | whether the product was purchased in this cart before        | done
 | timesPurchased            | int    | how many times the product was purchased in this cart        | done
 | recentlyPurchased         | 0/1    | whether it was purchased in the last 30 days                 | done
-| algorithm                 | int    | which algorithm suggested the product                        | done
-| score                     | float  | the score of suggesting algorithm                            | done
 | storeCount                | int    | the amount of stores selling the product in the cart area    | done
 | timesWasRejectedByUser    | int    | the amount of times the product was rejected by the user     | done
 | timesWasRejectedByCart    | int    | the amount of times the product was rejected by the cart     | done

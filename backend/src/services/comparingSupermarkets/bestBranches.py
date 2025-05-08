@@ -5,7 +5,6 @@ import base64
 import math
 from importPrices import get_store_data
 
-import requests
 import json
 
 from distance_calculator import calculate_distances
@@ -13,10 +12,10 @@ from src.db.db import get_db
 from pymongo.errors import BulkWriteError
 
 import asyncio
-
+"""
 import time
 from functools import wraps
-"""
+
 def measure_time(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
@@ -24,7 +23,7 @@ def measure_time(func):
         result = func(*args, **kwargs)
         end_time = time.time()
         elapsed_time = end_time - start_time
-        print(f"✅ {func.__name__} took {elapsed_time:.4f} seconds")
+        print(f"{func.__name__} took {elapsed_time:.4f} seconds")
         return result
     return wrapper
 

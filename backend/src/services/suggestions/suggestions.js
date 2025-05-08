@@ -7,41 +7,10 @@ import Product from "../../models/Product.js";
 import Cart from "../../models/Cart.js";
 import RejectedProducts from "../../models/RejectedProducts.js";
 import Favorite from "../../models/Favorite.js";
+import NotFoundStores from "../../models/NotFoundStores.js";
 import { filterAvailableProducts } from "./availableProducts.js";
 import { fetchFeatures } from "./features.js";
-
-function normalizeScores(products) {
-  //classify the products by algo
-  const classifyByAlgo = new Map();
-  for (const [productId, data] of products.entries()) {
-    const algo = data.algorithm;
-    if (!classifyByAlgo.has(algo)) {
-      classifyByAlgo.set(algo, []);
-    }
-    classifyByAlgo.get(algo).push({ productId, score: data.score });
-  }
-
-  //normalize the algorithm's scores: score_norm = (score - minScore) / (maxScore - minScore)
-  for (const [algo, entries] of classifyByAlgo.entries()) {
-    const scores = entries.map((e) => e.score);
-    const min = Math.min(...scores);
-    const max = Math.max(...scores);
-
-    //avoid division by zero
-    const range = max - min || 1;
-
-    //set the normalize score
-    for (const { productId, score } of entries) {
-      const data = products.get(productId);
-      products.set(productId, {
-        ...data,
-        scoreNormalized: (score - min) / range,
-      });
-    }
-  }
-
-  return products;
-}
+import { rankProducts } from "./predictPurchases.js";
 
 function cleanAddress(address) {
   address = address.trim();
@@ -51,7 +20,13 @@ function cleanAddress(address) {
   return address.replace(/,+$/, "").trim();
 }
 
-async function getProducts(cartProductIdsSet, shoudNotSuggest, cartKey, times) {
+//apply the algorithms to finf products
+async function getProducts(
+  cartProductIdsSet,
+  shouldNotSuggest,
+  cartKey,
+  times
+) {
   const [
     basedEveryProductResponse,
     trendingProductsResponse,
@@ -61,7 +36,7 @@ async function getProducts(cartProductIdsSet, shoudNotSuggest, cartKey, times) {
     basedEveryProduct([...cartProductIdsSet], times),
     trendingProducts([...cartProductIdsSet], times),
     intervals([...cartProductIdsSet], cartKey, times),
-    mostPurchased([...shoudNotSuggest], cartKey, times),
+    mostPurchased([...shouldNotSuggest], cartKey, times),
   ]);
 
   const all = [
@@ -71,51 +46,63 @@ async function getProducts(cartProductIdsSet, shoudNotSuggest, cartKey, times) {
     ...mostPurchasedResponse,
   ];
 
+  //make sure that the suggestions are not in shouldNotSuggest
   const filtered = all.filter(
-    (item) => item?.productId && !shoudNotSuggest.has(item.productId.toString())
+    (item) =>
+      item?.productId && !shouldNotSuggest.has(item.productId.toString())
   );
 
   return filtered;
 }
 
-export async function suggestions(req, res) {
-  const { cartKey, mail } = req.params;
-  const k = 3;
+export async function getFilteredProducts(cartKey, mail, k = 3) {
+  const cart = await Cart.findById(cartKey);
+  if (!cart) {
+    console.error("Cart not found");
+    return null;
+  }
+  const cartAddress = cleanAddress(cart.address);
+
+  const [
+    cartProductIdsArr,
+    rejectedProductsIdsArr,
+    favoriteIds,
+    notFoundProductIdsArr,
+  ] = await Promise.all([
+    ProductInCart.find({ cartKey }).then((docs) =>
+      docs.map((p) => p.productId.toString())
+    ),
+    RejectedProducts.find({ cartKey, rejectedBy: mail }).then((docs) => {
+      const limit = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000); //2 weeks
+      return docs
+        .filter((doc) => doc.createdAt >= limit)
+        .map((p) => p.productId.toString());
+    }),
+    Favorite.find({ mail })
+      .lean()
+      .then((favs) => new Set(favs.map((f) => f.productId.toString()))),
+    NotFoundStores.find({ cart_address: cartAddress }).then((entries) =>
+      entries.map((e) => e.productId)
+    ),
+  ]);
+
+  if (!cart) {
+    console.error("Cart not found");
+    return null;
+  }
+
+  const cartProductIdsSet = new Set(cartProductIdsArr);
+  const rejectedProductsIdsSet = new Set(rejectedProductsIdsArr);
   const MAX_ROUNDS = 4;
-
   try {
-    const [cartProductIdsArr, rejectedProductsIdsArr, favorites] =
-      await Promise.all([
-        ProductInCart.find({ cartKey }).then((docs) =>
-          docs.map((p) => p.productId.toString())
-        ),
-        RejectedProducts.find({ cartKey, rejectedBy: mail }).then((docs) => {
-          const limit = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000); //2 weeks
-          return docs
-            .filter((doc) => doc.createdAt >= limit)
-            .map((p) => p.productId.toString());
-        }),
-        Favorite.find({ mail }).lean(),
-      ]);
-
-    const cartProductIdsSet = new Set(cartProductIdsArr);
-    const rejectedProductsIdsSet = new Set(rejectedProductsIdsArr);
-    const favoriteIds = new Set(
-      favorites.map((fav) => fav.productId.toString())
-    );
-
-    const shoudNotSuggest = new Set([
+    const shouldNotSuggest = new Set([
       ...cartProductIdsSet,
       ...rejectedProductsIdsSet,
+      ...notFoundProductIdsArr,
     ]);
-    const collectedProducts = new Map();
-
-    let round = 0;
     const availableProductEntries = new Map(); // productId -> productData
 
-    const cart = await Cart.findById(cartKey);
-    if (!cart) return res.status(404).json({ message: "Cart not found" });
-    const cartAddress = cleanAddress(cart.address);
+    let round = 0;
 
     //make sure that suggest enough products
     while (round < MAX_ROUNDS && availableProductEntries.size < 6) {
@@ -125,16 +112,15 @@ export async function suggestions(req, res) {
       //get the products from the algorithms
       const newRecommendations = await getProducts(
         cartProductIdsSet,
-        shoudNotSuggest,
+        shouldNotSuggest,
         cartKey,
         Math.pow(k, round)
       );
 
       newRecommendations.forEach((rec) => {
-        shoudNotSuggest.add(rec.productId.toString());
-        collectedProducts.set(rec.productId.toString(), rec);
+        shouldNotSuggest.add(rec.productId.toString());
       });
-      
+
       const newProductIds = newRecommendations.map((rec) =>
         rec.productId.toString()
       );
@@ -147,51 +133,70 @@ export async function suggestions(req, res) {
       );
 
       for (const [productId, storeCount] of newAvailableEntries) {
-        const productData = collectedProducts.get(productId);
-        const productDoc = products.find((p) => p._id.toString() === productId);
+        const product = products.find((p) => p._id.toString() === productId);
 
-        if (
-          productData &&
-          productDoc &&
-          !availableProductEntries.has(productId)
-        ) {
+        if (product && !availableProductEntries.has(productId)) {
           availableProductEntries.set(productId, {
-            product: productDoc,
+            product,
             storeCount,
-            score: productData.score,
-            algorithm: productData.algorithm,
             isFavorite: favoriteIds.has(productId),
           });
         }
       }
     }
 
-    if (availableProductEntries.size === 0) return res.status(200).json([]);
-
-    //normalize the algorithm's scores
-    const normalizeScoresProductEntries = normalizeScores(
-      availableProductEntries
-    );
+    if (availableProductEntries.size === 0) {
+      console.log("no recommendations available");
+      return new Map();
+    }
 
     //fetch the features of the products
     const features = await fetchFeatures(
-      normalizeScoresProductEntries,
+      availableProductEntries,
       cartKey,
       mail
     );
+
+    return features; //Map <productId, meta>
+  } catch (err) {
+    console.error("Recommendation error:", err.message);
+  }
+}
+
+async function suggestions(req, res) {
+  const { cartKey, mail } = req.params;
+
+  try {
+    const features = await getFilteredProducts(cartKey, mail);
+
+    if (!features || features.size === 0) {
+      return res.status(200).json([]);
+    }
+
+    const sortedProductIds = await rankProducts(features);
+
     /*
-    for (const [productId, meta] of features.entries()) {
+    for (const { productId } of sortedProductIds) {
+      const meta = features.get(productId);
       console.log(
-        `${productId} | score: ${meta.scoreNormalized} | algo: ${meta.algorithm} | stores: ${meta.storeCount} | fav: ${meta.isFavorite} | purchased: ${meta.purchasedBefore} | times: ${meta.timesPurchased} | recently: ${meta.recentlyPurchased} | rejectedByUser: ${meta.timesWasRejectedByUser} | rejectedByCart: ${meta.timesWasRejectedByCart}`
+        `${productId} | stores: ${meta.storeCount} | fav: ${meta.isFavorite} | ` +
+          `purchased: ${meta.purchasedBefore} | times: ${meta.timesPurchased} | ` +
+          `recently: ${meta.recentlyPurchased} | ` +
+          `rejectedByUser: ${meta.timesWasRejectedByUser} | ` +
+          `rejectedByCart: ${meta.timesWasRejectedByCart}`
       );
     }
     */
-    const response = [...availableProductEntries.values()].map((entry) => ({
-      productId: entry.product._id.toString(),
-      name: entry.product.name,
-      image: entry.product.image,
-      isFavorite: favoriteIds.has(entry.product._id.toString()),
-    }));
+
+    const response = sortedProductIds.map(({ productId }) => {
+      const meta = features.get(productId);
+      return {
+        productId,
+        name: meta.product.name,
+        image: meta.product.image,
+        isFavorite: meta.isFavorite,
+      };
+    });
 
     return res.status(200).json(response);
   } catch (err) {
