@@ -23,6 +23,8 @@ const ProductSuggestions = ({ cart, userMail }) => {
   const [isDone, setIsDone] = useState(false);
   const [isList, setIsList] = useState(false);
   const [actionHistory, setActionHistory] = useState([]);
+  const [isNextLoading, setIsNextLoading] = useState(false);
+const [isAddLoading, setIsAddLoading] = useState(false);
 
   useEffect(() => {
     const fetchAll = async () => {
@@ -71,6 +73,8 @@ const ProductSuggestions = ({ cart, userMail }) => {
   };
 
   const handleAddProductToCart = async () => {
+     if (isAddLoading) return;
+     setIsAddLoading(true);
     const product = currentProduct;
     const productId = product.productId;
     const cartKey = cart.cartKey;
@@ -94,6 +98,8 @@ const ProductSuggestions = ({ cart, userMail }) => {
       }
     } catch (error) {
       console.error(error.message);
+    } finally {
+      setIsAddLoading(false);
     }
   };
 
@@ -112,6 +118,9 @@ const ProductSuggestions = ({ cart, userMail }) => {
 
   //add to rejected products
   const handleDontAddProductToCart = async () => {
+    if (isNextLoading) return;
+    setIsNextLoading(true);
+
     const cartKey = cart.cartKey;
     const productId = currentProduct.productId;
     const mail = userMail;
@@ -132,6 +141,8 @@ const ProductSuggestions = ({ cart, userMail }) => {
       }
     } catch (error) {
       console.error(error);
+    } finally {
+      setIsNextLoading(false);
     }
   };
 
@@ -262,8 +273,9 @@ const ProductSuggestions = ({ cart, userMail }) => {
           <Text style={styles.prodTitle}>{currentProduct.label}</Text>
           <View style={styles.product}>
             <TouchableOpacity
-              style={styles.actionButton}
-              onPress={() => handleDontAddProductToCart()}
+              style={[styles.actionButton, isNextLoading && { opacity: 0.5 }]}
+              onPress={handleDontAddProductToCart}
+              disabled={isNextLoading} //can not press while loading
             >
               <Ionicons name="chevron-back" size={80} color="#FF7E3E" />
               <Text>לחץ למוצר הבא</Text>
@@ -282,8 +294,9 @@ const ProductSuggestions = ({ cart, userMail }) => {
               resizeMode="contain"
             />
             <TouchableOpacity
-              style={styles.actionButton}
-              onPress={() => handleAddProductToCart()}
+              style={[styles.actionButton, isAddLoading && { opacity: 0.5 }]}
+              onPress={handleAddProductToCart}
+              disabled={isAddLoading} //can not press while loading
             >
               <Ionicons name="chevron-forward" size={80} color="#0F872B" />
               <Text>לחץ להוספה</Text>

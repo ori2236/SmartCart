@@ -68,16 +68,6 @@ const getBestSupermarkets = async (req, res) => {
       cart[item.name] = item.quantity;
     }
 
-    /*
-    const pythonOutput = await runScript("bestBranches.py", [
-      encodedCart,
-      address,
-      alpha.toString(),
-    ]);
-
-    // parse JSON response
-    const { supermarkets, recommendations } = JSON.parse(pythonOutput);
-    */
     const pythonOutput = await sendToPython({
       cart: cart,
       address: address,

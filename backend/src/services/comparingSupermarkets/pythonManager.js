@@ -25,6 +25,11 @@ export const startPythonServer = () => {
     console.error("[Python stderr]:", data.trim());
   });
 
+  /*
+  pythonProcess.stdout.on("data", (data) => {
+    console.error("[Python stdout]:", data.trim());
+  });
+  */
   pythonProcess.on("close", (code) => {
     console.log(`[Python process exited with code ${code}]`);
   });

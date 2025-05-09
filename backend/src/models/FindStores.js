@@ -14,5 +14,10 @@ const FindStoresSchema = new mongoose.Schema(
   { versionKey: false }
 );
 
+FindStoresSchema.index(
+  { cart_address: 1, product_name: 1 },
+  { unique: true }
+);
+
 const FindStores = mongoose.model("FindStores", FindStoresSchema, "findStores");
 export default FindStores;

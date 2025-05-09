@@ -1,17 +1,14 @@
 import pandas as pd
 import json
-import sys
-import base64
 import math
 from importPrices import get_store_data
-
-import json
 
 from distance_calculator import calculate_distances
 from src.db.db import get_db
 from pymongo.errors import BulkWriteError
 
 import asyncio
+
 """
 import time
 from functools import wraps
@@ -98,8 +95,8 @@ async def get_best_supermarkets(cart, address, alpha):
             )
     df['price'] = df[[col for col in df.columns if "(Total Price)" in col]].sum(axis=1, min_count=1)
     store_addresses = df['Address'].tolist()
+    
     distance_results = await get_distances(address, store_addresses)
-
     if not distance_results:
         return [], recommended_removals
     
@@ -126,33 +123,39 @@ async def get_best_supermarkets(cart, address, alpha):
     # final score
     df['final_score'] = (alpha * df['price_score'] + (1 - alpha) * df['distance_score'])
     df['final_score'] = (df['final_score'] / 2).clip(upper=5).apply(math.ceil) #final_score to 1-5: dividing by 2 and rounding up, 5 max
+    
+    price_cols = [f"{product}" for product in cart]
 
+    # make sure the column dtype can hold None
+    df[price_cols] = df[price_cols].astype(object)
 
-    # add the price per product
-    df['product_prices'] = df[[f"{product}" for product in cart]].to_dict(orient="records")
+    #insert None if null
+    df[price_cols] = df[price_cols].where(df[price_cols].notna(), other=None)
+    
+    #add the price per product
+    df['product_prices'] = df[price_cols].to_dict(orient="records")
 
-    # sort by final score (descending order) and return top 5
+    #sort by final score (descending order) and return top 5
     columns_to_keep = ['Store', 'Address', 'price', 'distance', 'final_score', 'product_prices']
     top_5_supermarkets = df.sort_values(by='final_score', ascending=False).head(5)[columns_to_keep]
-
     return top_5_supermarkets.to_dict(orient="records"), recommended_removals
 
-def decode_base64(encoded_str):
-    decoded_bytes = base64.b64decode(encoded_str)
-    return json.loads(decoded_bytes.decode('utf-8'))
 
 async def main():
     try:
-        raw_input = sys.stdin.read()
-        data = json.loads(raw_input)
-
-        cart = data["cart"]
-        address = data["address"]
-        alpha = float(data["alpha"])
-
-        """
         alpha = 0.5
-        address = "יוסף 5, נתניה"
+        address = "יששכר 1, נתניה"
+        """
+        cart ={
+            'נוטלה ממרח אגוז, 750 גרם': 5,
+            'חלב דל לקטוז 2% קרטון, 1 ליטר': 2,
+            'פיינט קרם עוגיות, 500 מ"ל': 1,
+            'שקדי מרק, 400 גרם': 1,
+            'קטשופ, 700 גרם': 1,
+            'מילקי מעדן חלב בטעם שוקולד עם קצפת, 170 מ"ל': 1,
+            'שוקולית אבקה להכנת משקה בטעם שוקו, 500 גרם': 2
+        }
+        """
         cart ={
             'חלב תנובה טרי 3% בקרטון, 1 ליטר': 5,
             'נוטלה ממרח אגוז, 750 גרם': 5,
@@ -161,15 +164,12 @@ async def main():
             'יין כרמל סלקטד מרלו, 750 מ"ל': 1
         }
         
-        """
-
         supermarkets, recommendations = await get_best_supermarkets(cart, address, alpha)
         output = {"supermarkets": supermarkets, "recommendations": recommendations}
-
-        print(json.dumps(output), flush=True)
+        print(output)
 
     except Exception as e:
-        print(json.dumps({"error": str(e)}), flush=True)
+        print("error", e)
 
 if __name__ == "__main__":
     asyncio.run(main())
