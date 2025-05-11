@@ -12,6 +12,7 @@ import axios from "axios";
 import ProductListAddProd from "./ProductListAddProd";
 import { Ionicons } from "@expo/vector-icons";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
+import { io } from "socket.io-client";
 import config from "../../config";
 
 const { height } = Dimensions.get("window");
@@ -24,38 +25,42 @@ const ProductSuggestions = ({ cart, userMail }) => {
   const [isList, setIsList] = useState(false);
   const [actionHistory, setActionHistory] = useState([]);
   const [isNextLoading, setIsNextLoading] = useState(false);
-const [isAddLoading, setIsAddLoading] = useState(false);
-
+  const [isAddLoading, setIsAddLoading] = useState(false);
+  const [round, setRound] = useState(0);
+  
   useEffect(() => {
-    const fetchAll = async () => {
-      try {
-        const apiUrl = `http://${config.apiServer}/api/suggestions/suggestions/${cart.cartKey}/${userMail}`;
-        const response = await axios.get(apiUrl);
+    const socket = io(`http://${config.apiServer}`);
 
-        if (response.status === 200 && response.data.length > 0) {
-          const putQuantity = response.data.map((product) => {
-            return {
-              productId: product.productId,
-              label: product.name,
-              image: product.image || null,
-              quantity: 1,
-              isInCart: false,
-              starColor: product.isFavorite ? "#FFD700" : "#D9D9D9",
-            };
-          });
+    socket.emit("startSuggestions", {
+      cartKey: cart.cartKey,
+      mail: userMail,
+    });
 
-          setProducts(putQuantity);
-          setCurrentProduct(putQuantity[0]);
-        }
-      } catch (err) {
-        console.error("שגיאה בטעינה:", err.message);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+    //the round in the server
+    socket.on("round", ({ round }) => {
+      setRound(round);
+    });
 
-    fetchAll();
-  }, [cart]);
+    //the suggestions
+    socket.on("done", ({ response }) => {
+      const initial = response.map((p) => ({
+        productId: p.productId,
+        label: p.name,
+        image: p.image || null,
+        quantity: 1,
+        starColor: p.isFavorite ? "#FFD700" : "#D9D9D9",
+      }));
+      setProducts(initial);
+      setCurrentProduct(initial[0] || {});
+      setIsLoading(false);
+    });
+
+    socket.on("error", ({ message }) => {
+      console.error("Recommendation error:", message);
+      setIsLoading(false);
+    });
+
+  }, [cart.cartKey, userMail]);
 
   const handleQuantityChange = (change) => {
     const newQuantity = Math.max(currentProduct.quantity + change, 0);
@@ -73,8 +78,8 @@ const [isAddLoading, setIsAddLoading] = useState(false);
   };
 
   const handleAddProductToCart = async () => {
-     if (isAddLoading) return;
-     setIsAddLoading(true);
+    if (isAddLoading) return;
+    setIsAddLoading(true);
     const product = currentProduct;
     const productId = product.productId;
     const cartKey = cart.cartKey;
@@ -229,7 +234,12 @@ const [isAddLoading, setIsAddLoading] = useState(false);
             source={require("../../assets/logo.png")}
             style={styles.logo}
           />
-          <Text style={styles.description}>טוען המלצות...</Text>
+          <Text style={styles.description}>
+            {(!round || round === 1) && "טוען המלצות..."}
+            {round === 2 && "טוען המלצות נוספות..."}
+            {round === 3 && "משיג המלצות רלוונטיות..."}
+            {round === 4 && "יוצר המלצות אישיות..."}
+          </Text>
         </View>
       ) : isDone ? (
         <View style={styles.centerContent}>

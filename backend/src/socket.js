@@ -1,13 +1,11 @@
 import { Server } from "socket.io";
+import suggestions from "./services/suggestions/suggestions.js";
 
 let io;
 
 export function initSocket(server) {
   io = new Server(server, {
-    cors: {
-      origin: "*",
-      methods: ["GET", "POST", "PUT", "DELETE"],
-    },
+    cors: { origin: "*", methods: ["GET", "POST", "PUT", "DELETE"] },
   });
 
   io.on("connection", (socket) => {
@@ -15,14 +13,20 @@ export function initSocket(server) {
       socket.join(cartKey);
     });
 
-    socket.on("joinUserFavorites", (userMail) => {
-      socket.join(`favorites-${userMail}`);
-    });
-
-    socket.on("disconnect", () => {
+    socket.on("startSuggestions", async ({ cartKey, mail, k = 3 }) => {
+      try {
+        const onRound = (round) => {
+          socket.emit("round", { round });
+        };
+        const response = await suggestions(cartKey, mail, k, onRound);
+        socket.emit("done", { response });
+      } catch (err) {
+        socket.emit("error", { message: err.message });
+      }
     });
   });
 }
+
 
 export function emitCartUpdate(cartKey, update) {
   if (io) {

@@ -55,7 +55,7 @@ async function getProducts(
   return filtered;
 }
 
-export async function getFilteredProducts(cartKey, mail, k = 3) {
+export async function getFilteredProducts(cartKey, mail, k, onRound) {
   const cart = await Cart.findById(cartKey);
   if (!cart) {
     console.error("Cart not found");
@@ -107,7 +107,7 @@ export async function getFilteredProducts(cartKey, mail, k = 3) {
     //make sure that suggest enough products
     while (round < MAX_ROUNDS && availableProductEntries.size < 6) {
       round++;
-      //console.log(round);
+      onRound?.(round);
 
       //get the products from the algorithms
       const newRecommendations = await getProducts(
@@ -163,14 +163,12 @@ export async function getFilteredProducts(cartKey, mail, k = 3) {
   }
 }
 
-async function suggestions(req, res) {
-  const { cartKey, mail } = req.params;
-
+async function suggestions(cartKey, mail, k, onRound) {
   try {
-    const features = await getFilteredProducts(cartKey, mail);
+    const features = await getFilteredProducts(cartKey, mail, k, onRound);
 
     if (!features || features.size === 0) {
-      return res.status(200).json([]);
+      return [];
     }
 
     const sortedProductIds = await rankProducts(features);
@@ -183,12 +181,12 @@ async function suggestions(req, res) {
           `purchased: ${meta.purchasedBefore} | times: ${meta.timesPurchased} | ` +
           `recently: ${meta.recentlyPurchased} | ` +
           `rejectedByUser: ${meta.timesWasRejectedByUser} | ` +
-          `rejectedByCart: ${meta.timesWasRejectedByCart}`
+          rejectedByCart: ${meta.timesWasRejectedByCart}
       );
     }
     */
 
-    const response = sortedProductIds.map(({ productId }) => {
+    const suggestions = sortedProductIds.map(({ productId }) => {
       const meta = features.get(productId);
       return {
         productId,
@@ -198,12 +196,9 @@ async function suggestions(req, res) {
       };
     });
 
-    return res.status(200).json(response);
+    return suggestions;
   } catch (err) {
     console.error("Recommendation error:", err.message);
-    return res
-      .status(500)
-      .json({ message: "Error generating recommendations" });
   }
 }
 
