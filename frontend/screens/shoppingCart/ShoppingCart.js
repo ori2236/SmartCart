@@ -16,7 +16,7 @@ import ProductListShopList from "./ProductListShopList";
 import { io } from "socket.io-client";
 import config from "../../config";
 
-const { width, height } = Dimensions.get("window");
+const { height } = Dimensions.get("window");
 
 const ShoppingCart = ({ route }) => {
   const { userMail, cart } = route.params;
@@ -94,7 +94,7 @@ const ShoppingCart = ({ route }) => {
       setIsLoading(true);
 
       try {
-        const apiUrl = `http://${config.apiServer}/api/productInCart/productInCart/cartKey/${cart.cartKey}?userMail=${userMail}`;
+        const apiUrl = `http://${config.apiServer}/api/productInCart/productInCart/${cart.cartKey}?userMail=${userMail}`;
         const response = await axios.get(apiUrl);
         const { userNickname, products: data } = response.data;
 
@@ -196,7 +196,7 @@ const ShoppingCart = ({ route }) => {
 
   const handleRemoveProductFromCart = async (productId) => {
     try {
-      const apiUrl = `http://${config.apiServer}/api/productInCart/productInCart/${cart.cartKey}/${productId}`;
+      const apiUrl = `http://${config.apiServer}/api/productInCart/productInCart/${cart.cartKey}/${productId}/${userMail}`;
       const response = await axios.delete(apiUrl);
       if (response.status == 200) {
         setProducts((prevProducts) =>
@@ -228,6 +228,7 @@ const ShoppingCart = ({ route }) => {
       const boughtProduct = {
         cartKey: cart.cartKey,
         productId,
+        mail: userMail,
       };
       const apiUrl = `http://${config.apiServer}/api/cartHistory/cartHistory`;
       const response = await axios.post(apiUrl, boughtProduct);
@@ -257,14 +258,6 @@ const ShoppingCart = ({ route }) => {
     }
   };
 
-  const replaceUpdatedByWithYou = (products, userNickname) => {
-    return products.map((product) => ({
-      ...product,
-      updatedBy:
-        product.updatedBy === userNickname ? "את/ה" : product.updatedBy,
-    }));
-  };
-
   const handleUndo = async () => {
     const lastAction = actionHistory[actionHistory.length - 1];
     if (!lastAction) return;
@@ -290,6 +283,7 @@ const ShoppingCart = ({ route }) => {
           productId: lastAction.product.id,
           quantity: lastAction.product.quantity,
           mail: userMail,
+          explaination: "undo",
         };
         const apiUrl = `http://${config.apiServer}/api/productInCart/existngProduct`;
         const response = await axios.post(apiUrl, undoData);
@@ -475,14 +469,12 @@ const styles = StyleSheet.create({
     marginBottom: 25,
     paddingTop: 5,
   },
-
   cartName: {
     color: "#000000",
     fontSize: 20,
     fontWeight: "bold",
     textAlign: "center",
   },
-
   undoWrapper: {
     position: "absolute",
     left: 20,

@@ -38,7 +38,6 @@ export default {
       }
     },
   },
-
   get: {
     validator: async (req, res, next) => {
       next();

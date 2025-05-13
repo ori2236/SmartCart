@@ -92,7 +92,7 @@ const ProductSuggestions = ({ cart, userMail }) => {
       mail,
     };
     try {
-      const apiUrl = `http://${config.apiServer}/api/productInCart/existngProduct`;
+      const apiUrl = `http://${config.apiServer}/api/productInCart/productInCart`;
       const response = await axios.post(apiUrl, newProd);
       if (response.status === 201) {
         setActionHistory((prev) => [
@@ -192,18 +192,14 @@ const ProductSuggestions = ({ cart, userMail }) => {
     );
 
     try {
-      const url = isFav
-        ? `http://${config.apiServer}/api/favorite/favorite/byDetails/`
-        : `http://${config.apiServer}/api/favorite/favorite/`;
+      const apiUrl = `http://${config.apiServer}/api/favorite/favorite/`;
 
       const method = isFav ? "delete" : "post";
       const data = {
-        name: product.label,
-        image: product.image,
+        productId,
         mail: userMail,
       };
-
-      await axios({ method, url, data });
+      await axios({ method, url: apiUrl, data });
     } catch (err) {
       console.error("Error toggling favorite:", err.message);
     }

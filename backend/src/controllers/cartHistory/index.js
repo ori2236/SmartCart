@@ -3,21 +3,23 @@ import ProductInCart from "../../models/ProductInCart.js";
 import CartHistory from "../../models/CartHistory.js";
 import User from "../../models/User.js";
 import Product from "../../models/Product.js";
+import TrainingExample from "../../models/TrainingExample.js";
+import { fetchAllFeatures } from "../../services/suggestions/features.js";
 
 export default {
   post: {
     validator: async (req, res, next) => {
-      const { cartKey, productId } = req.body;
-      if (!cartKey || !productId) {
+      const { cartKey, productId, mail } = req.body;
+      if (!cartKey || !productId || !mail) {
         return res.status(400).json({
-          error: "cartKey and productId are required.",
+          error: "cartKey, productId and mail are required.",
         });
       }
 
       next();
     },
     handler: async (req, res) => {
-      const { cartKey, productId } = req.body;
+      const { cartKey, productId, mail } = req.body;
 
       try {
         const existingProductInCart = await ProductInCart.findOne({
@@ -48,6 +50,29 @@ export default {
           quantity: existingProductInCart.quantity,
         });
 
+        //fetch the product's features
+        const features = await fetchAllFeatures(productId, cartKey, mail);
+        const feat = features.get(productId) || {};
+
+        const featuresArray = [
+          1,
+          feat.isFavorite ?? 0,
+          feat.purchasedBefore ?? 0,
+          feat.timesPurchased ?? 0,
+          feat.recentlyPurchased ?? 0,
+          feat.storeCount ?? 0,
+          feat.timesWasRejectedByCart ?? 0,
+          feat.timesWasRejectedByUser ?? 0,
+        ];
+
+        const label = 1;
+
+        await TrainingExample.create({
+          productId,
+          features: featuresArray,
+          label,
+        });
+
         res.status(201).json({
           message: "Product added to cart history successfully.",
           product: newInCartHistory,
@@ -72,7 +97,6 @@ export default {
 
       next();
     },
-
     handler: async (req, res) => {
       const { cartKey, productId, quantity, mail } = req.body;
 
@@ -95,6 +119,11 @@ export default {
             message: "Product not found in cart history.",
           });
         }
+
+        await TrainingExample.deleteOne({
+          productId,
+          label: 1,
+        });
 
         const existingInCart = await ProductInCart.findOne({
           cartKey,

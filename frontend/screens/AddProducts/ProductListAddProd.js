@@ -67,7 +67,7 @@ const ProductListAddProd = ({
       };
 
       try {
-        const apiUrl = `http://${config.apiServer}/api/productInCart/existngProduct`;
+        const apiUrl = `http://${config.apiServer}/api/productInCart/productInCart`;
         const response = await axios.post(apiUrl, newProd);
         if (response.status === 201) {
           updateButtonState(product.productId, {
@@ -83,54 +83,6 @@ const ProductListAddProd = ({
       }
       return;
     }
-    /*
-    console.log("by name")
-
-    const name = product.label;
-    const image = product.image;
-
-    const newProd = {
-      name,
-      image,
-      cartKey,
-      quantity,
-      mail,
-    };
-    try {
-      const apiUrl = `http://${config.apiServer}/api/productInCart/productInCart`;
-      const response = await axios.post(apiUrl, newProd);
-      if (response.status >= 200 && response.status < 300) {
-        product.productId = response.data._id;
-        updateButtonState(product.productId, {
-          isAdded: true,
-          isUpdated: false,
-          originalQuantity: quantity,
-        });
-      }
-    } catch (error) {
-      if (error.response && error.response.status === 400) {
-        // if the product already in the cart update it
-        try {
-
-          existingProductId = error.response.data.productId;
-          const updateUrl = `http://${config.apiServer}/api/productInCart/productInCart/${cartKey}/${existingProductId}`;
-          const updateRes = await axios.put(updateUrl, { quantity, mail });
-
-          if (updateRes.status === 200) {
-            product.productId = existingProductId;
-            updateButtonState(product.productId, {
-              isAdded: true,
-              isUpdated: false,
-              originalQuantity: quantity,
-            });
-          }
-        } catch (updateError) {
-          console.error("Error updating product to cart:", updateError.message);
-        }
-      } else {
-        console.error("Error adding product to cart:", error.message);
-      }
-    }*/
   };
 
   const handleUpdateProductInCart = async (product) => {
@@ -148,6 +100,7 @@ const ProductListAddProd = ({
         return;
       }
     } catch (error) {
+      /*
       if (error.response && error.response.status === 404) {
         // if the product not in the cart re-add it
         try {
@@ -176,6 +129,8 @@ const ProductListAddProd = ({
       } else {
         console.error("Error updating product quantity:", error.message);
       }
+    }*/
+      console.error("Error updating product quantity:", error.message);
     }
   };
 

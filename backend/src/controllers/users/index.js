@@ -5,6 +5,7 @@ import nodemailer from "nodemailer";
 
 const SALT_ROUNDS = 10;
 
+//6 digits code
 const generateVerificationCode = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
 };

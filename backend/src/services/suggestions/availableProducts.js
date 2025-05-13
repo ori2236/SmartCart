@@ -76,12 +76,11 @@ export async function filterAvailableProducts(products, cartAddress) {
   const productNames = products.map((p) => p.name);
   const productIds = products.map((p) => p._id.toString());
 
-  const [storeEntries, priceEntries, notFoundEntries] = await Promise.all([
+  const [storeEntries, notFoundEntries] = await Promise.all([
     findStores.find({
       cart_address: cartAddress,
       product_name: { $in: productNames },
     }),
-    findPrices.find({ product_name: { $in: productNames } }),
     NotFoundStores.find({
       cart_address: cartAddress,
       productId: { $in: productIds },
@@ -91,13 +90,6 @@ export async function filterAvailableProducts(products, cartAddress) {
   //convert store results to a map
   const storeMap = new Map(storeEntries.map((e) => [e.product_name, e]));
   const notFoundSet = new Set(notFoundEntries.map((e) => e.productId));
-
-  const priceMap = new Map(
-    priceEntries.map((e) => [
-      `${e.product_name}|${e.store_name}|${e.store_address}`,
-      e,
-    ])
-  );
 
   const missingStoresEntries = [];
   const missingPricesEntries = [];

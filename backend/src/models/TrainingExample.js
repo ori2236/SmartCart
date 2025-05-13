@@ -1,19 +1,28 @@
 import mongoose from "mongoose";
 
-const TrainingExampleSchema = new mongoose.Schema({
-  features: {
-    type: [Number], // כולל bias בתחילת הרשימה
-    required: true,
+const TrainingExampleSchema = new mongoose.Schema(
+  {
+    productId: {
+      type: String,
+      required: true,
+    },
+    features: {
+      type: [Number],
+      required: true,
+    },
+    label: {
+      type: Number, //0 or 1
+      required: true,
+    },
+    createdAt: {
+      type: Date,
+      default: Date.now,
+    },
   },
-  label: {
-    type: Number, // 0 או 1
-    required: true,
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now,
-  },
-});
+  {
+    versionKey: false,
+  }
+);
 
 const TrainingExample = mongoose.model(
   "TrainingExample",

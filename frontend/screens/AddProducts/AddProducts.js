@@ -13,8 +13,6 @@ import ProductFavorites from "./ProductFavorites";
 import ProductSuggestions from "./ProductSuggestions.js";
 import { useNavigation } from "@react-navigation/native";
 
-const { width, height } = Dimensions.get("window");
-
 const AddProducts = ({ route }) => {
   const { userMail, cart } = route.params;
   const [selectedTab, setSelectedTab] = useState("name");
@@ -171,7 +169,6 @@ const styles = StyleSheet.create({
     paddingBottom: 5,
     justifyContent: "space-between",
   },
-
   headerText: {
     color: "#FFFFFF",
     fontSize: 18,

@@ -19,12 +19,10 @@ const ProductFavorites = ({ userMail, cart }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [debounceTimeouts, setDebounceTimeouts] = useState({});
-  const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchFavorites = async () => {
       setIsLoading(true);
-      setError(null);
 
       try {
         const apiUrl = `http://${config.apiServer}/api/favorite/favorite/${userMail}/${cart.cartKey}`;
@@ -49,7 +47,7 @@ const ProductFavorites = ({ userMail, cart }) => {
         setFilteredProducts(updatedProducts);
         setProducts(updatedProducts);
       } catch (error) {
-        setError(error.message || "שגיאה בטעינת המוצרים המועדפים");
+        console.error("error fetching favorites")
       } finally {
         setIsLoading(false);
       }
@@ -58,14 +56,16 @@ const ProductFavorites = ({ userMail, cart }) => {
   }, [userMail]);
 
   const handleStarClickOff = async (product) => {
-    if (!product.label || !product.image || !userMail) {
-      Alert.alert("Validation Error", "All fields are required!");
-      return;
-    }
-
     try {
-      const apiUrl = `http://${config.apiServer}/api/favorite/favorite/${product.productId}/${userMail}`;
-      const response = await axios.delete(apiUrl);
+      const removeFavoriteProduct = {
+        productId: product.productId,
+        mail: userMail,
+      };
+
+      const apiUrl = `http://${config.apiServer}/api/favorite/favorite/`;
+      await axios.delete(apiUrl, {
+        data: removeFavoriteProduct,
+      });
 
       if (response.status === 200) {
         setProducts((prevProducts) =>

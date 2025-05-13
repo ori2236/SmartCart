@@ -13,7 +13,7 @@ import axios from "axios";
 import config from "../../config";
 import ProductListAddProd from "./ProductListAddProd";
 
-const { width, height } = Dimensions.get("window");
+const { height } = Dimensions.get("window");
 
 const ProductSearch = ({ userMail, cart }) => {
   const [products, setProducts] = useState([]);
@@ -66,17 +66,9 @@ const ProductSearch = ({ userMail, cart }) => {
   };
 
   const handleStarClickOn = async (product) => {
-    if (!product.label || !product.image || !userMail) {
-      Alert.alert("Validation Error", "All fields are required!");
-      return;
-    }
-    addFavoriteProduct(product);
-  };
 
-  const addFavoriteProduct = async (product) => {
     const newFavoriteProduct = {
-      name: product.label,
-      image: product.image,
+      productId: product.productId,
       mail: userMail,
     };
 
@@ -84,13 +76,10 @@ const ProductSearch = ({ userMail, cart }) => {
       const apiUrl = `http://${config.apiServer}/api/favorite/favorite/`;
       const response = await axios.post(apiUrl, newFavoriteProduct);
 
-      if (response.status >= 200 && response.status < 300) {
-        const res = response.data;
-        if (
-          res.message === "This product is already in the user's favorites."
-        ) {
-          Alert.alert("שים לב", "המוצר שבחרת כבר נמצא במועדפים!");
-        }
+      if (response.status === 200) {
+        Alert.alert("שים לב", "המוצר שבחרת כבר נמצא במועדפים!");
+      } else if (response.status === 201) {
+        //added successfully
       } else {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -101,19 +90,14 @@ const ProductSearch = ({ userMail, cart }) => {
   };
 
   const handleStarClickOff = async (product) => {
-    if (!product.label || !product.image || !userMail) {
-      Alert.alert("Validation Error", "All fields are required!");
-      return;
-    }
-
     try {
       const removeFavoriteProduct = {
-        name: product.label,
-        image: product.image,
+        productId: product.productId,
         mail: userMail,
       };
-      const apiUrl = `http://${config.apiServer}/api/favorite/favorite/byDetails/`;
-      const response = await axios.delete(apiUrl, {
+
+      const apiUrl = `http://${config.apiServer}/api/favorite/favorite/`;
+      await axios.delete(apiUrl, {
         data: removeFavoriteProduct,
       });
     } catch (error) {

@@ -8,15 +8,15 @@ router.post(
   ProductInCart.post.validator,
   ProductInCart.post.handler
 );
-
+/*
 router.post(
   "/existngProduct",
   ProductInCart.postWithProductId.validator,
   ProductInCart.postWithProductId.handler
 );
-
+*/
 router.get(
-  "/productInCart/:type/:content",
+  "/productInCart/:cartKey",
   ProductInCart.get.validator,
   ProductInCart.get.handler
 );
@@ -28,21 +28,9 @@ router.put(
 );
 
 router.delete(
-  "/productInCart/:cartKey/:productId",
+  "/productInCart/:cartKey/:productId/:mail",
   ProductInCart.delete.validator,
   ProductInCart.delete.handler
-);
-
-router.delete(
-  "/productInCarts",
-  ProductInCart.deleteAll.validator,
-  ProductInCart.deleteAll.handler
-);
-
-router.get(
-  "/productInCarts",
-  ProductInCart.getAll.validator,
-  ProductInCart.getAll.handler
 );
 
 export default router;

@@ -11,12 +11,6 @@ router.get(
   favorites.get.handler
 );
 
-router.delete(
-  "/favorite/:productId/:mail",
-  favorites.delete.validator,
-  favorites.delete.handler
-);
-
 router.put(
   "/favorite/:productId/:mail",
   favorites.put.validator,
@@ -24,11 +18,9 @@ router.put(
 );
 
 router.delete(
-  "/favorite/byDetails",
-  favorites.deleteByDetails.validator,
-  favorites.deleteByDetails.handler
+  "/favorite",
+  favorites.delete.validator,
+  favorites.delete.handler
 );
-
-router.get("/favorites", favorites.getAll.validator, favorites.getAll.handler);
 
 export default router;

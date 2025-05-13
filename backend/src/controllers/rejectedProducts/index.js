@@ -2,6 +2,8 @@ import RejectedProducts from "../../models/RejectedProducts.js";
 import Product from "../../models/Product.js";
 import Cart from "../../models/Cart.js";
 import User from "../../models/User.js";
+import TrainingExample from "../../models/TrainingExample.js";
+import { fetchAllFeatures } from "../../services/suggestions/features.js";
 
 export default {
   post: {
@@ -12,22 +14,17 @@ export default {
           error: "cartKey, productId, and mail are required.",
         });
       }
-
       try {
-        const productExists = await Product.findById(productId);
-        if (!productExists) {
+        const [product, cart, user] = await Promise.all([
+          Product.findById(productId).lean(),
+          Cart.findById(cartKey).lean(),
+          User.findOne({ mail }).lean(),
+        ]);
+
+        if (!product)
           return res.status(404).json({ error: "Product not found." });
-        }
-
-        const cartExists = await Cart.findById(cartKey);
-        if (!cartExists) {
-          return res.status(404).json({ error: "Cart not found." });
-        }
-
-        const user = await User.findOne({ mail });
-        if (!user) {
-          return res.status(404).json({ error: "User not found." });
-        }
+        if (!cart) return res.status(404).json({ error: "Cart not found." });
+        if (!user) return res.status(404).json({ error: "User not found." });
 
         next();
       } catch (error) {
@@ -52,7 +49,7 @@ export default {
             error: "This product is already marked as rejected by this user.",
           });
         }
-          
+
         const rejected = await RejectedProducts.create({
           cartKey,
           productId,
@@ -63,6 +60,35 @@ export default {
           message: "Product rejected successfully.",
           rejected,
         });
+
+        (async () => {
+          try {
+            const features = await fetchAllFeatures(productId, cartKey, mail);
+            const feat = features.get(productId.toString()) || {};
+
+            const featuresArray = [
+              1,
+              feat.isFavorite ?? 0,
+              feat.purchasedBefore ?? 0,
+              feat.timesPurchased ?? 0,
+              feat.recentlyPurchased ?? 0,
+              feat.storeCount ?? 0,
+              feat.timesWasRejectedByCart ?? 0,
+              feat.timesWasRejectedByUser ?? 0,
+            ];
+
+            const label = 0;
+
+            await TrainingExample.create({
+              productId,
+              features: featuresArray,
+              label,
+            });
+          } catch (err) {
+            console.error("training‐example failed:", err);
+          }
+        })();
+        
       } catch (error) {
         res.status(500).json({
           error: "An error occurred while rejecting the product.",
@@ -101,6 +127,10 @@ export default {
           });
         }
 
+        await TrainingExample.deleteOne({
+          productId,
+          label: 0,
+        });
 
         res
           .status(200)

@@ -93,7 +93,7 @@ async function updateWeights(x, y, learningRate = 0.01) {
   //gradient
   const error = p - y;
   const newW = w.map((wi, i) => wi - learningRate * error * x[i]);
-
+  const now = new Date(); 
   const updates = featureNames.map((name, i) => ({
     featureName: name,
     weight: newW[i],
@@ -142,16 +142,4 @@ async function main() {
   }
 }
 
-/*
-main()
-  .then(() => {
-    console.log("done");
-    return mongoose.disconnect();
-  })
-  .catch((err) => {
-    console.error("error training the model:", err);
-    process.exit(1);
-  });
-*/
-
-export { rankProducts, updateWeights };
+export { trainModel, rankProducts, updateWeights };

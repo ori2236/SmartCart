@@ -24,9 +24,10 @@ async function uploadSuggestions(filePath, fileName) {
     fs.createReadStream(filePath)
       .pipe(csvParser())
       .on("data", (row) => {
+        const productId = row.productId;
         const features = featureOrder.map((f) => Number(row[f] || 0));
         const label = Number(row.label);
-        examples.push({ features, label });
+        examples.push({ productId, features, label });
       })
       .on("end", async () => {
         if (examples.length === 0) {

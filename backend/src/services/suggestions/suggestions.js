@@ -9,10 +9,10 @@ import RejectedProducts from "../../models/RejectedProducts.js";
 import Favorite from "../../models/Favorite.js";
 import NotFoundStores from "../../models/NotFoundStores.js";
 import { filterAvailableProducts } from "./availableProducts.js";
-import { fetchFeatures } from "./features.js";
+import { fetchFeaturesSuggestions } from "./features.js";
 import { rankProducts } from "./predictPurchases.js";
 
-function cleanAddress(address) {
+export function cleanAddress(address) {
   address = address.trim();
   if (address.endsWith("ישראל")) {
     address = address.slice(0, address.length - "ישראל".length).trim();
@@ -151,7 +151,7 @@ export async function getFilteredProducts(cartKey, mail, k, onRound) {
     }
 
     //fetch the features of the products
-    const features = await fetchFeatures(
+    const features = await fetchFeaturesSuggestions(
       availableProductEntries,
       cartKey,
       mail
@@ -172,19 +172,6 @@ async function suggestions(cartKey, mail, k, onRound) {
     }
 
     const sortedProductIds = await rankProducts(features);
-
-    /*
-    for (const { productId } of sortedProductIds) {
-      const meta = features.get(productId);
-      console.log(
-        `${productId} | stores: ${meta.storeCount} | fav: ${meta.isFavorite} | ` +
-          `purchased: ${meta.purchasedBefore} | times: ${meta.timesPurchased} | ` +
-          `recently: ${meta.recentlyPurchased} | ` +
-          `rejectedByUser: ${meta.timesWasRejectedByUser} | ` +
-          rejectedByCart: ${meta.timesWasRejectedByCart}
-      );
-    }
-    */
 
     const suggestions = sortedProductIds.map(({ productId }) => {
       const meta = features.get(productId);

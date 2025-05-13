@@ -28,8 +28,6 @@ def measure_time(func):
 """
 db = get_db()
 distance_collection = db["distances"]
-distance_collection.create_index([("from", 1), ("to", 1)], unique=True)
-
 
 async def get_distances(cart_address, address_list):
     existing_docs = distance_collection.aggregate([
@@ -37,7 +35,6 @@ async def get_distances(cart_address, address_list):
         {"$project": {"to": 1, "distance": 1, "_id": 0}}
     ])
     existing_map = {doc["to"]: doc["distance"] for doc in existing_docs}
-
 
     missing_addresses = [addr for addr in address_list if addr not in existing_map]
 

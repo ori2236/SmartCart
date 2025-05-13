@@ -6,7 +6,6 @@ import Products from "./Products/index.js";
 import Favorites from "./Favorites/index.js";
 import ProductInCart from "./ProductInCart/index.js";
 import Supermarkets from "./Supermarkets/index.js";
-import Distance from "./Distance/index.js";
 import WaitingList from "./WaitingList/index.js"
 import CartHistory from "./CartHistory/index.js";
 import Suggestions from "./Suggestions/index.js";
@@ -22,7 +21,6 @@ router
   .use("/favorite", Favorites)
   .use("/productInCart", ProductInCart)
   .use("/supermarkets", Supermarkets)
-  .use("/distance", Distance)
   .use("/waitingList", WaitingList)
   .use("/cartHistory", CartHistory)
   .use("/suggestions", Suggestions)
