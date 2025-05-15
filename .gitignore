@@ -1,5 +1,5 @@
 # Node modules
-node_modules/
+**/node_modules/
 
 # Metro files
 *.metro.config.js
@@ -8,13 +8,16 @@ node_modules/
 # Logs
 *.log
 
-backend/src/config.js
-frontend/config.js
+**/.env
 
-backend\src\services\comparingSupermarkets\__pycache__/
-*.pyc
+**/__pycache__/
+*.py[cod]
 *.pyo
 
-.env
+*.pem
+
+*.zip
+
+**/.expo/
 
 .gitignore

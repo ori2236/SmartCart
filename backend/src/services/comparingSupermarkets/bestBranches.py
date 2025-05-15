@@ -1,10 +1,9 @@
 import pandas as pd
-import json
 import math
 from importPrices import get_store_data
 
 from distance_calculator import calculate_distances
-from src.db.db import get_db
+from db.index import get_db
 from pymongo.errors import BulkWriteError
 
 import asyncio

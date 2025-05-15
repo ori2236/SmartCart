@@ -1,15 +1,16 @@
-import { MongoClient, MongoGCPError } from "mongodb";
 import mongoose from "mongoose"
+import config from "../config.js";
 import FindStores from "../models/FindStores.js";
 
 let client;
 
 const connectDB = async () => {
   try {
+    const uri = config.MONGODB_URI;
+    if (!uri) throw new Error("Missing MONGODB_URI in .env");
+
     mongoose.set("strictQuery", false);
-    const conn = await mongoose.connect(
-      "mongodb+srv://ori:ori@cluster0.tmv7g.mongodb.net/SmartCart?retryWrites=true&w=majority&appName=Cluster0"
-    );
+    const conn = await mongoose.connect(uri);
     console.log(`Database Connected: ${conn.connection.host}`);
     client = conn.connection.getClient();
 

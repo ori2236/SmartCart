@@ -11,10 +11,12 @@ let pythonProcess = null;
 export const startPythonServer = () => {
   const scriptPath = path.resolve(__dirname, "python_server.py");
   pythonProcess = spawn("python", [scriptPath], {
+    cwd: path.resolve(__dirname, "../../.."),
     stdio: ["pipe", "pipe", "pipe"],
     env: {
       ...process.env,
       PYTHONIOENCODING: "utf-8", //ensure UTF-8 encoding for correct Hebrew/Unicode
+      PYTHONPATH: path.resolve(__dirname, "../../..", "src"),
     },
   });
 

@@ -1,7 +1,13 @@
 import sys
+import os
 import json
 import asyncio
 from bestBranches import get_best_supermarkets
+
+base_dir = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "../../..")
+)
+sys.path.insert(0, base_dir)
 
 async def process_request(data):
     try:

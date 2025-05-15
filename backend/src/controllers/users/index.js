@@ -1,3 +1,4 @@
+import config from "../../config.js";
 import bcrypt from "bcrypt";
 import User from "../../models/User.js";
 import VerificationCode from "../../models/VerificationCode.js";
@@ -14,8 +15,8 @@ const sendVerificationEmail = async (mail, code) => {
   const transporter = nodemailer.createTransport({
     service: "gmail",
     auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
+      user: config.EMAIL_USER,
+      pass: config.EMAIL_PASS,
     },
   });
 

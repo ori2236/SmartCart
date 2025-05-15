@@ -1,4 +1,5 @@
 import axios from "axios";
+import config from "../../config.js"
 
 export default {
   get: {
@@ -20,7 +21,7 @@ export default {
           {
             params: {
               input,
-              key: process.env.GOOGLE_MAPS_API_KEY,
+              key: config.GOOGLE_MAPS_API_KEY,
               language: "iw",
               components: "country:il",
             },

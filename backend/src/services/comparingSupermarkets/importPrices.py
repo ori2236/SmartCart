@@ -6,7 +6,7 @@ from itertools import combinations
 from collections import defaultdict
 import re
 from pymongo import UpdateOne
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 import sys
 import os
 
@@ -29,7 +29,7 @@ def measure_time(func):
 SEMAPHORE = asyncio.Semaphore(30)
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
-from src.db.db import get_db
+from db.index import get_db
 
 db = get_db()
 find_stores = db["findStores"]
