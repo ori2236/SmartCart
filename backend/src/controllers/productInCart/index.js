@@ -3,50 +3,30 @@ import ProductInCart from "../../models/ProductInCart.js";
 import Product from "../../models/Product.js";
 import Cart from "../../models/Cart.js";
 import User from "../../models/User.js";
-import ProductController from "../products/index.js";
+import TrainingExample from "../../models/TrainingExample.js";
+import { fetchAllFeatures } from "../../services/suggestions/features.js";
 
 export default {
   post: {
     validator: async (req, res, next) => {
-      const { name, image, cartKey, quantity, mail } = req.body;
-
-      if (!name || !image || !cartKey || quantity === undefined || !mail) {
+      const { productId, cartKey, quantity, mail, explaination } = req.body;
+      if (!productId || !cartKey || quantity === undefined || !mail) {
         return res.status(400).json({
-          error: "name, image, cartKey, quantity, and mail are required.",
+          error: "productId, cartKey, quantity and mail are required.",
         });
       }
 
       next();
     },
     handler: async (req, res) => {
-      const { name, image, cartKey, quantity, mail } = req.body;
-      let productId = "";
+      const {
+        productId,
+        cartKey,
+        quantity,
+        mail,
+        explaination = null,
+      } = req.body;
       try {
-        let product = await Product.findOne({ name, image });
-        if (!product) {
-          const reqMock = {
-            body: {
-              name: name,
-              image: image,
-            },
-          };
-          const resMock = {
-            data: null,
-            json: function (response) {
-              this.data = response;
-              return response;
-            },
-            status: function (statusCode) {
-              return this;
-            },
-          };
-          const createdProduct = await ProductController.post.handler(
-            reqMock,
-            resMock
-          );
-          product = resMock.data.product;
-        }
-        productId = product._id.toString();
         const existingProductInCart = await ProductInCart.findOne({
           cartKey,
           productId,
@@ -65,7 +45,7 @@ export default {
           quantity,
           updatedBy,
         });
-
+        const product = await Product.findById(productId);
         emitCartUpdate(cartKey, {
           type: "add",
           product: {
@@ -73,12 +53,20 @@ export default {
             quantity: newProductInCart.quantity,
             name: product.name,
             image: product.image,
+            updatedBy,
           },
         });
 
+        if (explaination === "undo") {
+          await TrainingExample.deleteOne({
+            productId,
+            label: 0,
+          });
+        }
+
         res.status(201).json({
           _id: productId,
-          message: "Product added to cart successfully.",
+          message: "Product readded to cart successfully.",
           productInCart: newProductInCart,
         });
       } catch (error) {
@@ -91,63 +79,74 @@ export default {
   },
   get: {
     validator: async (req, res, next) => {
-      const { type, content } = req.params;
+      const { cartKey } = req.params;
       const { userMail } = req.query;
-      if (!type || !content || !userMail) {
+      if (!cartKey || !userMail) {
         return res.status(400).json({
-          error: "type, content and mail are required.",
+          error: "cartKey and mail are required.",
         });
       }
       next();
     },
     handler: async (req, res) => {
-      const { type, content } = req.params;
+      const { cartKey } = req.params;
       const { userMail } = req.query;
 
       try {
-        if (type === "cartKey") {
-          const productsInCart = await ProductInCart.find({ cartKey: content });
-          if (productsInCart.length === 0) {
-            const user = await User.findOne({ mail: userMail });
-            const nickname = user?.nickname || "";
+        const [user, items] = await Promise.all([
+          User.findOne({ mail: userMail }).select("nickname").lean(),
+          ProductInCart.aggregate([
+            { $match: { cartKey } },
+            {
+              //string to ObjectId (mongo)
+              $addFields: {
+                productObjectId: {
+                  $toObjectId: "$productId",
+                },
+              },
+            },
+            {
+              $lookup: {
+                from: "products", //collection name
+                localField: "productObjectId",
+                foreignField: "_id",
+                as: "product",
+              },
+            },
+            {
+              //so we can do {"$product.name"} and not name[i]
+              $unwind: {
+                path: "$product",
+                preserveNullAndEmptyArrays: true, //if null return null
+              },
+            },
+            {
+              //the fields
+              $project: {
+                _id: 0,
+                productId: 1,
+                quantity: 1,
+                updatedBy: 1,
+                name: "$product.name",
+                image: "$product.image",
+              },
+            },
+          ]),
+        ]);
 
-            return res.status(200).json({
-              userNickname: nickname,
-              products: [],
-            });
-          }
+        const nickname = user?.nickname || "";
 
-          const productDetails = await Product.find({
-            _id: { $in: productsInCart.map((item) => item.productId) },
-          });
-
-          const user = await User.findOne({ mail: userMail });
-          const nickname = user.nickname;
-
-          const response = productsInCart.map((item) => {
-            const product = productDetails.find(
-              (prod) => prod._id.toString() === item.productId.toString()
-            );
-
-            return {
-              productId: item.productId,
-              quantity: item.quantity,
-              updatedBy: item.updatedBy,
-              ...(product && {
-                name: product.name,
-                image: product.image,
-              }),
-            };
-          });
+        if (items.length === 0) {
           return res.status(200).json({
             userNickname: nickname,
-            products: response,
+            products: [],
           });
-        } else {
-          return res
-            .status(400)
-            .json({ error: "Invalid type. Use 'cartKey'." });
         }
+
+        res.status(200).json({
+          userNickname: nickname,
+          products: items,
+        });
       } catch (error) {
         console.error("Error fetching products in cart:", error.message);
         res.status(500).json({
@@ -208,12 +207,12 @@ export default {
   },
   delete: {
     validator: async (req, res, next) => {
-      const { cartKey, productId } = req.params;
+      const { cartKey, productId, mail } = req.params;
 
-      if (!cartKey || !productId) {
+      if (!cartKey || !productId || !mail) {
         return res
           .status(400)
-          .json({ error: "cartKey and productId are required." });
+          .json({ error: "cartKey, productId and mail are required." });
       }
 
       try {
@@ -241,7 +240,7 @@ export default {
       }
     },
     handler: async (req, res) => {
-      const { cartKey, productId } = req.params;
+      const { cartKey, productId, mail } = req.params;
 
       try {
         const deletedProductInCart = await ProductInCart.findOneAndDelete({
@@ -258,6 +257,29 @@ export default {
           productId,
         });
 
+        //fetch the product's features
+        const features = await fetchAllFeatures(productId, cartKey, mail);
+        const feat = features.get(productId.toString()) || {};
+
+        const featuresArray = [
+          1,
+          feat.isFavorite ?? 0,
+          feat.purchasedBefore ?? 0,
+          feat.timesPurchased ?? 0,
+          feat.recentlyPurchased ?? 0,
+          feat.storeCount ?? 0,
+          feat.timesWasRejectedByCart ?? 0,
+          feat.timesWasRejectedByUser ?? 0,
+        ];
+
+        const label = 0;
+
+        await TrainingExample.create({
+          productId,
+          features: featuresArray,
+          label,
+        });
+
         res.status(200).json({
           message: "Product removed from cart successfully.",
         });
@@ -265,47 +287,6 @@ export default {
         console.error("Error deleting product from cart:", error.message);
         res.status(500).json({
           error: "An error occurred while deleting the product from cart.",
-        });
-      }
-    },
-  },
-  deleteAll: {
-    validator: async (req, res, next) => {
-      next();
-    },
-    handler: async (req, res) => {
-      try {
-        const result = await ProductInCart.deleteMany({});
-        res.status(200).json({
-          message: `Deleted ${result.deletedCount} products from cart.`,
-        });
-      } catch (error) {
-        console.error("Error deleting all products from cart:", error.message);
-        res.status(500).json({
-          error: "An error occurred while deleting all products from cart.",
-        });
-      }
-    },
-  },
-  getAll: {
-    validator: async (req, res, next) => {
-      next();
-    },
-    handler: async (req, res) => {
-      try {
-        const productsInCart = await ProductInCart.find({});
-        if (!productsInCart) {
-          return res.status(404).json({ error: "No products in cart found." });
-        } else if (productsInCart.length === 0) {
-          return res
-            .status(200)
-            .json({ message: "No products in cart found." });
-        }
-        res.status(200).json(productsInCart);
-      } catch (error) {
-        console.error("Error fetching all products in cart:", error.message);
-        res.status(500).json({
-          error: "An error occurred while fetching all products in cart.",
         });
       }
     },

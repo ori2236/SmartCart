@@ -6,7 +6,7 @@ export default {
       // Check that the name and image are valid
       const { name, image } = req.body;
       if (!name || !image) {
-        return res.status(400).json({ error: "Name and image are required." });
+        return res.status(400).json({ error: "name and image are required." });
       }
       next();
     },

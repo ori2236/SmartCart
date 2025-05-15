@@ -10,28 +10,31 @@ from datetime import datetime, timezone, timedelta
 import sys
 import os
 
+"""
+import time
+from functools import wraps
+
+def measure_time(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        start_time = time.time()
+        result = func(*args, **kwargs)
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        print(f"{func.__name__} took {elapsed_time:.4f} seconds")
+        return result
+    return wrapper
+"""
+
 SEMAPHORE = asyncio.Semaphore(30)
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
 from src.db.db import get_db
 
 db = get_db()
-find_stores = db["FindStores"]
-find_prices = db["FindPrices"]
-find_stores.create_index([("cart_address", 1), ("product_name", 1)])
-find_prices.create_index([("product_name", 1), ("store_name", 1), ("store_address", 1)])
-
-def is_store_list_fresh(last_updated):
-    if last_updated is None:
-        return False
-    last_updated = last_updated.replace(tzinfo=timezone.utc)
-    return datetime.now(timezone.utc) - last_updated < timedelta(days=20)
-
-def is_price_fresh(last_updated):
-    if last_updated is None:
-        return False
-    last_updated = last_updated.replace(tzinfo=timezone.utc)
-    return datetime.now(timezone.utc) - last_updated < timedelta(days=3)
+find_stores = db["findStores"]
+find_prices = db["findPrices"]
+not_found = db["notFoundStores"]
 
 
 def parse_discount_text(discount_text):
@@ -82,115 +85,7 @@ async def fetch_store_data(session, product_name, shopping_address):
 
         return stores
 
-async def get_store_data_from_db(shopping_address, product_list):
-    fresh_data = {}
-    outdated_prices = []
-    outdated_stores = []
-
-    query = {"cart_address": shopping_address, "product_name": {"$in": product_list}}
-    store_entries = {entry["product_name"]: entry for entry in find_stores.find(query)}
-    price_entries = {
-        (entry["product_name"], entry["store_name"], entry["store_address"]): entry
-        for entry in find_prices.find({"product_name": {"$in": product_list}})
-    }
-    
-    for product in product_list:
-        store_entry = store_entries.get(product)
-        if store_entry and is_store_list_fresh(store_entry.get("last_updated")):
-            store_list = store_entry.get("stores", [])
-        else:
-            outdated_stores.append(product)
-            store_list = []
-
-        fresh_data[product] = {}
-
-        
-        for store_name, store_address in store_list:
-            product_info = price_entries.get((product, store_name, store_address), None)
-            
-            if product_info and is_price_fresh(product_info.get("last_updated")):
-                fresh_data[product][(store_name, store_address)] = {
-                    "Regular Price": product_info["regular_price"],
-                    "Sale Price": product_info["sale_price"],
-                    "Required Quantity": product_info["required_quantity"]
-                }
-            else:
-                outdated_prices.append((product, store_name, store_address))
-
-    return fresh_data, set(outdated_prices), set(outdated_stores)
-
-async def fetch_and_update_store_list(outdated_stores, shopping_address, store_data):
-    async with aiohttp.ClientSession() as session:
-        tasks = [fetch_store_data(session, product, shopping_address) for product in outdated_stores]
-        results = await asyncio.gather(*tasks)
-
-    bulk_updates_find_prices = []
-    bulk_updates_find_stores = []
-    for product, stores in zip(outdated_stores, results):
-        if stores:
-            store_list = list(stores.keys())  # [(store_name, store_address)]
-            bulk_updates_find_stores.append(UpdateOne(
-                {"cart_address": shopping_address, "product_name": product},
-                {"$set": {"stores": store_list, "last_updated": datetime.now(timezone.utc)}},
-                upsert=True
-            ))
-
-            for (store_name, store_address), data in stores.items():
-                bulk_updates_find_prices.append(UpdateOne(
-                    {"store_name": store_name, "store_address": store_address, "product_name": product},
-                    {"$set": {
-                        "regular_price": data["Regular Price"],
-                        "sale_price": data["Sale Price"],
-                        "required_quantity": data["Required Quantity"],
-                        "last_updated": datetime.now(timezone.utc)
-                    }},
-                    upsert=True
-                ))
-
-                if product not in store_data:
-                    store_data[product] = {}
-                store_data[product][(store_name, store_address)] = {
-                    "Regular Price": data["Regular Price"],
-                    "Sale Price": data["Sale Price"],
-                    "Required Quantity": data["Required Quantity"]
-                }
-
-    if bulk_updates_find_prices:
-        find_prices.bulk_write(bulk_updates_find_prices)
-    if bulk_updates_find_stores:
-        find_stores.bulk_write(bulk_updates_find_stores)
-
-
-async def fetch_and_update_db(outdated_prices, shopping_address, store_data):
-    async with aiohttp.ClientSession() as session:
-        tasks = [fetch_store_data(session, product, shopping_address) for product, _, _ in outdated_prices]
-        results = await asyncio.gather(*tasks)
-
-    for (product, store_name, store_address), stores in zip(outdated_prices, results):
-        if stores and (store_name, store_address) in stores:
-            data = stores[(store_name, store_address)]
-            
-            find_prices.update_one(
-                {"store_name": store_name, "store_address": store_address, "product_name": product},
-                {"$set": {
-                    "regular_price": data["Regular Price"],
-                    "sale_price": data["Sale Price"],
-                    "required_quantity": data["Required Quantity"],
-                    "last_updated": datetime.now(timezone.utc)
-                }},
-                upsert=True
-            )
-
-            if product not in store_data:
-                store_data[product] = {}
-            store_data[product][(store_name, store_address)] = {
-                "Regular Price": data["Regular Price"],
-                "Sale Price": data["Sale Price"],
-                "Required Quantity": data["Required Quantity"]
-            }
-
-
-def filter_stores(store_data, product_list):
+def filterStores(store_data, product_list):
     filtered_data = defaultdict(dict)
     stores_missing_products = defaultdict(set)
 
@@ -211,9 +106,7 @@ def filter_stores(store_data, product_list):
     return dict(filtered_data), dict(stores_missing_products)
 
 
-
-
-def find_best_combinations(store_data, stores_missing_products, product_list):
+def recommendedToRemove(store_data, stores_missing_products, product_list):
     problematic_products = list(stores_missing_products.keys())
     
     for r in range(1, len(problematic_products)):
@@ -221,7 +114,7 @@ def find_best_combinations(store_data, stores_missing_products, product_list):
             remaining_products = [p for p in product_list if p not in combo]
             
             #amount of supermarket branches that sells the remaining_products
-            temp_filtered_data, _ = filter_stores(store_data, remaining_products)
+            temp_filtered_data, _ = filterStores(store_data, remaining_products)
             new_store_count = len(temp_filtered_data)
             
             if new_store_count >= 5:
@@ -229,54 +122,200 @@ def find_best_combinations(store_data, stores_missing_products, product_list):
 
     return []
 
-def get_store_data(shopping_address, cart_quantities):
-    product_list = list(cart_quantities.keys())
-    store_data, outdated_prices, outdated_stores = asyncio.run(get_store_data_from_db(shopping_address, product_list))
+def clean_address(address):
+    address = address.strip()
+    if address.endswith("ישראל"):
+        address = address[:-len("ישראל")].strip(", ").strip()
+    address = address.rstrip(", ").strip()
+    return address
+
+def storesFromDB(shopping_address, products):
+    docs = list(find_stores.find({
+        "cart_address": shopping_address,
+        "product_name": {"$in": products}
+    }))
+    return {d["product_name"]: d["stores"] for d in docs}
+
+
+async def updateMissingStores(session, shopping_address, missing_products):
+    now = datetime.utcnow()
+    new_lists = {}
+    bulkStores = []
+    bulkPrices = []
+
+    #fetch from CHP
+    #stores: {(storeName, address) → {Regular Price, Sale Price, Required Quantity}}
+    tasks = {
+      p: fetch_store_data(session, p, shopping_address)
+      for p in missing_products
+    }
+    results = await asyncio.gather(*tasks.values())
     
-    if outdated_stores:
-        asyncio.run(fetch_and_update_store_list(outdated_stores, shopping_address, store_data))
-    if outdated_prices:
-        asyncio.run(fetch_and_update_db(outdated_prices, shopping_address, store_data))
+    for p, stores in zip(tasks.keys(), results):
+        stores = stores or {}
+        #the selling stores without http (no websites)
+        sellingStores = [
+            (sn, addr)
+            for sn, addr in stores.keys()
+            if "http" not in addr.lower()
+        ]
+        new_lists[p] = sellingStores
 
-    filtered_data, stores_missing_products = filter_stores(store_data, product_list)
-    records = []
-    for (store, address), data in filtered_data.items():
-        row = {"Store": store, "Address": address}
-        for product, price_info in data.items():
-            if not isinstance(price_info, dict):  
+        #update findStore in database
+        bulkStores.append(UpdateOne(
+            {"cart_address": shopping_address, "product_name": p},
+            {"$set": {"stores": sellingStores, "last_updated": now}},
+            upsert=True
+        ))
+        #update findPrice in database
+        for (sn, addr), prices in stores.items():
+            bulkPrices.append(UpdateOne(
+                {"product_name": p, "store_name": sn, "store_address": addr},
+                {"$set": {
+                    "regular_price": prices["Regular Price"],
+                    "sale_price":   prices["Sale Price"],
+                    "required_quantity": prices["Required Quantity"],
+                    "last_updated": now
+                }},
+                upsert=True
+            ))
+    
+    if bulkPrices:
+        find_prices.bulk_write(bulkPrices)
+    if bulkStores:
+        find_stores.bulk_write(bulkStores)
+    return new_lists
+
+def pricesFromDB(products, sellingAllStores):
+    findFromDB = list(find_prices.find({ "product_name": {"$in": products} }))
+
+    #only the ones in sellingAllStores
+    allowed = set(sellingAllStores)
+    prices = {}
+    for db in findFromDB:
+        key = (db["product_name"], db["store_name"], db["store_address"])
+        if (db["store_name"], db["store_address"]) in allowed:
+            prices[key] = db
+
+    return prices
+
+
+async def updateMissingPrices(session, shopping_address, products, sellingStores, prices):
+    now = datetime.utcnow()
+    
+    to_fetch_map = defaultdict(list)
+    for p in products:
+        for sn, addr in sellingStores:
+            if (p, sn, addr) not in prices:
+                to_fetch_map[p].append((sn, addr))
+
+    tasks = {
+        p: fetch_store_data(session, p, shopping_address)
+        for p in to_fetch_map
+    }
+    results = await asyncio.gather(*tasks.values())
+
+
+    for p, stores in zip(tasks.keys(), results):
+        stores = stores or {}
+        for sn, addr in to_fetch_map[p]:
+            data = stores.get((sn, addr))
+            if not data or "http" in addr.lower():
                 continue
+            prices[(p, sn, addr)] = {
+                "regular_price": data["Regular Price"],
+                "sale_price": data["Sale Price"],
+                "required_quantity": data["Required Quantity"],
+                "last_updated": now
+            }
 
-            required_quantity = price_info.get("Required Quantity")
-            user_quantity = cart_quantities.get(product, 0)
+            find_prices.update_one(
+                {"product_name": p, "store_name": sn, "store_address": addr},
+                {"$set": prices[(p, sn, addr)]},
+                upsert=True
+            )
+    return prices
 
-            if required_quantity and user_quantity >= required_quantity:
-                row[product] = price_info["Sale Price"]
+async def get_store_data(shopping_address, cart_quantities):
+    shopping_address = clean_address(shopping_address)
+    products = list(cart_quantities.keys())
+
+    async with aiohttp.ClientSession() as session:
+        #import stores from the database per product in the cart area
+        #{(storeName, address) → {Regular Price, Sale Price, Required Quantity}}
+        store_lists = storesFromDB(shopping_address, products)
+
+        not_found_docs = list(not_found.find({
+            "cart_address": shopping_address
+        }))
+        not_found_set = {doc["productId"] for doc in not_found_docs}
+
+        #fetch stores from CHP if not in the database
+        missing_products = [
+            p for p in products
+            if p not in store_lists and p not in not_found_set
+        ]
+
+        if missing_products:
+            #product -> list of (store, address)
+            new_lists = await updateMissingStores(session, shopping_address, missing_products)
+            store_lists.update(new_lists)
+
+
+        #find the stores that selling all the products
+        store_data = {
+            p: {tuple(s): None for s in store_lists[p]}
+            for p in products
+        }
+        filtered_data, stores_missing = filterStores(store_data, products)
+        #without http (no websites)
+        sellingAllStores = [
+            (sn, addr)
+            for sn, addr in filtered_data.keys()
+            if "http" not in addr.lower()
+        ]
+
+        #find the prices from the database
+        prices = pricesFromDB(products, sellingAllStores)
+
+        #fetch prices if not in the database
+        prices = await updateMissingPrices(session, shopping_address, products, sellingAllStores, prices)
+        
+        #build Dataframe
+        records = []
+        for sn, addr in sellingAllStores:
+            row = {"Store": sn, "Address": addr}
+            for p in products:
+                price = prices.get((p, sn, addr))
+                if not price:
+                    break
+                qty = cart_quantities[p]
+                req = price["required_quantity"]
+                row[p] = price["sale_price"] if req and qty >= req else price["regular_price"]
+                row[f"{p} (Regular Price)"] = price["regular_price"]
+                row[f"{p} (Sale Price)"] = price["sale_price"]
+                row[f"{p} (Required Quantity)"] = req
             else:
-                row[product] = price_info["Regular Price"]
+                records.append(row)
 
-            row[f"{product} (Regular Price)"] = price_info["Regular Price"]
-            row[f"{product} (Sale Price)"] = price_info["Sale Price"]
-            row[f"{product} (Required Quantity)"] = required_quantity
-
-        records.append(row)
-
-
-    # optimization suggestion if less then 5 supermarkets is suggesting
-    recommended_removals = []
-    if len(filtered_data) < 5:
-        recommended_removals = find_best_combinations(store_data, stores_missing_products, product_list)
+        #optimization suggestion if less then 5 supermarkets is suggesting
+        recommended_removals = []
+        if len(records) < 5:
+            recommended_removals = recommendedToRemove(
+                store_data, stores_missing, products
+            )
 
     return pd.DataFrame(records), recommended_removals
+
 """
 if __name__ == "__main__":
     try:
         shopping_address = "יששכר 1, נתניה"
         cart_quantities = {"שוקולד חלב במילוי קרם ווניל ושבבי עוגיות אוראו, 100 גרם": 1,
-                           "טופי ממולא בטעמי פירות, 600 גרם": 2,
-                           "חלב תנובה טרי 3% בקרטון, 1 ליטר": 6,
-                           "טופי מקלוני טופי, 450 גרם": 1}
-        df, recommended_removals = get_store_data(shopping_address, cart_quantities)
-        
+                           "חלב תנובה טרי 3% בקרטון, 1 ליטר": 6,}
+        df, recommended_removals = asyncio.run(
+            get_store_data(shopping_address, cart_quantities)
+        )
         # Save to CSV file
         df.to_csv('store_comparison_data.csv', index=False, encoding='utf-8-sig')
         

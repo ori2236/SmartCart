@@ -7,6 +7,7 @@ import { ScrollView } from "react-native";
 import config from "../config";
 import axios from "axios";
 import * as SecureStore from "expo-secure-store";
+
 const { width, height } = Dimensions.get("window");
 
 const MyCartsScreen = () => {
@@ -229,6 +230,7 @@ const styles = StyleSheet.create({
   },
   scrollableContainer: {
     flex: 1,
+    marginBottom: 50
   },
   centerContent: {
     justifyContent: "center",

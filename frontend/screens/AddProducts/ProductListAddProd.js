@@ -22,9 +22,9 @@ const ProductListAddProd = ({
   onQuantityChange,
   onToggleStar,
   cart,
-  mail
+  mail,
+  onRemoveProduct,
 }) => {
-  const [cartProducts, setCartProducts] = useState([]);
   const [buttonStates, setButtonStates] = useState([]);
 
   useEffect(() => {
@@ -33,51 +33,17 @@ const ProductListAddProd = ({
 
       products.forEach((product) => {
         if (!updatedStates[product.productId]) {
-          const inCart = cartProducts.find(
-            (cartProd) => cartProd.productId === product.productId
-          );
           updatedStates[product.productId] = {
-            isAdded: !!inCart,
+            isAdded: product.isInCart || false,
             isUpdated: false,
-            originalQuantity: inCart ? inCart.quantity : 0,
+            originalQuantity: product.quantity || 0,
           };
         }
       });
 
       return updatedStates;
     });
-  }, [products, cartProducts]);
-
-  useEffect(() => {
-    if (!mail || !cart?.cartKey) return;
-
-    const fetchCartProducts = async () => {
-      try {
-        const apiUrl = `http://${config.apiServer}/api/productInCart/productInCart/cartKey/${cart.cartKey}?userMail=${mail}`;
-        const response = await axios.get(apiUrl);
-        const { userNickname, products: data } = response.data;
-
-        if (data.message === "No products found for the provided cartKey.") {
-          setCartProducts([]);
-        } else {
-          const cartProductsData = data.map((product) => ({
-            productId: product.productId,
-            label: product.name,
-            image: product.image || null,
-            quantity: product.quantity,
-          }));
-          setCartProducts(cartProductsData);
-        }
-      } catch (error) {
-        console.error("Error fetching cart products:", error.message);
-        setCartProducts([]);
-      }
-    };
-
-    fetchCartProducts();
-  }, [mail, cart?.cartKey]);
-
-
+  }, [products]);
 
   const updateButtonState = (productId, state) => {
     setButtonStates((prevState) => ({
@@ -87,52 +53,35 @@ const ProductListAddProd = ({
   };
 
   const handleAddProductToCart = async (product) => {
-    const name = product.label;
-    const image = product.image;
-    const cartKey = cart.cartKey;
     const quantity = product.quantity;
-    const newProd = {
-      name,
-      image,
-      cartKey,
-      quantity,
-      mail,
-    };
+    const cartKey = cart.cartKey;
+    const productId = product.productId;
 
-    try {
-      const apiUrl = `http://${config.apiServer}/api/productInCart/productInCart`;
-      const response = await axios.post(apiUrl, newProd);
-      if (response.status >= 200 && response.status < 300) {
-        product.productId = response.data._id;
-        updateButtonState(product.productId, {
-          isAdded: true,
-          isUpdated: false,
-          originalQuantity: quantity,
-        });
-      }
-    } catch (error) {
-      if (error.response && error.response.status === 400) {
-        // if the product already in the cart update it
-        try {
+    //the product is in the database
+    if (productId) {
+      const newProd = {
+        productId,
+        cartKey,
+        quantity,
+        mail,
+      };
 
-          existingProductId = error.response.data.productId;
-          const updateUrl = `http://${config.apiServer}/api/productInCart/productInCart/${cartKey}/${existingProductId}`;
-          const updateRes = await axios.put(updateUrl, { quantity, mail });
+      try {
+        const apiUrl = `http://${config.apiServer}/api/productInCart/productInCart`;
+        const response = await axios.post(apiUrl, newProd);
+        if (response.status === 201) {
+          updateButtonState(product.productId, {
+            isAdded: true,
+            isUpdated: false,
+            originalQuantity: quantity,
+          });
 
-          if (updateRes.status === 200) {
-            product.productId = existingProductId;
-            updateButtonState(product.productId, {
-              isAdded: true,
-              isUpdated: false,
-              originalQuantity: quantity,
-            });
-          }
-        } catch (updateError) {
-          console.error("Error updating product to cart:", updateError.message);
+          onRemoveProduct?.(product.productId);
         }
-      } else {
-        console.error("Error adding product to cart:", error.message);
+      } catch (error) {
+        console.error("Error adding suggested product:", error.message);
       }
+      return;
     }
   };
 
@@ -151,6 +100,7 @@ const ProductListAddProd = ({
         return;
       }
     } catch (error) {
+      /*
       if (error.response && error.response.status === 404) {
         // if the product not in the cart re-add it
         try {
@@ -179,6 +129,8 @@ const ProductListAddProd = ({
       } else {
         console.error("Error updating product quantity:", error.message);
       }
+    }*/
+      console.error("Error updating product quantity:", error.message);
     }
   };
 
@@ -425,7 +377,7 @@ const styles = StyleSheet.create({
   },
   flatListContent: {
     alignItems: "center",
-    paddingBottom: 400,
+    paddingBottom: 450,
   },
   centerContent: {
     justifyContent: "center",

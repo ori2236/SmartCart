@@ -654,7 +654,7 @@ const styles = StyleSheet.create({
   leaveButton: {
     backgroundColor: "#FF7E3E",
     position: "absolute",
-    bottom: 20,
+    bottom: 70,
     left: 20,
     right: 20,
     paddingVertical: 14,

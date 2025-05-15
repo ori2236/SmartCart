@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -7,13 +7,11 @@ import {
   StyleSheet,
   Dimensions,
   Platform,
-  PanResponder,
 } from "react-native";
 import ProductSearch from "./ProductSearch";
 import ProductFavorites from "./ProductFavorites";
+import ProductSuggestions from "./ProductSuggestions.js";
 import { useNavigation } from "@react-navigation/native";
-
-const { width, height } = Dimensions.get("window");
 
 const AddProducts = ({ route }) => {
   const { userMail, cart } = route.params;
@@ -30,19 +28,19 @@ const AddProducts = ({ route }) => {
     if (selectedTab === "name") {
       return (
         <>
-          <ProductSearch
-            userMail={userMail}
-            cart={cart}
-          />
+          <ProductSearch userMail={userMail} cart={cart} />
         </>
       );
     } else if (selectedTab === "favorites") {
       return (
         <>
-          <ProductFavorites
-            userMail={userMail}
-            cart={cart}
-          />
+          <ProductFavorites userMail={userMail} cart={cart} />
+        </>
+      );
+    } else if (selectedTab === "quickAdd") {
+      return (
+        <>
+          <ProductSuggestions userMail={userMail} cart={cart} />
         </>
       );
     }
@@ -96,16 +94,16 @@ const AddProducts = ({ route }) => {
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.tab, selectedTab === "ai" && styles.activeTab]}
-          onPress={() => handleTabPress("ai")}
+          style={[styles.tab, selectedTab === "quickAdd" && styles.activeTab]}
+          onPress={() => handleTabPress("quickAdd")}
         >
           <Text
             style={[
               styles.tabText,
-              selectedTab === "ai" && styles.activeTabText,
+              selectedTab === "quickAdd" && styles.activeTabText,
             ]}
           >
-            AI
+            המלצות
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -171,7 +169,6 @@ const styles = StyleSheet.create({
     paddingBottom: 5,
     justifyContent: "space-between",
   },
-
   headerText: {
     color: "#FFFFFF",
     fontSize: 18,
@@ -226,6 +223,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     width: "100%",
     backgroundColor: "#FFFFFF",
+    paddingBottom: 50,
   },
 
   bottomIcon: {

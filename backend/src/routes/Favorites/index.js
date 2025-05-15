@@ -6,15 +6,9 @@ const router = Router();
 router.post("/favorite", favorites.post.validator, favorites.post.handler);
 
 router.get(
-  "/favorite/:type/:content",
+  "/favorite/:mail/:cartKey",
   favorites.get.validator,
   favorites.get.handler
-);
-
-router.delete(
-  "/favorite/:productId/:mail",
-  favorites.delete.validator,
-  favorites.delete.handler
 );
 
 router.put(
@@ -24,11 +18,9 @@ router.put(
 );
 
 router.delete(
-  "/favorite/byDetails",
-  favorites.deleteByDetails.validator,
-  favorites.deleteByDetails.handler
+  "/favorite",
+  favorites.delete.validator,
+  favorites.delete.handler
 );
-
-router.get("/favorites", favorites.getAll.validator, favorites.getAll.handler);
 
 export default router;

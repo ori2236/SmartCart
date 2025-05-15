@@ -19,34 +19,35 @@ const ProductFavorites = ({ userMail, cart }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [debounceTimeouts, setDebounceTimeouts] = useState({});
-  const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchFavorites = async () => {
       setIsLoading(true);
-      setError(null);
 
       try {
-        const response = await fetch(
-          `http://${config.apiServer}/api/favorite/favorite/mail/${userMail}`
-        );
+        const apiUrl = `http://${config.apiServer}/api/favorite/favorite/${userMail}/${cart.cartKey}`;
+        const response = await axios.get(apiUrl);
 
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+        if (response.status !== 200) {
+          throw new Error(`error fetching favorite products`);
         }
 
-        const data = await response.json();
-        const updatedProducts = data.map((product, index) => ({
-          productId: product._id,
+        const data = await response.data;
+
+        const updatedProducts = data.map((product) => ({
+          productId: product.productId,
           label: product.name,
           image: product.image || null,
-          quantity: product.quantity,
+          quantity: product.isInCart
+            ? product.quantityInCart || 1
+            : product.quantityInFavorites || 1,
           starColor: "#FFD700",
+          isInCart: product.isInCart || false,
         }));
         setFilteredProducts(updatedProducts);
         setProducts(updatedProducts);
       } catch (error) {
-        setError(error.message || "שגיאה בטעינת המוצרים המועדפים");
+        console.error("error fetching favorites")
       } finally {
         setIsLoading(false);
       }
@@ -55,16 +56,18 @@ const ProductFavorites = ({ userMail, cart }) => {
   }, [userMail]);
 
   const handleStarClickOff = async (product) => {
-    if (!product.label || !product.image || !userMail) {
-      Alert.alert("Validation Error", "All fields are required!");
-      return;
-    }
-
     try {
-      const apiUrl = `http://${config.apiServer}/api/favorite/favorite/${product.productId}/${userMail}`;
-      const response = await axios.delete(apiUrl);
+      const removeFavoriteProduct = {
+        productId: product.productId,
+        mail: userMail,
+      };
 
-      if (response.status == 200) {
+      const apiUrl = `http://${config.apiServer}/api/favorite/favorite/`;
+      await axios.delete(apiUrl, {
+        data: removeFavoriteProduct,
+      });
+
+      if (response.status === 200) {
         setProducts((prevProducts) =>
           prevProducts.filter((p) => p.productId !== product.productId)
         );
@@ -85,15 +88,20 @@ const ProductFavorites = ({ userMail, cart }) => {
 
     setProducts((prevProducts) =>
       prevProducts.map((product) =>
-        product.productId === productId ? { ...product, quantity: newQuantity } : product
+        product.productId === productId
+          ? { ...product, quantity: newQuantity }
+          : product
       )
     );
 
     setFilteredProducts((prevFilteredProducts) =>
       prevFilteredProducts.map((product) =>
-        product.productId === productId ? { ...product, quantity: newQuantity } : product
+        product.productId === productId
+          ? { ...product, quantity: newQuantity }
+          : product
       )
     );
+
     if (debounceTimeouts[productId]) {
       clearTimeout(debounceTimeouts[productId]);
     }
@@ -113,7 +121,7 @@ const ProductFavorites = ({ userMail, cart }) => {
       const apiUrl = `http://${config.apiServer}/api/favorite/favorite/${productId}/${userMail}`;
       const response = await axios.put(apiUrl, { quantity });
       if (response.status !== 200) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(`can not update quantity`);
       }
     } catch (error) {
       console.error("Error updating quantity:", error.message);
@@ -131,7 +139,9 @@ const ProductFavorites = ({ userMail, cart }) => {
       handleStarClickOff(product);
     }
 
-    setProducts((prevProducts) => prevProducts.filter((p) => p.productId !== productId));
+    setProducts((prevProducts) =>
+      prevProducts.filter((p) => p.productId !== productId)
+    );
     setFilteredProducts((prevFiltered) =>
       prevFiltered.filter((p) => p.productId !== productId)
     );
@@ -177,6 +187,7 @@ const ProductFavorites = ({ userMail, cart }) => {
           onQuantityChange={handleQuantityChange}
           onToggleStar={toggleStarColor}
           cart={cart}
+          mail={userMail}
         />
       )}
     </View>

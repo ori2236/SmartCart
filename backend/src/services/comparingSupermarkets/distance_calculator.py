@@ -4,6 +4,156 @@ import requests
 import os
 import re
 import sys
+import asyncio
+import aiohttp
+sys.dont_write_bytecode = True
+from dotenv import load_dotenv
+from urllib.parse import quote
+
+#load the .env: the GOOGLE_MAPS_API_KEY
+load_dotenv()
+GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY")
+
+async def fetch(session, url, params=None, headers=None):
+    async with session.get(url, params=params, headers=headers) as response:
+        return await response.json()
+
+async def get_coordinates_from_google_maps(session, address):
+    #encodes the address to match for URL
+    encoded_address = quote(address)
+    url = f"https://www.google.com/maps/search/{encoded_address}"
+
+    try:
+        async with session.get(url) as response:
+            text = await response.text()
+            #search for coordinates by regex
+            pattern = re.compile(r"\[\s*3,\s*([0-9]+\.[0-9]+),\s*([0-9]+\.[0-9]+)\s*\]")
+            matches = pattern.findall(text)
+            if matches:
+                latitude, longitude = map(float, matches[0])
+                return longitude, latitude
+    except Exception:
+        return None
+    return None
+
+async def get_coordinates_from_openstreetmap(session, address):
+    url = "https://nominatim.openstreetmap.org/search"
+    params = {"q": address + ", ישראל", "format": "json"}
+    #fake contact
+    headers = {"User-Agent": "MyProject/1.0 (contact: SmartCart@example.com)"}
+
+    try:
+        async with session.get(url, params=params, headers=headers) as response:
+            data = await response.json()
+            if data:
+                return float(data[0]["lat"]), float(data[0]["lon"])
+    except Exception:
+        return None
+    return None
+
+async def get_distance_from_google(origin, destinations):
+    url = "https://maps.googleapis.com/maps/api/distancematrix/json"
+    params = {
+        "origins": origin,
+        "destinations": "|".join(destinations),
+        "mode": "driving",
+        "key": GOOGLE_MAPS_API_KEY
+    }
+
+    async with aiohttp.ClientSession() as session:
+        data = await fetch(session, url, params=params)
+
+    if data["status"] == "OK":
+        distances = {}
+        for i, destination in enumerate(destinations):
+            element = data["rows"][0]["elements"][i]
+            distances[destination] = element["distance"]["value"] / 1000 if element["status"] == "OK" else None
+        return distances
+    return {dest: None for dest in destinations}
+
+async def handle_fallback(session, cart_coords, store_address):
+    store_coords = await get_coordinates_from_openstreetmap(session, store_address)
+    if store_coords is None:
+        store_coords = await get_coordinates_from_google_maps(session, store_address)
+
+    if cart_coords is None or store_coords is None:
+        return store_address, None
+    
+    lat1, lon1 = cart_coords
+    lat2, lon2 = store_coords
+
+    google_distance = await get_distance_from_google(f"{lat1},{lon1}", [f"{lat2},{lon2}"])
+    distance = google_distance.get(f"{lat2},{lon2}", None)
+    return store_address, distance
+
+async def calculate_distances(cart_address, address_list):
+    async with aiohttp.ClientSession() as session:
+        distances = await get_distance_from_google(cart_address, address_list)
+
+        updated_distances = {}
+        cart_coords = None
+
+        fallback_tasks = []
+
+        for addr, distance in distances.items():
+            if distance is None or distance > 10:
+                if (cart_coords is None):
+                    cart_coords = await get_coordinates_from_google_maps(session, cart_address)
+                fallback_tasks.append(handle_fallback(session, cart_coords, addr))
+            else:
+                updated_distances[addr] = distance
+
+        fallback_results = await asyncio.gather(*fallback_tasks)
+        for addr, distance in fallback_results:
+            updated_distances[addr] = distance
+
+        return [{"Address": addr, "Distance (km)": dist} for addr, dist in updated_distances.items()]
+
+def decode_base64(encoded_str):
+    decoded_bytes = base64.b64decode(encoded_str)
+    return json.loads(decoded_bytes.decode('utf-8'))
+
+if __name__ == "__main__":
+    try:
+        cart_address = sys.argv[1]
+        try:
+            address_list = decode_base64(sys.argv[2])
+            if not isinstance(address_list, list):
+                raise ValueError("Decoded address list is not a valid list")
+        except Exception as e:
+            print(json.dumps({"error": f"Failed to decode address list: {str(e)}"}), flush=True)
+            sys.exit(1)
+
+        distances = asyncio.run(calculate_distances(cart_address, address_list))
+        output = {"distances": distances}
+
+        print(json.dumps(output), flush=True)
+
+    except Exception as e:
+        print(json.dumps({"error": str(e)}), flush=True)
+
+"""
+# example
+if __name__ == "__main__":
+    cart_address = "הרב נריה 9, נתניה"
+    address_list = ["הנופר 4, נתניה", "הפלדה 13, נתניה", "נורדיה 1, נורדיה", "החרמון 6 נתניה", "קלאוזנר 1, נתניה", "יהונתן נתניהו 6, אור יהודה"]
+
+    distances_table = calculate_distances(cart_address, address_list)
+
+    for row in distances_table:
+        print(f"Address: {row['Address']}, Distance (km): {row['Distance (km)']}")
+"""
+
+
+
+
+"""
+import base64
+import json
+import requests
+import os
+import re
+import sys
 sys.dont_write_bytecode = True
 from dotenv import load_dotenv
 from urllib.parse import quote
@@ -89,7 +239,7 @@ def decode_base64(encoded_str):
     decoded_bytes = base64.b64decode(encoded_str)
     return json.loads(decoded_bytes.decode('utf-8'))
 
-if __name__ == "__main__":
+if __name__ == "_main_":
     try:
        
         cart_address = sys.argv[1]
@@ -109,14 +259,5 @@ if __name__ == "__main__":
     except Exception as e:
         print(json.dumps({"error": str(e)}), flush=True)
 
-"""
-# example
-if __name__ == "__main__":
-    cart_address = "הרב נריה 9, נתניה"
-    address_list = ["הנופר 4, נתניה", "הפלדה 13, נתניה", "נורדיה 1, נורדיה", "החרמון 6 נתניה", "קלאוזנר 1, נתניה", "יהונתן נתניהו 6, אור יהודה"]
 
-    distances_table = calculate_distances(cart_address, address_list)
-
-    for row in distances_table:
-        print(f"Address: {row['Address']}, Distance (km): {row['Distance (km)']}")
 """

@@ -5,11 +5,12 @@ import nodemailer from "nodemailer";
 
 const SALT_ROUNDS = 10;
 
+//6 digits code
 const generateVerificationCode = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
-const sendVerificationEmail = async (email, code) => {
+const sendVerificationEmail = async (mail, code) => {
   const transporter = nodemailer.createTransport({
     service: "gmail",
     auth: {
@@ -20,7 +21,7 @@ const sendVerificationEmail = async (email, code) => {
 
   const mailOptions = {
     from: '"SmartCart" <smartcartbi@gmail.com>',
-    to: email,
+    to: mail,
     subject: "Verification Code for SmartCart",
     text: `Your verification code is: ${code}`,
   };

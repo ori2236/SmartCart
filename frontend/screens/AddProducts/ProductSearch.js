@@ -13,65 +13,13 @@ import axios from "axios";
 import config from "../../config";
 import ProductListAddProd from "./ProductListAddProd";
 
-
-const { width, height } = Dimensions.get("window");
+const { height } = Dimensions.get("window");
 
 const ProductSearch = ({ userMail, cart }) => {
   const [products, setProducts] = useState([]);
-  const [favorites, setFavorites] = useState([]);
-  const [cartProducts, setCartProducts] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
 
-  const fetchFavorites = async () => {
-    try {
-      const apiUrl = `http://${config.apiServer}/api/favorite/favorite/mail/${userMail}`;
-      const response = await axios.get(apiUrl);
-
-      const data = response.data;
-      setFavorites(data);
-    } catch (error) {
-      console.error("Error fetching favorites:", error.message);
-      setFavorites([]);
-    }
-  };
-
-  const fetchCartProducts = async () => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const apiUrl = `http://${config.apiServer}/api/productInCart/productInCart/cartKey/${cart.cartKey}?userMail=${userMail}`;
-      const response = await axios.get(apiUrl);
-      const { userNickname, products: data } = response.data;
-
-      if (data.message === "No products found for the provided cartKey.") {
-        setCartProducts([]);
-      } else {
-        const cartProductsData = data.map((product) => ({
-          productId: product.productId,
-          label: product.name,
-          image: product.image || null,
-          quantity: product.quantity,
-        }));
-        setCartProducts(cartProductsData);
-      }
-    } catch (error) {
-      console.error("Error fetching cart products:", error.message);
-      setCartProducts([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (userMail) {
-      fetchFavorites();
-      fetchCartProducts();
-    }
-  }, [userMail]);
-  
   const fetchProducts = async () => {
     if (!searchTerm.trim()) {
       Alert.alert("שגיאה", "יש להזין מילה לחיפוש");
@@ -79,84 +27,48 @@ const ProductSearch = ({ userMail, cart }) => {
     }
 
     setIsLoading(true);
-    setError(null);
-    
-    try {
-      const [favoritesData, cartProductsData, searchResponse] =
-        // same time
-        await Promise.all([
-          (async () => {
-            const apiUrl = `http://${config.apiServer}/api/favorite/favorite/mail/${userMail}`;
-            const response = await axios.get(apiUrl);
-            return response.data || [];
-          })(),
-          (async () => {
-            const apiUrl = `http://${config.apiServer}/api/productInCart/productInCart/cartKey/${cart.cartKey}?userMail=${userMail}`;
-            const response = await axios.get(apiUrl);
-            const { userNickname, products: data } = response.data;
-            if (
-              data.message ===
-              "No products found for the provided cartKey."
-            ) {
-              return [];
-            }
-            return data.map((product) => ({
-              productId: product.productId,
-              label: product.name,
-              image: product.image || null,
-              quantity: product.quantity,
-            }));
-          })(),
-          (async () => {
-            const apiUrl = `http://${
-              config.apiServer
-            }/api/product/productsFromSearch/?term=${encodeURIComponent(
-              searchTerm
-            )}&shopping_address=${encodeURIComponent(cart.address)}`;
-            const response = await fetch(apiUrl);
-            if (!response.ok) {
-              throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return response.json();
-          })(),
-        ]);
-      const updatedProducts = searchResponse.map((product, index) => {
-        const isFavorite = favoritesData.some(
-          (fav) => fav.name === product.label && fav.image === product.image
-        );
-        const prodInCart = cartProductsData.find(
-          (prod) => prod.label === product.label && prod.image === product.image
-        );
 
-        return {
-          ...product,
-          productId: prodInCart ? prodInCart.productId : index,
-          quantity: prodInCart ? prodInCart.quantity : 1,
-          starColor: isFavorite ? "#FFD700" : "#D9D9D9",
-        };
-      });
-      setCartProducts(cartProductsData);
-      setFavorites(favoritesData);
+    try {
+      const apiUrl = `http://${
+        config.apiServer
+      }/api/product/productsFromSearch/?term=${encodeURIComponent(
+        searchTerm
+      )}&shopping_address=${encodeURIComponent(
+        cart.address
+      )}&userMail=${userMail}&cartKey=${cart.cartKey}`;
+
+      const response = await axios.get(apiUrl);
+
+      if (response.status !== 200) {
+        throw new Error(`error fetching products`);
+      }
+
+      const searchResponse = response.data || [];
+      const updatedProducts = searchResponse.map((product, index) => ({
+        productId: product.productId || index,
+        label: product.label,
+        image: product.image || null,
+        isInCart: product.isInCart,
+        quantity: product.isInCart
+          ? product.quantityInCart
+          : product.isFavorite
+          ? product.quantityInFavorite
+          : 1,
+        starColor: product.isFavorite ? "#FFD700" : "#D9D9D9",
+      }));
+
       setProducts(updatedProducts);
     } catch (error) {
-      setError(error.message || "שגיאה בטעינת המוצרים");
+      console.error("failed fetch products");
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleStarClickOn = async (product) => {
-    if (!product.label || !product.image || !userMail) {
-      Alert.alert("Validation Error", "All fields are required!");
-      return;
-    }
-    addFavoriteProduct(product);
-  };
 
-  const addFavoriteProduct = async (product) => {
     const newFavoriteProduct = {
-      name: product.label,
-      image: product.image,
+      productId: product.productId,
       mail: userMail,
     };
 
@@ -164,15 +76,10 @@ const ProductSearch = ({ userMail, cart }) => {
       const apiUrl = `http://${config.apiServer}/api/favorite/favorite/`;
       const response = await axios.post(apiUrl, newFavoriteProduct);
 
-      if (response.status >= 200 && response.status < 300) {
-        const res = response.data;
-        if (res.message === "Product added to favorites successfully.") {
-          Alert.alert("הצלחה", "המוצר נוסף למועדפים בהצלחה!");
-        } else if (
-          res.message === "This product is already in the user's favorites."
-        ) {
-          Alert.alert("שים לב", "המוצר שבחרת כבר נמצא במועדפים!");
-        }
+      if (response.status === 200) {
+        Alert.alert("שים לב", "המוצר שבחרת כבר נמצא במועדפים!");
+      } else if (response.status === 201) {
+        //added successfully
       } else {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -183,19 +90,14 @@ const ProductSearch = ({ userMail, cart }) => {
   };
 
   const handleStarClickOff = async (product) => {
-    if (!product.label || !product.image || !userMail) {
-      Alert.alert("Validation Error", "All fields are required!");
-      return;
-    }
-
     try {
       const removeFavoriteProduct = {
-        name: product.label,
-        image: product.image,
+        productId: product.productId,
         mail: userMail,
       };
-      const apiUrl = `http://${config.apiServer}/api/favorite/favorite/byDetails/`;
-      const response = await axios.delete(apiUrl, {
+
+      const apiUrl = `http://${config.apiServer}/api/favorite/favorite/`;
+      await axios.delete(apiUrl, {
         data: removeFavoriteProduct,
       });
     } catch (error) {

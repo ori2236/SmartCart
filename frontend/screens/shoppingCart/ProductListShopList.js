@@ -18,6 +18,7 @@ const ProductListShopList = ({
   isLoading,
   onQuantityChange,
   onRemoveProductFromCart,
+  onBought,
 }) => {
   const renderProduct = ({ item }) => {
     const imageSource = item.image
@@ -71,7 +72,10 @@ const ProductListShopList = ({
             <Text style={styles.plusIcon}>+</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.addToCartButton}>
+          <TouchableOpacity
+            style={styles.addToCartButton}
+            onPress={() => onBought(item.id)}
+          >
             <Text style={styles.addToCartText}>קניתי</Text>
           </TouchableOpacity>
         </View>
@@ -129,7 +133,7 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     flexWrap: "wrap",
     color: "#000000",
-    marginRight: 70,
+    marginRight: 80,
     marginTop: 10,
     fontWeight: "bold",
   },
@@ -220,7 +224,7 @@ const styles = StyleSheet.create({
   },
   flatListContent: {
     alignItems: "center",
-    paddingBottom: 60,
+    paddingBottom: 100,
   },
   centerContent: {
     justifyContent: "center",
