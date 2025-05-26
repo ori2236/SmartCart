@@ -11,5 +11,8 @@ app
   .use(express.json())
   .use(express.urlencoded({ extended: true }))
   .use("/api", routes)
+app.get('/healthcheck', (req, res) => {
+  res.send('OK');
+});
     
 export default app;

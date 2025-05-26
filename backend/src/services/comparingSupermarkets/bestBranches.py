@@ -3,7 +3,7 @@ import math
 from importPrices import get_store_data
 
 from distance_calculator import calculate_distances
-from db.index import get_db
+from src.db.index import get_db
 from pymongo.errors import BulkWriteError
 
 import asyncio
