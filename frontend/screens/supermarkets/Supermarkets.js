@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -6,17 +6,17 @@ import {
   Image,
   StyleSheet,
   Dimensions,
-  Platform,
   PanResponder,
   Modal,
   ScrollView,
+  StatusBar,
 } from "react-native";
 import axios from "axios";
 import { useNavigation } from "@react-navigation/native";
 import SupermarketBranchesList from "./SupermarketBranchesList";
 import config from "../../config";
 
-const { width, height } = Dimensions.get("window");
+const { height } = Dimensions.get("window");
 const SNAP_POINTS = [0, 0.5, 1];
 const SLIDER_WIDTH = 225;
 const THUMB_SIZE = 30;
@@ -132,6 +132,7 @@ const Supermarkets = ({ route }) => {
 
   return (
     <View style={styles.backgroundColor}>
+      <StatusBar backgroundColor="#0F872B" barStyle="light-content" />
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerText}>סנן לפי מחיר ומרחק</Text>
@@ -234,29 +235,45 @@ const Supermarkets = ({ route }) => {
 
       {/* Bottom Navigation */}
       <View style={styles.bottomNavigation}>
-        <TouchableOpacity>
+        <TouchableOpacity style={styles.navItem}>
           <Image
             source={require("../../assets/super-branches.png")}
-            style={styles.LocationIcon}
+            style={[styles.bottomIcon, styles.bottomIconMarked]}
           />
+          <Text style={styles.navLabelMarked}>מחיר מרחק</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => handleBottomRow("shoppingCart")}>
+
+        <TouchableOpacity
+          style={styles.navItem}
+          onPress={() => handleBottomRow("shoppingCart")}
+        >
           <Image
             source={require("../../assets/shopping-list.png")}
             style={styles.bottomIcon}
           />
+          <Text style={styles.navLabel}>העגלה שלי</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => handleBottomRow("addProducts")}>
+
+        <TouchableOpacity
+          style={styles.navItem}
+          onPress={() => handleBottomRow("addProducts")}
+        >
           <Image
             source={require("../../assets/add-products.png")}
             style={styles.bottomIcon}
           />
+          <Text style={styles.navLabel}>הוספה לעגלה</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => handleBottomRow("home")}>
+
+        <TouchableOpacity
+          style={styles.navItem}
+          onPress={() => handleBottomRow("home")}
+        >
           <Image
             source={require("../../assets/home.png")}
             style={styles.bottomIcon}
           />
+          <Text style={styles.navLabel}>ראשי</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -272,7 +289,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-end",
     backgroundColor: "#0F872B",
-    height: height * 0.15,
+    height: 120,
     justifyContent: "space-between",
     position: "relative",
     width: "100%",
@@ -289,6 +306,8 @@ const styles = StyleSheet.create({
   headerIcon: {
     width: 36,
     height: 36,
+    marginBottom: 40,
+    resizeMode: "contain",
   },
   cartIconWrapper: {
     position: "absolute",
@@ -296,7 +315,6 @@ const styles = StyleSheet.create({
     right: 20,
     zIndex: 10,
   },
-
   sliderRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -378,6 +396,7 @@ const styles = StyleSheet.create({
     tintColor: "#FF7E3E",
     width: 40,
     height: 40,
+    resizeMode: "contain",
   },
   closeButton: {
     backgroundColor: "#0F872B",
@@ -393,23 +412,33 @@ const styles = StyleSheet.create({
   bottomNavigation: {
     flexDirection: "row",
     justifyContent: "space-around",
-    paddingVertical: 15,
+    paddingVertical: 10,
     borderTopWidth: 1,
     borderTopColor: "#EEEEEE",
     position: "absolute",
     bottom: 0,
     width: "100%",
     backgroundColor: "#FFFFFF",
-    paddingBottom: 50,
+  },
+  navItem: {
+    alignItems: "center",
   },
   bottomIcon: {
-    width: 30,
-    height: 30,
+    width: 27,
+    height: 27,
+    resizeMode: "contain",
+    marginBottom: 4,
   },
-  LocationIcon: {
-    width: 30,
-    height: 30,
+  bottomIconMarked: {
     tintColor: "#0F872B",
+  },
+  navLabel: {
+    fontSize: 12,
+    color: "#333333",
+  },
+  navLabelMarked: {
+    fontSize: 12,
+    color: "#0F872B",
   },
   logo: {
     alignSelf: "center",

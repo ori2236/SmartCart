@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
   Keyboard,
   Platform,
   FlatList,
+  StatusBar,
 } from "react-native";
 import axios from "axios";
 import { Ionicons } from "@expo/vector-icons";
@@ -88,6 +89,7 @@ export default function NewCart({ route }) {
 
   return (
     <View style={styles.backgroundColor}>
+      <StatusBar backgroundColor="#FFFFFF" barStyle="dark-content" />
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : "height"}

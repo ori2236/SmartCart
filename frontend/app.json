@@ -5,7 +5,7 @@
     "version": "1.0.0",
     "scheme": "smartcart",
     "orientation": "portrait",
-    "icon": "./assets/logo.png",
+    "icon": "./assets/appIcon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
@@ -13,19 +13,27 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
+    "androidStatusBar": {
+      "backgroundColor": "#0F872B",
+      "barStyle": "light-content",
+      "translucent": false
+    },
     "ios": {
       "supportsTablet": true
     },
     "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/logo.png",
-        "backgroundColor": "#ffffff"
-      },
-      "package": "com.orilevi.SmartCart"
+      "icon": "./assets/adaptiveIcon.png",
+      "package": "com.orilevi.SmartCart",
+      "usesCleartextTraffic": true
     },
     "web": {
-      "favicon": "./assets/logo.png"
+      "favicon": "./assets/appIcon.png"
     },
-    "plugins": ["expo-secure-store"]
+    "plugins": ["expo-secure-store"],
+    "extra": {
+      "eas": {
+        "projectId": "41317d59-f324-4329-8b6a-a80880f2789f"
+      }
+    }
   }
 }

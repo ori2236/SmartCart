@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,14 +8,16 @@ import {
   Dimensions,
   Alert,
   Modal,
+  StatusBar,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
 import axios from "axios";
 import config from "../../config";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-const { width, height } = Dimensions.get("window");
+const { height } = Dimensions.get("window");
 
 const colorMap = {};
 const colorPalette = [
@@ -309,164 +311,170 @@ const CartInfo = ({ route }) => {
   };
 
   return (
-    <View style={styles.backgroundColor}>
-      {/* leave cart */}
-      <Modal transparent visible={isPopupVisible} animationType="fade">
-        <View style={styles.modalContainer}>
-          <View style={styles.modalBox}>
-            <Text style={styles.modalText}>
-              האם אתה בטוח שברצונך לצאת מהעגלה?
-            </Text>
-            <View style={styles.modalButtonsRow}>
-              <TouchableOpacity
-                style={styles.cancelButton}
-                onPress={() => setIsPopupVisible(false)}
-              >
-                <Text style={styles.modalButtonText}>ביטול</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.confirmButton}
-                onPress={handleLeaveCart}
-              >
-                <Text style={styles.modalButtonText}>אישור</Text>
-              </TouchableOpacity>
+    <SafeAreaView style={{ flex: 1 }}>
+      <View style={styles.backgroundColor}>
+        <StatusBar backgroundColor="#0F872B" barStyle="light-content" />
+
+        {/* leave cart */}
+        <Modal transparent visible={isPopupVisible} animationType="fade">
+          <View style={styles.modalContainer}>
+            <View style={styles.modalBox}>
+              <Text style={styles.modalText}>
+                האם אתה בטוח שברצונך לצאת מהעגלה?
+              </Text>
+              <View style={styles.modalButtonsRow}>
+                <TouchableOpacity
+                  style={styles.cancelButton}
+                  onPress={() => setIsPopupVisible(false)}
+                >
+                  <Text style={styles.modalButtonText}>ביטול</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.confirmButton}
+                  onPress={handleLeaveCart}
+                >
+                  <Text style={styles.modalButtonText}>אישור</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
-        </View>
-      </Modal>
+        </Modal>
 
-      {/* press on user */}
-      <Modal
-        transparent
-        visible={!!selectedMember}
-        animationType="fade"
-        onRequestClose={() => setSelectedMember(null)}
-      >
-        <TouchableOpacity
-          activeOpacity={1}
-          style={styles.modalContainer}
-          onPressOut={() => setSelectedMember(null)}
+        {/* press on user */}
+        <Modal
+          transparent
+          visible={!!selectedMember}
+          animationType="fade"
+          onRequestClose={() => setSelectedMember(null)}
         >
-          <View style={styles.modalBox}>
-            <Text style={styles.modalText}>{selectedMember?.name}</Text>
-            {role === "owner" && (
+          <TouchableOpacity
+            activeOpacity={1}
+            style={styles.modalContainer}
+            onPressOut={() => setSelectedMember(null)}
+          >
+            <View style={styles.modalBox}>
+              <Text style={styles.modalText}>{selectedMember?.name}</Text>
+              {role === "owner" && (
+                <TouchableOpacity
+                  onPress={() => {
+                    handleRoleChange(selectedMember.email);
+                  }}
+                  style={styles.modalAction}
+                >
+                  <Text>
+                    {selectedMember?.role === "member"
+                      ? "הפוך ל Admin"
+                      : "הפוך ל Member"}
+                  </Text>
+                </TouchableOpacity>
+              )}
               <TouchableOpacity
                 onPress={() => {
-                  handleRoleChange(selectedMember.email);
+                  if (selectedMember) {
+                    setMemberToRemoveNickname(selectedMember.name);
+                    setMemberToRemoveEmail(selectedMember.email);
+                  }
+                  setConfirmRemoveVisible(true);
+                  setSelectedMember(null);
                 }}
                 style={styles.modalAction}
               >
-                <Text>
-                  {selectedMember?.role === "member"
-                    ? "הפוך ל Admin"
-                    : "הפוך ל Member"}
-                </Text>
-              </TouchableOpacity>
-            )}
-            <TouchableOpacity
-              onPress={() => {
-                if (selectedMember) {
-                  setMemberToRemoveNickname(selectedMember.name);
-                  setMemberToRemoveEmail(selectedMember.email);
-                }
-                setConfirmRemoveVisible(true);
-                setSelectedMember(null);
-              }}
-              style={styles.modalAction}
-            >
-              <Text>הוצא מהעגלה</Text>
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
-      </Modal>
-
-      {/* remove from cart */}
-      <Modal transparent visible={confirmRemoveVisible} animationType="fade">
-        <View style={styles.modalContainer}>
-          <View style={styles.modalBox}>
-            <Text style={styles.modalText}>
-              האם להוציא את {memberToRemoveNickname} מהעגלה?
-            </Text>
-            <View style={styles.modalButtonsRow}>
-              <TouchableOpacity
-                style={styles.cancelButton}
-                onPress={() => setConfirmRemoveVisible(false)}
-              >
-                <Text style={styles.modalButtonText}>ביטול</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.confirmButton}
-                onPress={handleRemoveFromCart}
-              >
-                <Text style={styles.modalButtonText}>אישור</Text>
+                <Text>הוצא מהעגלה</Text>
               </TouchableOpacity>
             </View>
+          </TouchableOpacity>
+        </Modal>
+
+        {/* remove from cart */}
+        <Modal transparent visible={confirmRemoveVisible} animationType="fade">
+          <View style={styles.modalContainer}>
+            <View style={styles.modalBox}>
+              <Text style={styles.modalText}>
+                האם להוציא את {memberToRemoveNickname} מהעגלה?
+              </Text>
+              <View style={styles.modalButtonsRow}>
+                <TouchableOpacity
+                  style={styles.cancelButton}
+                  onPress={() => setConfirmRemoveVisible(false)}
+                >
+                  <Text style={styles.modalButtonText}>ביטול</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.confirmButton}
+                  onPress={handleRemoveFromCart}
+                >
+                  <Text style={styles.modalButtonText}>אישור</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
+        <View style={styles.header}>
+          <TouchableOpacity
+            onPress={() =>
+              navigation.navigate(originScreen, { userMail, cart })
+            }
+            style={styles.backButton}
+          >
+            <Ionicons name="arrow-back" size={24} color="white" />
+          </TouchableOpacity>
+          <View style={styles.headerCenterContainer}>
+            <Text style={styles.headerText}>{cart.name}</Text>
+            <Text style={styles.headerDescription}>{cart.address}</Text>
           </View>
         </View>
-      </Modal>
 
-      <View style={styles.header}>
+        {(role === "owner" || role === "admin") && (
+          <View style={styles.buttonRow}>
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={handleCopyCartKey}
+            >
+              <Text style={styles.actionText}>שתף עגלה</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => {
+                if (role !== "owner") {
+                  Alert.alert("הגבלה", "רק בעלים יכול לערוך את פרטי העגלה");
+                  return;
+                }
+                navigation.navigate("ChangeInfo", {
+                  userMail,
+                  cart,
+                  originScreen,
+                });
+              }}
+            >
+              <Text style={styles.actionText}>עריכת עגלה</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={approveAllRequests}
+            >
+              <Text style={styles.actionText}>
+                אשר את כולם ({joinRequests.length})
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        <FlatList
+          data={combinedList}
+          renderItem={renderItem}
+          keyExtractor={(item, index) => `${item.email || item.title}-${index}`}
+          contentContainerStyle={styles.listContent}
+        />
+
         <TouchableOpacity
-          onPress={() => navigation.navigate(originScreen, { userMail, cart })}
-          style={styles.backButton}
+          style={styles.leaveButton}
+          onPress={() => setIsPopupVisible(true)}
         >
-          <Ionicons name="arrow-back" size={24} color="white" />
+          <Text style={styles.leaveButtonText}>יציאה מהעגלה</Text>
         </TouchableOpacity>
-        <View style={styles.headerCenterContainer}>
-          <Text style={styles.headerText}>{cart.name}</Text>
-          <Text style={styles.headerDescription}>{cart.address}</Text>
-        </View>
       </View>
-
-      {(role === "owner" || role === "admin") && (
-        <View style={styles.buttonRow}>
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={handleCopyCartKey}
-          >
-            <Text style={styles.actionText}>שתף עגלה</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => {
-              if (role !== "owner") {
-                Alert.alert("הגבלה", "רק בעלים יכול לערוך את פרטי העגלה");
-                return;
-              }
-              navigation.navigate("ChangeInfo", {
-                userMail,
-                cart,
-                originScreen,
-              });
-            }}
-          >
-            <Text style={styles.actionText}>עריכת עגלה</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={approveAllRequests}
-          >
-            <Text style={styles.actionText}>
-              אשר את כולם ({joinRequests.length})
-            </Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
-      <FlatList
-        data={combinedList}
-        renderItem={renderItem}
-        keyExtractor={(item, index) => `${item.email || item.title}-${index}`}
-        contentContainerStyle={styles.listContent}
-      />
-
-      <TouchableOpacity
-        style={styles.leaveButton}
-        onPress={() => setIsPopupVisible(true)}
-      >
-        <Text style={styles.leaveButtonText}>יציאה מהעגלה</Text>
-      </TouchableOpacity>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -526,7 +534,7 @@ const styles = StyleSheet.create({
     flexDirection: "column",
     alignItems: "flex-end",
     backgroundColor: "#0F872B",
-    height: height * 0.24,
+    height: height * 0.2,
     justifyContent: "space-between",
     position: "relative",
     width: "100%",
@@ -535,7 +543,7 @@ const styles = StyleSheet.create({
   backButton: {
     position: "absolute",
     left: 20,
-    top: 60,
+    top: 40,
   },
   headerCenterContainer: {
     position: "absolute",
@@ -654,7 +662,7 @@ const styles = StyleSheet.create({
   leaveButton: {
     backgroundColor: "#FF7E3E",
     position: "absolute",
-    bottom: 70,
+    bottom: 30,
     left: 20,
     right: 20,
     paddingVertical: 14,

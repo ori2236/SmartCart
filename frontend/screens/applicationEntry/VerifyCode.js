@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Dimensions,
+  StatusBar,
 } from "react-native";
 import axios from "axios";
 import { Ionicons } from "@expo/vector-icons";
@@ -13,7 +14,7 @@ import { useNavigation } from "@react-navigation/native";
 import * as SecureStore from "expo-secure-store";
 import config from "../../config";
 
-const { width, height } = Dimensions.get("window");
+const { height } = Dimensions.get("window");
 
 export default function VerifyCode({ route }) {
   const { mail, explanation } = route.params;
@@ -66,6 +67,7 @@ export default function VerifyCode({ route }) {
 
   return (
     <View style={styles.backgroundColor}>
+      <StatusBar backgroundColor="#FFFFFF" barStyle="dark-content" />
       <TouchableOpacity
         onPress={() => navigation.goBack()}
         style={styles.backButton}

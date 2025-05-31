@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import {
   View,
   Text,
@@ -11,13 +11,14 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
   Alert,
+  StatusBar,
 } from "react-native";
 import axios from "axios";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import config from "../../config";
 
-const { width, height } = Dimensions.get("window");
+const { height } = Dimensions.get("window");
 
 export default function JoinCart({ route }) {
   const { userMail } = route.params;
@@ -64,11 +65,9 @@ export default function JoinCart({ route }) {
 
   return (
     <View style={styles.backgroundColor}>
+      <StatusBar backgroundColor="#FFFFFF" barStyle="dark-content" />
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <KeyboardAvoidingView
-          behavior={"height"}
-          style={{ flex: 1 }}
-        >
+        <KeyboardAvoidingView behavior={"height"} style={{ flex: 1 }}>
           <TouchableOpacity
             onPress={() => navigation.goBack()}
             style={styles.backButton}
