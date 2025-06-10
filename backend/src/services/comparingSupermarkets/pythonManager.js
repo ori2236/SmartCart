@@ -10,7 +10,8 @@ let pythonProcess = null;
 //start the Python background server
 export const startPythonServer = () => {
   const scriptPath = path.resolve(__dirname, "python_server.py");
-  pythonProcess = spawn("/usr/bin/python", [scriptPath], {
+  const pythonCmd = process.platform === "win32" ? "python" : "/usr/bin/python";
+  pythonProcess = spawn(pythonCmd, [scriptPath], {
     cwd: path.resolve(__dirname, "../../.."),
     stdio: ["pipe", "pipe", "pipe"],
     env: {

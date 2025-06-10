@@ -2,8 +2,9 @@ import { emitFavoritesUpdate } from "../../socket.js";
 import Favorite from "../../models/Favorite.js";
 import Product from "../../models/Product.js";
 import ProductInCart from "../../models/ProductInCart.js";
-import User from "../../models/User.js";
-import ProductController from "../products/index.js";
+import Cart from "../../models/Cart.js";
+import { cleanAddress } from "../../services/suggestions/suggestions.js";
+import { filterAvailableProducts } from "../../services/suggestions/availableProducts.js";
 
 export default {
   post: {
@@ -55,16 +56,27 @@ export default {
   },
   get: {
     validator: async (req, res, next) => {
+      const { mail, cartKey } = req.params;
+      if (!mail || !cartKey) {
+        return res
+          .status(400)
+          .json({ error: "mail and cartKey are required." });
+      }
       next();
     },
     handler: async (req, res) => {
       const { mail, cartKey } = req.params;
 
       try {
-        const [favorites, cartProducts] = await Promise.all([
+        const [favorites, cartProducts, cart] = await Promise.all([
           Favorite.find({ mail }),
           ProductInCart.find({ cartKey }),
+          Cart.findById(cartKey),
         ]);
+
+        if (!cart) {
+          return res.status(404).json({ error: "Cart not found." });
+        }
 
         if (favorites.length === 0) {
           return res.status(200).json([]);
@@ -76,6 +88,13 @@ export default {
           _id: { $in: productIds },
         });
 
+        const cartAddress = cleanAddress(cart.address);
+        const availableEntries = await filterAvailableProducts(
+          products,
+          cartAddress
+        );
+        const availableSet = new Set(availableEntries.map(([id, count]) => id));
+
         const productMap = new Map(
           products.map((prod) => [prod._id.toString(), prod])
         );
@@ -83,18 +102,20 @@ export default {
           cartProducts.map((p) => [p.productId, p])
         );
 
-        const response = favorites.map((fav) => {
-          const product = productMap.get(fav.productId);
-          return {
-            productId: fav.productId.toString(),
-            name: product?.name || "Unknown",
-            image: product?.image || null,
-            quantityInFavorites: fav.quantity,
-            isInCart: cartProductMap.has(fav.productId.toString()),
-            quantityInCart:
-              cartProductMap.get(fav.productId.toString())?.quantity || 0,
-          };
-        });
+        const response = favorites
+          .map((fav) => {
+            const pid = fav.productId.toString();
+            const prod = productMap.get(pid) || {};
+            return {
+              productId: pid,
+              name: prod.name || "Unknown",
+              image: prod.image || null,
+              quantityInFavorites: fav.quantity,
+              isInCart: cartProductMap.has(pid),
+              quantityInCart: cartProductMap.get(pid)?.quantity || 0,
+            };
+          })
+          .filter((item) => availableSet.has(item.productId));
 
         return res.status(200).json(response);
       } catch (error) {
