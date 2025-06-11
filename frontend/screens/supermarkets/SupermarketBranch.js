@@ -1,4 +1,3 @@
-import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -9,6 +8,7 @@ import {
   Platform,
   Linking,
   FlatList,
+  StatusBar,
 } from "react-native";
 import SupermarketProductsList from "./SupermarketProductsList";
 import { useNavigation } from "@react-navigation/native";
@@ -57,6 +57,7 @@ const SupermarketBranch = ({ route }) => {
 
   return (
     <View style={styles.backgroundColor}>
+      <StatusBar backgroundColor="#0F872B" barStyle="light-content" />
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
@@ -123,29 +124,45 @@ const SupermarketBranch = ({ route }) => {
       />
       {/* Bottom Navigation */}
       <View style={styles.bottomNavigation}>
-        <TouchableOpacity>
+        <TouchableOpacity style={styles.navItem}>
           <Image
             source={require("../../assets/super-branches.png")}
-            style={styles.LocationIcon}
+            style={[styles.bottomIcon, styles.bottomIconMarked]}
           />
+          <Text style={styles.navLabelMarked}>מחיר מרחק</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => handleBottomRow("shoppingCart")}>
+
+        <TouchableOpacity
+          style={styles.navItem}
+          onPress={() => handleBottomRow("shoppingCart")}
+        >
           <Image
             source={require("../../assets/shopping-list.png")}
             style={styles.bottomIcon}
           />
+          <Text style={styles.navLabel}>העגלה שלי</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => handleBottomRow("addProducts")}>
+
+        <TouchableOpacity
+          style={styles.navItem}
+          onPress={() => handleBottomRow("addProducts")}
+        >
           <Image
             source={require("../../assets/add-products.png")}
             style={styles.bottomIcon}
           />
+          <Text style={styles.navLabel}>הוספה לעגלה</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => handleBottomRow("home")}>
+
+        <TouchableOpacity
+          style={styles.navItem}
+          onPress={() => handleBottomRow("home")}
+        >
           <Image
             source={require("../../assets/home.png")}
             style={styles.bottomIcon}
           />
+          <Text style={styles.navLabel}>ראשי</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -174,8 +191,8 @@ const styles = StyleSheet.create({
     top: Platform.OS === "web" ? 30 : 45,
   },
   logo: {
-    height: Platform.OS === "web" ? height * 0.22 : height * 0.2,
-    width: Platform.OS === "web" ? width * 0.4 : width * 0.5,
+    height: height * 0.2,
+    width: width * 0.5,
     resizeMode: "contain",
     marginTop: Platform.OS === "web" ? -10 : -20,
   },
@@ -183,10 +200,6 @@ const styles = StyleSheet.create({
     flexDirection: "column",
     alignItems: "center",
     paddingTop: 20,
-  },
-  scrollContainer: {
-    alignItems: "center",
-    paddingBottom: 100,
   },
   storeName: {
     fontSize: 24,
@@ -230,23 +243,33 @@ const styles = StyleSheet.create({
   bottomNavigation: {
     flexDirection: "row",
     justifyContent: "space-around",
-    paddingVertical: 15,
+    paddingVertical: 10,
     borderTopWidth: 1,
     borderTopColor: "#EEEEEE",
     position: "absolute",
     bottom: 0,
     width: "100%",
     backgroundColor: "#FFFFFF",
-    paddingBottom: 50,
+  },
+  navItem: {
+    alignItems: "center",
   },
   bottomIcon: {
-    width: 30,
-    height: 30,
+    width: 27,
+    height: 27,
+    resizeMode: "contain",
+    marginBottom: 4,
   },
-  LocationIcon: {
-    width: 30,
-    height: 30,
+  bottomIconMarked: {
     tintColor: "#0F872B",
+  },
+  navLabel: {
+    fontSize: 12,
+    color: "#333333",
+  },
+  navLabelMarked: {
+    fontSize: 12,
+    color: "#0F872B",
   },
 });
 

@@ -29,7 +29,7 @@ def measure_time(func):
 SEMAPHORE = asyncio.Semaphore(30)
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
-from db.index import get_db
+from src.db.index import get_db
 
 db = get_db()
 find_stores = db["findStores"]

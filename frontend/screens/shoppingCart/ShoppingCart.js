@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -7,7 +7,7 @@ import {
   StyleSheet,
   Dimensions,
   TextInput,
-  Platform,
+  StatusBar,
 } from "react-native";
 import axios from "axios";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
@@ -285,7 +285,7 @@ const ShoppingCart = ({ route }) => {
           mail: userMail,
           explaination: "undo",
         };
-        const apiUrl = `http://${config.apiServer}/api/productInCart/existngProduct`;
+        const apiUrl = `http://${config.apiServer}/api/productInCart/productInCart`;
         const response = await axios.post(apiUrl, undoData);
         if (response.status !== 201) {
           console.error(response);
@@ -310,6 +310,7 @@ const ShoppingCart = ({ route }) => {
 
   return (
     <View style={styles.backgroundColor}>
+      <StatusBar backgroundColor="#0F872B" barStyle="light-content" />
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
@@ -378,29 +379,45 @@ const ShoppingCart = ({ route }) => {
 
       {/* Bottom Navigation */}
       <View style={styles.bottomNavigation}>
-        <TouchableOpacity onPress={() => handleBottomRow("supermarkets")}>
+        <TouchableOpacity
+          style={styles.navItem}
+          onPress={() => handleBottomRow("supermarkets")}
+        >
           <Image
             source={require("../../assets/super-branches.png")}
             style={styles.bottomIcon}
           />
+          <Text style={styles.navLabel}>מחיר מרחק</Text>
         </TouchableOpacity>
-        <TouchableOpacity>
+
+        <TouchableOpacity style={styles.navItem}>
           <Image
             source={require("../../assets/shopping-list.png")}
-            style={styles.ShoppingCartIcon}
+            style={[styles.bottomIcon, styles.bottomIconMarked]}
           />
+          <Text style={styles.navLabelMarked}>העגלה שלי</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => handleBottomRow("addProducts")}>
+
+        <TouchableOpacity
+          style={styles.navItem}
+          onPress={() => handleBottomRow("addProducts")}
+        >
           <Image
             source={require("../../assets/add-products.png")}
             style={styles.bottomIcon}
           />
+          <Text style={styles.navLabel}>הוספה לעגלה</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => handleBottomRow("home")}>
+
+        <TouchableOpacity
+          style={styles.navItem}
+          onPress={() => handleBottomRow("home")}
+        >
           <Image
             source={require("../../assets/home.png")}
             style={styles.bottomIcon}
           />
+          <Text style={styles.navLabel}>ראשי</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -438,6 +455,7 @@ const styles = StyleSheet.create({
   headerIcon: {
     width: 36,
     height: 36,
+    resizeMode: "contain",
   },
   cartIconWrapper: {
     position: "absolute",
@@ -483,23 +501,33 @@ const styles = StyleSheet.create({
   bottomNavigation: {
     flexDirection: "row",
     justifyContent: "space-around",
-    paddingVertical: 15,
+    paddingVertical: 10,
     borderTopWidth: 1,
     borderTopColor: "#EEEEEE",
     position: "absolute",
     bottom: 0,
     width: "100%",
     backgroundColor: "#FFFFFF",
-    paddingBottom: 50,
+  },
+  navItem: {
+    alignItems: "center",
   },
   bottomIcon: {
-    width: 30,
-    height: 30,
+    width: 27,
+    height: 27,
+    resizeMode: "contain",
+    marginBottom: 4,
   },
-  ShoppingCartIcon: {
-    width: 30,
-    height: 30,
+  bottomIconMarked: {
     tintColor: "#0F872B",
+  },
+  navLabel: {
+    fontSize: 12,
+    color: "#333333",
+  },
+  navLabelMarked: {
+    fontSize: 12,
+    color: "#0F872B",
   },
   logo: {
     alignSelf: "center",

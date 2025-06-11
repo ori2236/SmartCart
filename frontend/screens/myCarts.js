@@ -1,5 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, Image, Modal } from "react-native";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Image,
+  Modal,
+  StatusBar,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { StyleSheet, Dimensions, Platform } from "react-native";
@@ -17,34 +24,32 @@ const MyCartsScreen = () => {
   const [isMenuVisible, setIsMenuVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        const mail = await SecureStore.getItemAsync("userMail");
+        const resolvedMail = mail || "guest";
+        setUserMail(resolvedMail);
+        const nickname = await SecureStore.getItemAsync("nickname");
 
-useEffect(() => {
-  const fetchData = async () => {
-    setIsLoading(true);
-    try {
-      const mail = await SecureStore.getItemAsync("userMail");
-      const resolvedMail = mail || "guest";
-      setUserMail(resolvedMail);
-      const nickname = await SecureStore.getItemAsync("nickname");
+        const apiUrl = `http://${config.apiServer}/api/userInCart/userInCart/mail/${resolvedMail}`;
+        const response = await axios.get(apiUrl);
 
-      const apiUrl = `http://${config.apiServer}/api/userInCart/userInCart/mail/${resolvedMail}`;
-      const response = await axios.get(apiUrl);
-
-      if (response.data && response.data.message) {
-        setCarts([]);
-      } else {
-        setCarts(response.data);
+        if (response.data && response.data.message) {
+          setCarts([]);
+        } else {
+          setCarts(response.data);
+        }
+      } catch (error) {
+        console.error("Error fetching data:", error.message);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error("Error fetching data:", error.message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    };
 
-  fetchData();
-}, []);
-
+    fetchData();
+  }, []);
 
   const handleMenuOption = (option) => {
     setIsMenuVisible(false);
@@ -63,10 +68,9 @@ useEffect(() => {
     }
   };
 
-
-
   return (
     <View style={styles.backgroundColor}>
+      <StatusBar backgroundColor="#0F872B" barStyle="light-content" />
       <Modal
         visible={isMenuVisible}
         transparent={true}
@@ -177,7 +181,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "column",
     backgroundColor: "#0F872B",
-    height: height * 0.3,
+    height: 225,
     justifyContent: "flex-end",
     alignItems: "center",
     paddingBottom: 20,
@@ -190,9 +194,10 @@ const styles = StyleSheet.create({
   menuButton: {
     position: "absolute",
     right: 20,
-    top: 55,
+    top: 30,
   },
   logo: {
+    height: height * 0.15,
     width: width * 0.6,
     resizeMode: "contain",
   },
@@ -230,7 +235,6 @@ const styles = StyleSheet.create({
   },
   scrollableContainer: {
     flex: 1,
-    marginBottom: 50
   },
   centerContent: {
     justifyContent: "center",

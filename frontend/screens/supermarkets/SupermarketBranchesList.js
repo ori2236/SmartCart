@@ -1,18 +1,15 @@
-import React from "react";
 import {
   View,
   Text,
   Image,
-  TextInput,
   TouchableOpacity,
   StyleSheet,
-  Platform,
   Dimensions,
   FlatList,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 
-const { width, height } = Dimensions.get("window");
+const { height } = Dimensions.get("window");
 
 const SupermarketBranchesList = ({
   supermarketBranches,

@@ -7,6 +7,7 @@ import {
   Image,
   StyleSheet,
   Dimensions,
+  StatusBar,
 } from "react-native";
 import axios from "axios";
 import { Ionicons } from "@expo/vector-icons";
@@ -14,7 +15,7 @@ import { useNavigation } from "@react-navigation/native";
 import * as SecureStore from "expo-secure-store";
 import config from "../../config";
 
-const { width, height } = Dimensions.get("window");
+const { height } = Dimensions.get("window");
 
 export default function Login() {
   const navigation = useNavigation();
@@ -24,6 +25,12 @@ export default function Login() {
     mail: "",
     password: "",
   });
+
+  useEffect(() => {
+    axios
+      .get(`http://${config.apiServer}/healthcheck`)
+      .catch((err) => alert("השרת אינו מחובר" + err.message));
+  }, []);
 
   useEffect(() => {
     SecureStore.deleteItemAsync("userMail");
@@ -51,7 +58,7 @@ export default function Login() {
   };
 
   const handleCheckUser = async () => {
-    let newErrors = { mail: "", password: ""};
+    let newErrors = { mail: "", password: "" };
 
     if (!mail.trim()) {
       newErrors.mail = "שדה זה הינו חובה";
@@ -98,6 +105,7 @@ export default function Login() {
 
   return (
     <View style={styles.backgroundColor}>
+      <StatusBar backgroundColor="#FFFFFF" barStyle="dark-content" />
       <Image
         source={require("../../assets/fullLogo.png")}
         style={styles.headerImage}
@@ -233,7 +241,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     width: "75%",
     backgroundColor: "#0F872B",
-    marginTop: 135,
+    marginTop: 150,
     padding: 12,
     borderRadius: 100,
     alignItems: "center",

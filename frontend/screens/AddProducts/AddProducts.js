@@ -1,12 +1,12 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import {
   View,
   Text,
   TouchableOpacity,
   Image,
   StyleSheet,
-  Dimensions,
   Platform,
+  StatusBar,
 } from "react-native";
 import ProductSearch from "./ProductSearch";
 import ProductFavorites from "./ProductFavorites";
@@ -16,12 +16,10 @@ import { useNavigation } from "@react-navigation/native";
 const AddProducts = ({ route }) => {
   const { userMail, cart } = route.params;
   const [selectedTab, setSelectedTab] = useState("name");
-  const [products, setProducts] = useState([]);
   const navigation = useNavigation();
 
   const handleTabPress = (tab) => {
     setSelectedTab(tab);
-    setProducts([]);
   };
 
   const renderContent = () => {
@@ -58,6 +56,7 @@ const AddProducts = ({ route }) => {
 
   return (
     <View style={styles.backgroundColor}>
+      <StatusBar backgroundColor="#0F872B" barStyle="light-content" />
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
@@ -126,29 +125,45 @@ const AddProducts = ({ route }) => {
 
       {/* Bottom Navigation */}
       <View style={styles.bottomNavigation}>
-        <TouchableOpacity onPress={() => handleBottomRow("supermarkets")}>
+        <TouchableOpacity
+          style={styles.navItem}
+          onPress={() => handleBottomRow("supermarkets")}
+        >
           <Image
             source={require("../../assets/super-branches.png")}
             style={styles.bottomIcon}
           />
+          <Text style={styles.navLabel}>מחיר מרחק</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => handleBottomRow("shoppingCart")}>
+
+        <TouchableOpacity
+          style={styles.navItem}
+          onPress={() => handleBottomRow("shoppingCart")}
+        >
           <Image
             source={require("../../assets/shopping-list.png")}
             style={styles.bottomIcon}
           />
+          <Text style={styles.navLabel}>העגלה שלי</Text>
         </TouchableOpacity>
-        <TouchableOpacity>
+
+        <TouchableOpacity style={styles.navItem}>
           <Image
             source={require("../../assets/add-products.png")}
-            style={styles.addProductsIcon}
+            style={[styles.bottomIcon, styles.bottomIconMarked]}
           />
+          <Text style={styles.navLabel}>הוספה לעגלה</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => handleBottomRow("home")}>
+
+        <TouchableOpacity
+          style={styles.navItem}
+          onPress={() => handleBottomRow("home")}
+        >
           <Image
             source={require("../../assets/home.png")}
             style={styles.bottomIcon}
           />
+          <Text style={styles.navLabel}>ראשי</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -164,7 +179,7 @@ const styles = StyleSheet.create({
     flexDirection: "row-reverse",
     alignItems: "flex-end",
     backgroundColor: "#0F872B",
-    height: 140,
+    height: 120,
     paddingHorizontal: 15,
     paddingBottom: 5,
     justifyContent: "space-between",
@@ -179,8 +194,8 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     marginBottom: 40,
+    resizeMode: "contain",
   },
-
   tabContainer: {
     flexDirection: "row",
     marginTop: 25,
@@ -216,24 +231,33 @@ const styles = StyleSheet.create({
   bottomNavigation: {
     flexDirection: "row",
     justifyContent: "space-around",
-    paddingVertical: 15,
+    paddingVertical: 10,
     borderTopWidth: 1,
     borderTopColor: "#EEEEEE",
     position: "absolute",
     bottom: 0,
     width: "100%",
     backgroundColor: "#FFFFFF",
-    paddingBottom: 50,
   },
-
+  navItem: {
+    alignItems: "center",
+  },
   bottomIcon: {
-    width: 30,
-    height: 30,
+    width: 27,
+    height: 27,
+    resizeMode: "contain",
+    marginBottom: 4,
   },
-  addProductsIcon: {
-    width: 30,
-    height: 30,
+  bottomIconMarked: {
     tintColor: "#0F872B",
+  },
+  navLabel: {
+    fontSize: 12,
+    color: "#333333",
+  },
+  navLabelMarked: {
+    fontSize: 12,
+    color: "#0F872B",
   },
 });
 

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import {
   View,
   Text,
@@ -7,13 +7,14 @@ import {
   Image,
   StyleSheet,
   Dimensions,
+  StatusBar,
 } from "react-native";
 import axios from "axios";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import config from "../../config";
 
-const { width, height } = Dimensions.get("window");
+const { height } = Dimensions.get("window");
 
 export default function Register() {
   const navigation = useNavigation();
@@ -105,6 +106,7 @@ export default function Register() {
 
   return (
     <View style={styles.backgroundColor}>
+      <StatusBar backgroundColor="#FFFFFF" barStyle="dark-content" />
       <TouchableOpacity
         onPress={() => navigation.goBack()}
         style={styles.backButton}

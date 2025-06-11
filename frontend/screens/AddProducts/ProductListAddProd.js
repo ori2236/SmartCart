@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -377,7 +377,7 @@ const styles = StyleSheet.create({
   },
   flatListContent: {
     alignItems: "center",
-    paddingBottom: 450,
+    paddingBottom: 400,
   },
   centerContent: {
     justifyContent: "center",
