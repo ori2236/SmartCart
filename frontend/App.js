@@ -21,22 +21,22 @@ import JoinCart from "./screens/cartManagement/JoinCart";
 import CartInfo from "./screens/cartManagement/CartInfo";
 import ChangeInfo from "./screens/cartManagement/ChangeInfo";
 
+import config from "./config";
+
 const Stack = createStackNavigator();
 
 export default function App() {
   const [initialRoute, setInitialRoute] = useState(null);
 
   useEffect(() => {
-    const checkLoginStatus = async () => {
+    const init = async () => {
+      await config.loadServerUrl();
+
       const userMail = await SecureStore.getItemAsync("userMail");
-      if (userMail) {
-        setInitialRoute("MyCarts");
-      } else {
-        setInitialRoute("Login");
-      }
+      setInitialRoute(userMail ? "MyCarts" : "Login");
     };
 
-    checkLoginStatus();
+    init();
   }, []);
 
   if (!initialRoute) return null;

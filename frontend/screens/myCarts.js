@@ -3,9 +3,12 @@ import {
   View,
   Text,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   Image,
   Modal,
   StatusBar,
+  TextInput,
+  Button,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
@@ -24,6 +27,32 @@ const MyCartsScreen = () => {
   const [isMenuVisible, setIsMenuVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
+  const [secretPressCount, setSecretPressCount] = useState(0);
+  const [showServerModal, setShowServerModal] = useState(false);
+  const [newServerUrl, setNewServerUrl] = useState("");
+
+  useEffect(() => {
+    if (secretPressCount >= 5) {
+      loadExistingServerUrl();
+      setShowServerModal(true);
+      setSecretPressCount(0);
+    }
+  }, [secretPressCount]);
+
+  const loadExistingServerUrl = async () => {
+    const currentUrl = config.apiServer;
+    setNewServerUrl(currentUrl || "");
+  };
+  
+  const handleSecretPress = () => {
+    setSecretPressCount((prev) => prev + 1);
+  };
+
+  const handleSaveServerUrl = async () => {
+    await config.setApiServer(newServerUrl);
+    setShowServerModal(false);
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
@@ -31,11 +60,8 @@ const MyCartsScreen = () => {
         const mail = await SecureStore.getItemAsync("userMail");
         const resolvedMail = mail || "guest";
         setUserMail(resolvedMail);
-        const nickname = await SecureStore.getItemAsync("nickname");
-
         const apiUrl = `http://${config.apiServer}/api/userInCart/userInCart/mail/${resolvedMail}`;
         const response = await axios.get(apiUrl);
-
         if (response.data && response.data.message) {
           setCarts([]);
         } else {
@@ -43,13 +69,14 @@ const MyCartsScreen = () => {
         }
       } catch (error) {
         console.error("Error fetching data:", error.message);
+        setCarts([]);
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchData();
-  }, []);
+  }, [showServerModal]);
 
   const handleMenuOption = (option) => {
     setIsMenuVisible(false);
@@ -71,6 +98,42 @@ const MyCartsScreen = () => {
   return (
     <View style={styles.backgroundColor}>
       <StatusBar backgroundColor="#0F872B" barStyle="light-content" />
+
+      <Modal visible={showServerModal} transparent animationType="fade">
+        <TouchableOpacity
+          style={styles.modalOverlayServer}
+          activeOpacity={1}
+          onPressOut={() => setShowServerModal(false)}
+        >
+          <View style={styles.modalContentWrapper}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>הזן כתובת שרת (IP:PORT)</Text>
+              <TextInput
+                value={newServerUrl}
+                onChangeText={setNewServerUrl}
+                placeholder="_._._._:3000"
+                style={styles.modalInput}
+              />
+              <View style={styles.serverModalButtons}>
+                <TouchableOpacity
+                  style={styles.serverSaveButton}
+                  onPress={handleSaveServerUrl}
+                >
+                  <Text style={styles.serverButtonText}>שמור</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.serverCancelButton}
+                  onPress={() => setShowServerModal(false)}
+                >
+                  <Text style={styles.serverButtonText}>ביטול</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
       <Modal
         visible={isMenuVisible}
         transparent={true}
@@ -113,10 +176,12 @@ const MyCartsScreen = () => {
         </TouchableOpacity>
 
         <View style={styles.headerContent}>
-          <Image
-            source={require("../assets/full-logo-white.png")}
-            style={styles.logo}
-          />
+          <TouchableWithoutFeedback onPress={handleSecretPress}>
+            <Image
+              source={require("../assets/full-logo-white.png")}
+              style={styles.logo}
+            />
+          </TouchableWithoutFeedback>
           <Text style={styles.subtitle}>העגלות שלי</Text>
         </View>
       </View>
@@ -280,6 +345,70 @@ const styles = StyleSheet.create({
     borderColor: "#ddd",
   },
   menuText: {
+    fontSize: 18,
+    textAlign: "center",
+  },
+  modalOverlayServer: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContentWrapper: {
+    width: "100%",
+    alignItems: "center",
+    justifyContent: "center",
+    flex: 1,
+  },
+  modalContent: {
+    backgroundColor: "white",
+    padding: 20,
+    borderRadius: 10,
+    width: 300,
+    elevation: 5,
+  },
+  modalTitle: {
+    marginBottom: 10,
+    fontSize: 18,
+    fontWeight: "bold",
+    textAlign: "center",
+  },
+
+  modalInput: {
+    borderBottomWidth: 1,
+    borderColor: "#ccc",
+    marginBottom: 20,
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    fontSize: 16,
+  },
+  modalButtonRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  serverModalButtons: {
+    flexDirection: "row",
+    justifyContent: "center",
+    width: "100%",
+    marginTop: 10,
+    gap: 40,
+  },
+  serverSaveButton: {
+    backgroundColor: "#0F872B",
+    paddingVertical: 7,
+    paddingHorizontal: 20,
+    borderRadius: 5,
+    marginHorizontal: 15,
+  },
+  serverCancelButton: {
+    backgroundColor: "#FF7E3E",
+    paddingVertical: 7,
+    paddingHorizontal: 20,
+    borderRadius: 5,
+    marginHorizontal: 15,
+  },
+  serverButtonText: {
+    color: "white",
     fontSize: 18,
     textAlign: "center",
   },
